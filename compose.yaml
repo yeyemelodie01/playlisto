@@ -10,10 +10,26 @@ services:
     networks:
       - dev
     ports:
-      - "33306:33306"
+      - "33306:3306"
 
-  php:
-    container_name: playlisto_php
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: playlisto_rabbitmq
+    volumes:
+      - rmqconf:/etc/rabbitmq
+      - rmqdata:/var/lib/rabbitmq/mnesia
+      - rmqlogs:/var/log/rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "15672:15672"
+      - "5672:5672"
+    networks:
+      - dev
+
+  php-fpm:
+    container_name: playlisto_php-fpm
     build:
       context: .
       dockerfile: docker/php/Dockerfile
@@ -22,10 +38,12 @@ services:
       - ./:/var/www
     depends_on:
       - db
+      - rabbitmq
     networks:
       - dev
 
   nginx:
+    image: nginx:latest
     container_name: playlisto_nginx
     build:
       context: .
@@ -33,10 +51,11 @@ services:
     ports:
       - "8080:80"
     volumes:
-      - .:/var/www/html
+      - .:/var/www
       - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
     depends_on:
-      - php
+      - db
+      - php-fpm
     networks:
       - dev
 
@@ -45,3 +64,9 @@ networks:
 
 volumes:
   playlisto-db-data:
+  rmqconf:
+    driver: local
+  rmqdata:
+    driver: local
+  rmqlogs:
+    driver: local
