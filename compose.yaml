@@ -33,7 +33,6 @@ services:
     build:
       context: .
       dockerfile: docker/php/Dockerfile
-    working_dir: /var/www/html
     volumes:
       - ./:/var/www
     depends_on:

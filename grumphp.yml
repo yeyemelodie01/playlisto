@@ -1,0 +1,59 @@
+grumphp:
+    git_hook_variables:
+        EXEC_GRUMPHP_COMMAND: [ 'docker-compose', 'exec', '-T', 'php-fpm' ]
+    hooks_dir: ~
+    hooks_preset: local
+    stop_on_failure: true
+    tasks:
+        composer:
+            no_check_publish: true
+            no_check_lock: true
+        git_blacklist:
+            keywords:
+                - "die("
+                - "var_dump("
+                - "print_r("
+                - "dump("
+                - "die;"
+                - "//    "
+                - "<<<<<<<"
+                - "======="
+            triggered_by:
+                - 'php'
+                - 'lock'
+            regexp_type: G
+        jsonlint: ~
+        phpcs:
+            standard: phpcs.xml.dist
+            severity: ~
+            error_severity: ~
+            warning_severity: 0
+            tab_width: ~
+            report: full
+            report_width: ~
+            whitelist_patterns:
+                - /^src\/(.*)/
+            ignore_patterns:
+                - src/Migrations/*
+                - var/*
+                - vendor/*
+                - node_modules/*
+            encoding: ~
+            sniffs: []
+            triggered_by: [php]
+        xmllint: ~
+        yamllint: ~
+
+    fixer:
+        enabled: true
+        fix_by_default: true
+
+    ascii:
+        failed:
+            - grumphp-grumpy.txt
+            - nopecat.txt
+            - failed.txt
+        succeeded:
+            - grumphp-happy.txt
+            - me-gusta.txt
+            - succeeded.txt
