@@ -4,15 +4,26 @@ namespace App\Entity;
 
 use App\Entity\Traits\IdTrait;
 
+/**
+ * Represents an answer to a question in the application.
+ *
+ * This entity is used to store possible responses linked to a specific question.
+ * Each answer includes:
+ * - Label (`label`): The text content of the answer.
+ * - Question (`question`): The related question to which this answer belongs.
+ *
+ * Used in quiz or form-based modules where questions can have multiple answers.
+ */
 class Answer
 {
     use IdTrait;
 
+    /**
+     * @var string | null The text content of the answer.
+     */
     private string $label;
-
     #[ORM\ManyToOne(inversedBy: 'answers')]
     private ?Question $question = null;
-
 
     /**
      * @return string

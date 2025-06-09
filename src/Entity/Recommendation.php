@@ -4,6 +4,16 @@ namespace App\Entity;
 
 use App\Entity\Traits\IdTrait;
 
+/**
+ * Represents a music recommendation in the application.
+ *
+ * This entity stores metadata about a generated recommendation.
+ * Each recommendation includes:
+ * - Generated At (`generatedAt`): The timestamp when the recommendation was created.
+ * - Source (`source`): The origin or method used to generate the recommendation (e.g., algorithm, user input).
+ *
+ * Useful for tracking the origin and timing of suggested playlists or tracks.
+ */
 class Recommendation
 {
     use IdTrait;

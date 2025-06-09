@@ -7,8 +7,19 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 
 /**
- * Class Track
- * Represents a music track in the system.
+ * Represents a music track in the application.
+ *
+ * This entity contains metadata related to an audio track.
+ * Each track includes:
+ * - Title (`title`): The name of the track.
+ * - Artist (`artist`): The performer or group.
+ * - Album (`album`): The album from which the track originates.
+ * - Genre (`genre`): The musical genre classification.
+ * - Duration (`duration`): Track length in seconds.
+ * - Spotify ID (`spotifyId`): Identifier for integration with Spotify.
+ * - Cover URL (`coverUrl`): Link to the album or track's cover image.
+ *
+ * Tracks can belong to multiple playlists through a many-to-many relationship.
  */
 class Track
 {

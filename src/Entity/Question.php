@@ -6,6 +6,17 @@ use App\Entity\Traits\IdTrait;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 
+/**
+ * Represents a question in the application.
+ *
+ * This entity defines a quiz or form question that can have multiple answers.
+ * Each question includes:
+ * - Label (`label`): The textual content of the question.
+ * - Answers (`answers`): A collection of possible answers linked to the question.
+ *
+ * The `answers` are managed through a one-to-many relationship,
+ * allowing each question to be associated with several answer choices.
+ */
 class Question
 {
     use IdTrait;

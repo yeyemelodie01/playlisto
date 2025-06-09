@@ -6,21 +6,34 @@ use App\Entity\Traits\IdTrait;
 use DateTime;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
+use Gedmo\Timestampable\Traits\TimestampableEntity;
 
 /**
- * Class Playlist
- * Represents a playlist in the system.
+ * Represents a music playlist in the application.
+ *
+ * This entity stores user-generated playlists and their associated data.
+ * Each playlist includes:
+ * - Title (`title`): The name of the playlist.
+ * - Description (`description`): A summary or explanation of the playlist content.
+ * - Mood (`mood`): The emotional tone or vibe associated with the playlist.
+ * - Activity (`activity`): The activity context for which the playlist is intended.
+ * - Created At (`createdAt`): The timestamp of playlist creation.
+ * - Updated At (`updatedAt`): The timestamp of the last modification.
+ * - User (`user`): The creator of the playlist.
+ * - Tracks (`tracks`): A collection of tracks included in the playlist.
+ *
+ * Playlists are linked to users and can contain multiple tracks,
+ * enabling mood- or activity-based music organization.
  */
 class Playlist
 {
     use IdTrait;
+    use TimestampableEntity;
 
     private string $title;
     private string $description;
     private string $mood;
     private string $activity;
-    private ?DateTime $createdAt = null;
-    private ?DateTime $updatedAt = null;
 
     #[ORM\ManyToOne(inversedBy: 'playlists')]
     private ?User $user = null;
@@ -106,40 +119,6 @@ class Playlist
     public function setActivity(string $activity): void
     {
         $this->activity = $activity;
-    }
-
-    /**
-     * @return DateTime|null
-     */
-    public function getCreatedAt(): ?DateTime
-    {
-        return $this->createdAt;
-    }
-
-    /**
-     * @param DateTime|null $createdAt
-     *
-     * @return void
-     */
-    public function setCreatedAt(?DateTime $createdAt): void
-    {
-        $this->createdAt = $createdAt;
-    }
-
-    /**
-     * @return DateTime|null
-     */
-    public function getUpdatedAt(): ?DateTime
-    {
-        return $this->updatedAt;
-    }
-
-    /**
-     * @param DateTime|null $updatedAt
-     */
-    public function setUpdatedAt(?DateTime $updatedAt): void
-    {
-        $this->updatedAt = $updatedAt;
     }
 
     /**

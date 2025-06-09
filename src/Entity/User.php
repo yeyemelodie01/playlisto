@@ -7,14 +7,33 @@ use App\Repository\UserRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Gedmo\Timestampable\Traits\TimestampableEntity;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
 
+/**
+ * Represents a user of the application.
+ *
+ * This entity contains information about the application's users, including:
+ * - Email (`email`): The unique email address used for authentication.
+ * - Roles (`roles`): An array of roles granted to the user (e.g., ROLE_USER, ROLE_ADMIN).
+ * - Password (`password`): The hashed password for secure authentication.
+ * - Username (`username`): The display name or pseudonym of the user.
+ * - Created at (`createdAt`): The datetime when the account was created.
+ * - Updated at (`updatedAt`): The last datetime the user's profile was modified.
+ *
+ * Relationships:
+ * - One-to-many with `Playlist`: a user can create multiple playlists.
+ *
+ * This entity implements `UserInterface` and `PasswordAuthenticatedUserInterface`
+ * for compatibility with Symfony's security system.
+ */
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 #[ORM\UniqueConstraint(name: 'UNIQ_IDENTIFIER_EMAIL', fields: ['email'])]
 class User implements UserInterface, PasswordAuthenticatedUserInterface
 {
     use IdTrait;
+    use TimestampableEntity;
 
     #[ORM\Column(length: 180)]
     private ?string $email = null;
@@ -32,9 +51,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private ?string $password = null;
 
     private string $username;
-
-    private \DateTime $createdAt;
-    private \DateTime $updatedAt;
 
     /**
      * @var Collection<int, Playlist>
@@ -135,42 +151,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setUsername(string $username): void
     {
         $this->username = $username;
-    }
-
-    /**
-     * @return \DateTime
-     */
-    public function getCreatedAt(): \DateTime
-    {
-        return $this->createdAt;
-    }
-
-    /**
-     * @param \DateTime $createdAt
-     *
-     * @return void
-     */
-    public function setCreatedAt(\DateTime $createdAt): void
-    {
-        $this->createdAt = $createdAt;
-    }
-
-    /**
-     * @return \DateTime
-     */
-    public function getUpdatedAt(): \DateTime
-    {
-        return $this->updatedAt;
-    }
-
-    /**
-     * @param \DateTime $updatedAt
-     *
-     * @return void
-     */
-    public function setUpdatedAt(\DateTime $updatedAt): void
-    {
-        $this->updatedAt = $updatedAt;
     }
 
     /**
