@@ -3,9 +3,12 @@
 namespace App\Entity;
 
 use App\Entity\Traits\IdTrait;
-use DateTime;
+use App\Enum\ActivityType;
+use App\Enum\MoodType;
+use App\Repository\PlaylistRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
+use Doctrine\ORM\Mapping as ORM;
 use Gedmo\Timestampable\Traits\TimestampableEntity;
 
 /**
@@ -25,15 +28,24 @@ use Gedmo\Timestampable\Traits\TimestampableEntity;
  * Playlists are linked to users and can contain multiple tracks,
  * enabling mood- or activity-based music organization.
  */
+#[ORM\Entity(repositoryClass:  PlaylistRepository::class)]
+#[ORM\Table(name: 'playlist')]
 class Playlist
 {
     use IdTrait;
     use TimestampableEntity;
 
+    #[ORM\Column(length: 255)]
     private string $title;
+
+    #[ORM\Column(length: 255)]
     private string $description;
-    private string $mood;
-    private string $activity;
+
+    #[ORM\Column(type:'string', length: 50, enumType: MoodType::class)]
+    private MoodType $mood;
+
+    #[ORM\Column(type:'string', length: 50, enumType: ActivityType::class)]
+    private ActivityType $activity;
 
     #[ORM\ManyToOne(inversedBy: 'playlists')]
     private ?User $user = null;

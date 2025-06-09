@@ -3,6 +3,8 @@
 namespace App\Entity;
 
 use App\Entity\Traits\IdTrait;
+use App\Repository\AnswerRepository;
+use Doctrine\ORM\Mapping as ORM;
 
 /**
  * Represents an answer to a question in the application.
@@ -14,6 +16,8 @@ use App\Entity\Traits\IdTrait;
  *
  * Used in quiz or form-based modules where questions can have multiple answers.
  */
+#[ORM\Entity(repositoryClass: AnswerRepository::class)]
+#[ORM\Table(name: 'answer')]
 class Answer
 {
     use IdTrait;
@@ -21,6 +25,7 @@ class Answer
     /**
      * @var string | null The text content of the answer.
      */
+    #[ORM\Column(length: 255)]
     private string $label;
     #[ORM\ManyToOne(inversedBy: 'answers')]
     private ?Question $question = null;

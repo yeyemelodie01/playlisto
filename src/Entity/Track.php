@@ -3,8 +3,10 @@
 namespace App\Entity;
 
 use App\Entity\Traits\IdTrait;
+use App\Repository\TrackRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
+use Doctrine\ORM\Mapping as ORM;
 
 /**
  * Represents a music track in the application.
@@ -21,16 +23,31 @@ use Doctrine\Common\Collections\Collection;
  *
  * Tracks can belong to multiple playlists through a many-to-many relationship.
  */
+#[ORM\Entity(repositoryClass: TrackRepository::class)]
+#[ORM\Table(name: 'track')]
 class Track
 {
     use IdTrait;
 
+    #[ORM\Column(length: 255)]
     private string $title;
+
+    #[ORM\Column(length: 255)]
     private string $artist;
+
+    #[ORM\Column(length: 255)]
     private string $album;
+
+    #[ORM\Column(length: 255)]
     private string $genre;
+
+    #[ORM\Column(type: 'integer')]
     private int $duration;
+
+    #[ORM\Column(type: 'integer')]
     private int $spotifyId;
+
+    #[ORM\Column(length: 255)]
     private string $coverUrl;
 
     /**

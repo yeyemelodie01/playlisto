@@ -19,8 +19,8 @@ use Symfony\Component\Security\Core\User\UserInterface;
  * - Roles (`roles`): An array of roles granted to the user (e.g., ROLE_USER, ROLE_ADMIN).
  * - Password (`password`): The hashed password for secure authentication.
  * - Username (`username`): The display name or pseudonym of the user.
- * - Created at (`createdAt`): The datetime when the account was created.
- * - Updated at (`updatedAt`): The last datetime the user's profile was modified.
+ * - Created at (`createdAt`): The timestamp of account creation.
+ * - Updated at (`updatedAt`): The timestamp of the last update.
  *
  * Relationships:
  * - One-to-many with `Playlist`: a user can create multiple playlists.
@@ -50,7 +50,14 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column]
     private ?string $password = null;
 
+    /**
+     * @var string The username or display name of the user
+     */
+    #[ORM\Column(length: 255)]
     private string $username;
+
+    #[ORM\Column(type: 'integer')]
+    private int $spotifyId;
 
     /**
      * @var Collection<int, Playlist>

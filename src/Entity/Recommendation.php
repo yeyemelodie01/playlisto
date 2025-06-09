@@ -3,6 +3,8 @@
 namespace App\Entity;
 
 use App\Entity\Traits\IdTrait;
+use App\Repository\RecommendationRepository;
+use Doctrine\ORM\Mapping as ORM;
 
 /**
  * Represents a music recommendation in the application.
@@ -14,11 +16,16 @@ use App\Entity\Traits\IdTrait;
  *
  * Useful for tracking the origin and timing of suggested playlists or tracks.
  */
+#[ORM\Entity(repositoryClass: RecommendationRepository::class)]
+#[ORM\Table(name: 'recommendation')]
 class Recommendation
 {
     use IdTrait;
 
+    #[ORM\Column(type: 'datetime')]
     private \DateTime $generatedAt;
+
+    #[ORM\Column(length: 255)]
     private string $source;
 
     /**

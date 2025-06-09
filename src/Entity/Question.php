@@ -3,8 +3,10 @@
 namespace App\Entity;
 
 use App\Entity\Traits\IdTrait;
+use App\Repository\QuestionRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
+use Doctrine\ORM\Mapping as ORM;
 
 /**
  * Represents a question in the application.
@@ -17,10 +19,16 @@ use Doctrine\Common\Collections\Collection;
  * The `answers` are managed through a one-to-many relationship,
  * allowing each question to be associated with several answer choices.
  */
+#[ORM\Entity(repositoryClass: QuestionRepository::class)]
+#[ORM\Table(name: 'question')]
 class Question
 {
     use IdTrait;
 
+    /**
+     * @var string The textual content of the question.
+     */
+    #[ORM\Column(length: 255)]
     private string $label;
 
     /**
