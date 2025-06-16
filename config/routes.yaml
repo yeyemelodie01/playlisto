@@ -3,3 +3,9 @@ controllers:
         path: ../src/Controller/
         namespace: App\Controller
     type: attribute
+
+back:
+    name_prefix: 'back_'
+    resource: ../src/Controller/Back
+    type: attribute
+    host: '%back_domain_default%'

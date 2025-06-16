@@ -1,0 +1,30 @@
+{% trans_default_domain 'Menu' %}
+{% block menu %}
+    {% set currentPage = app.request.get('_route') %}
+    {% set linkClass = 'relative flex flex-row items-center h-11 focus:outline-none hover:bg-gray-50 text-gray-600 hover:text-gray-800 border-l-4 border-transparent hover:border-indigo-500 pr-6' %}
+    {% set activeClass = 'bg-indigo-100 border-indigo-500' %}
+    <div class="min-h-screen flex flex-col flex-auto flex-shrink-0 antialiased bg-gray-50 text-gray-800">
+        <div class="fixed flex flex-col top-0 left-0 w-64 bg-white h-full border-r">
+            <div class="overflow-y-auto overflow-x-hidden flex-grow">
+                <ul class="flex flex-col py-4 space-y-1">
+                    <li>
+                        <a href="{{ path('back_index')}}" class="{{ linkClass }} {{ 'back_index' == app.request.get('_route') ? activeClass : ''}}">
+                        <span class="inline-flex justify-center items-center ml-4">
+                            <i class="fa-sharp fa-solid fa-house"></i>
+                        </span>
+                            <span class="ml-2 text-sm tracking-wide truncate">{{ 'home'|trans({}, 'Menu') }}</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ path('logout') }}" class="{{ linkClass }}">
+                        <span class="inline-flex justify-center items-center ml-4">
+                          <i class="fa-sharp fa-solid fa-door-open"></i>
+                        </span>
+                            <span class="ml-2 text-sm tracking-wide truncate">{{ 'logout'|trans({}, 'Menu') }}</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+{% endblock %}
