@@ -1,15 +1,11 @@
 module.exports = {
     content: [
-        "./assets/**/*.js",
-        "./assets/**/*.jsx",
-        "./assets/**/*.ts",
-        "./assets/**/*.tsx",
-        "./assets/**/*.vue",
-        "./assets/**/*.twig",
+        "./assets/**/*.{js,jsx,ts,tsx,vue,twig}",
         "./templates/**/*.twig",
+        "./templates/**/*.html.twig",
     ],
     theme: {
         extend: {},
     },
-    plugins: [],
+    plugins: [require('daisyui')],
 }

@@ -8,6 +8,9 @@ parameters:
     # BACK
     back_domain_default: '%env(APP_ADMIN_HOST)%'
 
+    # FRONT
+    front_domain_default: '%env(APP_FRONT_HOST)%'
+
 services:
     # default configuration for services in *this* file
     _defaults:

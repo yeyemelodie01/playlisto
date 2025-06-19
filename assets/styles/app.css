@@ -1,6 +1,9 @@
-@tailwind utilities;
-@plugin "daisyui";
+@import "tailwindcss";
+@source "./public/*.{html,js}";
+@plugin "daisyui"{
+    themes: light --default, dark --preferdark;
+}
 
 body {
-    background-color: skyblue;
+    background-color: #f2f2f2;
 }

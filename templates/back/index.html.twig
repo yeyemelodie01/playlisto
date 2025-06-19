@@ -1,9 +1,18 @@
 {% extends 'back/layout.html.twig' %}
 
-{% block breadcrumb %}{% endblock %}
+{% block breadcrumb %}
+    <div class="breadcrumbs text-sm">
+        <ul>
+            <li><a class="text-red-300">Home</a></li>
+            <li><a>Documents</a></li>
+            <li>Add Document</li>
+        </ul>
+    </div>
+{% endblock %}
 
 {% block content %}
-    <h1 class="text-3xl font-bold underline">
+    <h1 class="text-3xl font-bold no-underline text-lime-600">
         Hello world!
     </h1>
+    <button class="btn btn-primary">Test Button</button>
 {% endblock %}

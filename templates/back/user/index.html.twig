@@ -1,0 +1,54 @@
+{% extends 'back/layout.html.twig' %}
+
+{% block breadcrumb %}
+    <div class="breadcrumbs text-sm">
+        <ul>
+            <li><a class="text-red-300">Home</a></li>
+            <li><a>Users</a></li>
+            <li>List Users</li>
+        </ul>
+    </div>
+{% endblock %}
+
+{% block content %}
+    <h1 class="text-3xl font-bold no-underline text-lime-600">
+        List of Users
+    </h1>
+
+    <div class="overflow-x-auto">
+        <table class="table table-zebra">
+            <!-- head -->
+            <thead>
+            <tr>
+                <th></th>
+                <th>Name</th>
+                <th>Job</th>
+                <th>Favorite Color</th>
+            </tr>
+            </thead>
+            <tbody>
+            <!-- row 1 -->
+            <tr>
+                <th>1</th>
+                <td>Cy Ganderton</td>
+                <td>Quality Control Specialist</td>
+                <td>Blue</td>
+            </tr>
+            <!-- row 2 -->
+            <tr>
+                <th>2</th>
+                <td>Hart Hagerty</td>
+                <td>Desktop Support Technician</td>
+                <td>Purple</td>
+            </tr>
+            <!-- row 3 -->
+            <tr>
+                <th>3</th>
+                <td>Brice Swyre</td>
+                <td>Tax Accountant</td>
+                <td>Red</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+{% endblock %}

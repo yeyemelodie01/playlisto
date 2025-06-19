@@ -13,7 +13,6 @@ final class BackController extends AbstractController
     #[Route(name: 'index')]
     public function index(): Response
     {
-        dd('ok');
         return $this->render(self::TEMPLATE_DIR . DIRECTORY_SEPARATOR . 'index.html.twig', []);
     }
 }

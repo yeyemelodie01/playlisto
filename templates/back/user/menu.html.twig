@@ -1,0 +1,13 @@
+{% macro activeMenu() %}
+    {%- set routesList = [
+        'back_user_index',
+        'back_user_edit',
+        'back_user_enable',
+        'back_user_disable',
+    ] -%}
+    {%- if app.request.get('_route') in routesList -%}
+        {{- true -}}
+    {%- else -%}
+        {{- null -}}
+    {%- endif -%}
+{% endmacro %}

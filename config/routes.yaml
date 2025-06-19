@@ -9,3 +9,9 @@ back:
     resource: ../src/Controller/Back
     type: attribute
     host: '%back_domain_default%'
+
+front:
+    name_prefix: 'front_'
+    resource: ../src/Controller/Front
+    type: attribute
+    host: '%front_domain_default%'
