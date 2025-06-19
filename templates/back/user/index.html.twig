@@ -1,11 +1,23 @@
 {% extends 'back/layout.html.twig' %}
 
 {% block breadcrumb %}
+    {% set pathsNames = {
+        ('home'|trans({}, 'Menu')): 'back_index',
+        ('title'|trans({}, 'User')): 'back_user_index',
+    } %}
     <div class="breadcrumbs text-sm">
         <ul>
-            <li><a class="text-red-300">Home</a></li>
-            <li><a>Users</a></li>
-            <li>List Users</li>
+            {% for name, route in pathsNames %}
+                <li>
+                    {% if route is defined and route is not empty %}
+                    <a href="{{ path(route) }}" class="text-gray-700 hover:underline">
+                        {{ name|upper }}
+                    </a>
+                    {% else %}
+                        <span class="text-orange-400">{{ name|upper }}</span>
+                    {% endif %}
+                </li>
+            {% endfor %}
         </ul>
     </div>
 {% endblock %}

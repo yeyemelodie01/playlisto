@@ -1,0 +1,12 @@
+{% macro activeMenu() %}
+    {%- set routesList = [
+        'back_playlist_index',
+        'back_playlist_edit',
+        'back_playlist_delete',
+    ] -%}
+    {%- if app.request.get('_route') in routesList -%}
+        {{- true -}}
+    {%- else -%}
+        {{- null -}}
+    {%- endif -%}
+{% endmacro %}
