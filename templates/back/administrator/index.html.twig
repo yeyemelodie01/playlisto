@@ -1,0 +1,65 @@
+{% extends 'back/layout.html.twig' %}
+
+{% block breadcrumb %}
+    {% set pathsNames = {
+        ('home'|trans({}, 'Menu')): 'back_index',
+        ('title'|trans({}, 'Administrator')): 'back_administrator_index',
+    } %}
+
+    <div class="breadcrumbs text-sm">
+        <ul>
+            {% for name, route in pathsNames %}
+                <li>
+                    {% if route is defined and route is not empty %}
+                        <a href="{{ path(route) }}" class="text-gray-700 hover:underline">
+                            {{ name|upper }}
+                        </a>
+                    {% else %}
+                        <span class="text-orange-400">
+                        {{ name|upper }}
+                    </span>
+                    {% endif %}
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+{% endblock %}
+
+{% block content %}
+    <h1 class="text-xl font-bold my-6">{{ 'title'|trans({}, 'Administrator') }}</h1>
+    <div class="overflow-x-auto">
+        <table class="table table-zebra">
+            <!-- head -->
+            <thead>
+            <tr>
+                <th></th>
+                <th>{{ 'name'|trans({}, 'Administrator') }}</th>
+                <th>{{ 'job'|trans({}, 'Administrator') }}</th>
+                <th>{{ 'favoriteColor'|trans({}, 'Administrator') }}</th>
+            </tr>
+            </thead>
+            <tbody>
+            <!-- row 1 -->
+            <tr>
+                <th>1</th>
+                <td>Cy Ganderton</td>
+                <td>Quality Control Specialist</td>
+                <td>Blue</td>
+            </tr>
+            <!-- row 2 -->
+            <tr>
+                <th>2</th>
+                <td>Hart Hagerty</td>
+                <td>Desktop Support Technician</td>
+                <td>Purple</td>
+            </tr>
+            <!-- row 3 -->
+            <tr>
+                <th>3</th>
+                <td>Brice Swyre</td>
+                <td>Tax Accountant</td>
+                <td>Red</td>
+            </tr>
+            </tbody>
+        </table>
+{% endblock %}

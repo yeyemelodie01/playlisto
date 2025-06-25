@@ -1,0 +1,11 @@
+{% macro activeMenu() %}
+    {%- set routesList = [
+        'back_administrator_index',
+        'back_administrator_edit',
+    ] -%}
+    {%- if app.request.get('_route') in routesList -%}
+        {{- true -}}
+    {%- else -%}
+        {{- null -}}
+    {%- endif -%}
+{% endmacro %}

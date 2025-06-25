@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use App\Entity\Traits\ActiveTrait;
 use App\Entity\Traits\IdTrait;
 use App\Repository\UserRepository;
 use Doctrine\Common\Collections\ArrayCollection;
@@ -34,6 +35,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 {
     use IdTrait;
     use TimestampableEntity;
+    use ActiveTrait;
 
     #[ORM\Column(length: 180)]
     private ?string $email = null;
