@@ -2,6 +2,8 @@
 
 namespace App\Entity\Traits;
 
+use Doctrine\ORM\Mapping as ORM;
+
 /**
  * Trait PasswordTrait.
  */
@@ -10,6 +12,7 @@ trait PasswordTrait
     /**
      * @var string|null
      */
+    #[ORM\Column(type: 'string')]
     protected ?string $password = null;
 
     /**

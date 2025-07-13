@@ -1,4 +1,4 @@
-{% extends '../../base.html.twig' %}
+{% extends './base.html.twig' %}
 
 {% block stylesheets %}
     {{ parent() }}
@@ -7,26 +7,47 @@
 {% block title %}Connexion{% endblock %}
 
 {% block body %}
-<form method="post">
-    {% if error %}
-        <div class="alert alert-danger">{{ error.messageKey|trans(error.messageData, 'security') }}</div>
-    {% endif %}
 
-    {% if app.user %}
-        <div class="mb-3">
-            You are logged in as {{ app.user.userIdentifier }}, <a href="{{ path('app_logout') }}">Logout</a>
-        </div>
-    {% endif %}
+    <main class="min-h-screen flex items-center justify-center bg-base-200">
+        <form method="post" class="form-width flex flex-col items-center">
+            {% if error %}
+                <div class="alert alert-danger">{{ error.messageKey|trans(error.messageData, 'security') }}</div>
+            {% endif %}
 
-    <h1 class="h3 mb-3 font-weight-normal">Please sign in</h1>
-    <label for="inputEmail">Email</label>
-    <input type="email" value="{{ last_username }}" name="email" id="inputEmail" class="form-control" autocomplete="email" required autofocus>
-    <label for="inputPassword">Password</label>
-    <input type="password" name="password" id="inputPassword" class="form-control" autocomplete="current-password" required>
-    <input type="hidden" name="_csrf_token" data-controller="csrf-protection" value="{{ csrf_token('authenticate') }}">
+            {% if app.user %}
+                <div class="mb-3">
+                    You are logged in as {{ app.user.userIdentifier }}, <a href="{{ path('app_logout') }}">Logout</a>
+                </div>
+            {% endif %}
+            <img src="{{ asset('images/playlisto-logo.jpg') }}" class="rounded-full border border-black bg-black px-4 py-2" alt="Logo playlisto">
+            <h1 class="text-xl text-center my-4">{{ 'title'|trans([], 'SignIn') }}</h1>
+            <div class="form-login w-80">
+                {{ form_start(signInForm, {'attr': {'name': 'sign_in'}}) }}
+                {{ form_widget(signInForm.email, {
+                    'attr': {
+                        'class': 'w-full form-control rounded-t-lg px-4 py-2 border-2 border-gray-700 focus:border-pink-600',
+                        'placeholder': 'email'|trans([], 'SignIn'),
+                        'type': 'email'
+                    }
+                }) }}
+                <span id="email_error_message" class="text-red-500"></span>
+                {{ form_widget(signInForm.password, {
+                    'attr': {
+                        'class': 'w-full form-control rounded-b-lg px-4 py-2 border-2 border-gray-700 focus:border-pink-600',
+                        'placeholder': 'password'|trans([], 'SignIn'),
+                        'type': 'password'
+                    }
+                })}}
+                <div class="grid">
+                    <button type="submit" class="mt-5 bg-black text-white px-4 py-2 rounded-md">
+                        {{ 'button'|trans([], 'SignIn') }}
+                    </button>
+                </div>
 
-    <button class="btn btn-lg btn-primary" type="submit">
-        Sign in
-    </button>
-</form>
+
+                {{ form_rest(signInForm) }}
+                {{ form_end(signInForm) }}
+            </div>
+        </form>
+    </main>
 {% endblock %}
