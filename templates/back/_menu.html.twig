@@ -34,7 +34,7 @@
                     <li>
                         {% import 'back/playlist/menu.html.twig' as menuPlaylist %}
                         {% set active = menuPlaylist.activeMenu()%}
-                        <a href="{{ path('back_user_index')}}" class="{{ linkClass }} {{ active  ? activeClass : '' }}">
+                        <a href="{{ path('back_playlist_index')}}" class="{{ linkClass }} {{ active  ? activeClass : '' }}">
                         <span class="inline-flex justify-center items-center ml-4">
                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="size-6">
                               <path fill-rule="evenodd" d="M19.952 1.651a.75.75 0 0 1 .298.599V16.303a3 3 0 0 1-2.176 2.884l-1.32.377a2.553 2.553 0 1 1-1.403-4.909l2.311-.66a1.5 1.5 0 0 0 1.088-1.442V6.994l-9 2.572v9.737a3 3 0 0 1-2.176 2.884l-1.32.377a2.553 2.553 0 1 1-1.402-4.909l2.31-.66a1.5 1.5 0 0 0 1.088-1.442V5.25a.75.75 0 0 1 .544-.721l10.5-3a.75.75 0 0 1 .658.122Z" clip-rule="evenodd" />
@@ -61,7 +61,7 @@
                             <div class="text-sm font-light tracking-wide text-gray-500">{{ 'settings'|trans({}, 'Menu') }}</div>
                         </div>
                     </li>
-                    <li>
+                    {#<li>
                         <a href="{{ path('back_administrator_profile') }}" class="{{ linkClass }} {{ 'back_administrator_profile' == app.request.get('_route') ? activeClass : ''}}">
                         <span class="inline-flex justify-center items-center ml-4">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
@@ -70,17 +70,15 @@
                         </span>
                             <span class="ml-2 text-sm tracking-wide truncate">{{ 'profile'|trans({}, 'Menu') }}</span>
                         </a>
-                    </li>
-                    {#
-                        <li>
-                            <a href="{{ path('logout') }}" class="{{ linkClass }}">
-                                <span class="inline-flex justify-center items-center ml-4">
-                                    <i class="fa-sharp fa-solid fa-door-open"></i>
-                                </span>
-                                <span class="ml-2 text-sm tracking-wide truncate">{{ 'logout'|trans({}, 'Menu') }}</span>
-                            </a>
-                        </li>
-                    #}
+                    </li>#}
+                   {# <li>
+                        <a href="{{ path('logout') }}" class="{{ linkClass }}">
+                            <span class="inline-flex justify-center items-center ml-4">
+                                <i class="fa-sharp fa-solid fa-door-open"></i>
+                            </span>
+                            <span class="ml-2 text-sm tracking-wide truncate">{{ 'logout'|trans({}, 'Menu') }}</span>
+                        </a>
+                    </li>#}
                 </ul>
             </div>
         </div>

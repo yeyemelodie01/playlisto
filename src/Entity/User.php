@@ -4,6 +4,7 @@ namespace App\Entity;
 
 use App\Entity\Traits\ActiveTrait;
 use App\Entity\Traits\IdTrait;
+use App\Entity\Traits\PasswordTrait;
 use App\Repository\UserRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -36,6 +37,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     use IdTrait;
     use TimestampableEntity;
     use ActiveTrait;
+    use PasswordTrait;
 
     #[ORM\Column(length: 180)]
     private ?string $email = null;
@@ -45,12 +47,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
      */
     #[ORM\Column]
     private array $roles = [];
-
-    /**
-     * @var string The hashed password
-     */
-    #[ORM\Column]
-    private ?string $password = null;
 
     /**
      * @var string The username or display name of the user
@@ -125,26 +121,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     }
 
     /**
-     * @see PasswordAuthenticatedUserInterface
-     */
-    public function getPassword(): ?string
-    {
-        return $this->password;
-    }
-
-    /**
-     * @param string $password
-     *
-     * @return $this
-     */
-    public function setPassword(string $password): static
-    {
-        $this->password = $password;
-
-        return $this;
-    }
-
-    /**
      * @return string
      */
     public function getUsername(): string
@@ -160,15 +136,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setUsername(string $username): void
     {
         $this->username = $username;
-    }
-
-    /**
-     * @see UserInterface
-     */
-    public function eraseCredentials(): void
-    {
-        // If you store any temporary, sensitive data on the user, clear it here
-        // $this->plainPassword = null;
     }
 
     /**

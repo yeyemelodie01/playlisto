@@ -4,8 +4,10 @@ namespace App\Entity;
 
 use App\Entity\Traits\ActiveTrait;
 use App\Entity\Traits\IdTrait;
+use App\Entity\Traits\PasswordTrait;
 use App\Repository\AdministratorRepository;
 use Gedmo\Timestampable\Traits\TimestampableEntity;
+use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
@@ -16,10 +18,11 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\Entity(repositoryClass: AdministratorRepository::class)]
 #[ORM\Table(name: 'administrator')]
 #[ORM\UniqueConstraint(name: 'UNIQ_IDENTIFIER_EMAIL', fields: ['email'])]
-class Administrator implements UserInterface
+class Administrator implements UserInterface, PasswordAuthenticatedUserInterface
 {
     use IdTrait;
     use ActiveTrait;
+    use PasswordTrait;
     use TimestampableEntity;
 
     /**
@@ -146,6 +149,20 @@ class Administrator implements UserInterface
     }
 
     /**
+     * @param list<string> $roles
+     *
+     * @return $this
+     *
+     * @psalm-suppress PossiblyUnusedMethod
+     */
+    public function setRoles(array $roles): static
+    {
+        $this->roles = $roles;
+
+        return $this;
+    }
+
+    /**
      * @return string
      */
     #[\Override]
@@ -156,10 +173,5 @@ class Administrator implements UserInterface
         }
 
         return $this->email;
-    }
-
-    public function eraseCredentials(): void
-    {
-        // TODO: Implement eraseCredentials() method.
     }
 }
