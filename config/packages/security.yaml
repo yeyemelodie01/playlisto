@@ -48,6 +48,7 @@ security:
             switch_user: true
             access_denied_handler: App\Security\Handler\AccessDeniedHandler
             custom_authenticator: App\Security\Authentication\LoginFormAuthenticator
+            stateless: false
 
 
     access_control:

@@ -44,7 +44,7 @@ final class LoginFormAuthenticator extends AbstractLoginFormAuthenticator
     {
         $email = $request->getPayload()->getString('email');
         $password = $request->getPayload()->getString('password');
-        $csrfToken = $request->getPayload()->getString('_csrf_token');
+        $csrfToken = $request->getPayload()->getString('_token');
 
         $request->getSession()->set(SecurityRequestAttributes::LAST_USERNAME, $email);
 
