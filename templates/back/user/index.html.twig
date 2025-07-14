@@ -31,36 +31,148 @@
         <table class="table table-zebra">
             <!-- head -->
             <thead>
-            <tr>
-                <th></th>
-                <th>Name</th>
-                <th>Job</th>
-                <th>Favorite Color</th>
-            </tr>
+                <tr>
+                    <th class="font-medium p-4 text-base text-center border-gray-300">{{ 'email'|trans({}, 'User') }}</th>
+                    <th class="font-medium p-4 text-base text-center border-gray-300">{{ 'username'|trans({}, 'User') }}</th>
+                    <th class="font-medium p-4 text-base text-center border-gray-300">{{ 'role'|trans({}, 'User') }}</th>
+                    <th class="font-medium p-4 text-base text-center border-gray-300">{{ 'isActive'|trans({}, 'User') }}</th>
+                    <th class="font-medium p-4 text-base text-center border-gray-300">{{ 'createdAt'|trans({}, 'User') }}</th>
+                    <th class="font-medium p-4 text-base text-center border-gray-300">{{ 'updatedAt'|trans({}, 'User') }}</th>
+                    <th class="font-medium p-4 text-base text-center border-gray-300">{{ 'actions'|trans({}, 'Crud') }}</th>
+                    <th class="font-medium p-4 text-base text-center border-gray-300">{{ 'delete'|trans({}, 'Crud') }}</th>
+                </tr>
             </thead>
             <tbody>
-            <!-- row 1 -->
-            <tr>
-                <th>1</th>
-                <td>Cy Ganderton</td>
-                <td>Quality Control Specialist</td>
-                <td>Blue</td>
-            </tr>
-            <!-- row 2 -->
-            <tr>
-                <th>2</th>
-                <td>Hart Hagerty</td>
-                <td>Desktop Support Technician</td>
-                <td>Purple</td>
-            </tr>
-            <!-- row 3 -->
-            <tr>
-                <th>3</th>
-                <td>Brice Swyre</td>
-                <td>Tax Accountant</td>
-                <td>Red</td>
-            </tr>
+                {% for user in pagination %}
+                    <tr class="{{ loop.index is odd ? 'bg-slate-100' : '' }}">
+                        <td class="border-b border-slate-300 p-4">{{ user.email }}</td>
+                        <td class="border-b border-slate-300 p-4">{{ user.username }}</td>
+                        <td class="border-b border-slate-300 p-4">{{ user.getRoles()|join(', ')  }}</td>
+                        <td class="border-b border-slate-300 p-4">{% if user.active == false %}{{ 'no'|trans([], 'Crud') }}{% else %}{{ 'yes'|trans([], 'Crud') }}{% endif %}</td>
+                        <td class="border-b border-slate-300 p-4">{{ user.createdAt|date('d/m/Y') }}</td>
+                        <td class="border-b border-slate-300 p-4">{{ user.updatedAt|date('d/m/Y') }}</td>
+                        <td class="border-slate-300 p-4">
+                            <div class="flex">
+                                <a class="" href="{{ path('back_user_edit', {'id': user.id}) }}"
+                                   title="{{ 'edit.title'|trans([], 'User') }}">
+                                    {{ ux_icon('fa6-solid:pencil', {width: '20px', height: '20px'}) }}
+                                </a>
+                                {% set activeUrl = path('back_user_enable', {'id': user.id}) %}
+                                {% set activeTitle = 'enable.title'|trans([], 'User') %}
+                                {% set activeClass = 'text-red-600' %}
+                                {% if user.active %}
+                                    {% set activeUrl = path('back_user_disable', {'id': user.id}) %}
+                                    {% set activeTitle = 'disable.title'|trans([], 'User') %}
+                                    {% set activeClass = 'text-green-600' %}
+                                {% endif %}
+                                <a class="mx-4" href="{{ activeUrl }}" title="{{ activeTitle }}">
+                                    {{ ux_icon('fa6-regular:circle-check', {class: activeClass, width: '20px', height: '20px'}) }}
+                                </a>
+
+                                <a class="" href="#"
+                                   title="{{ 'send.password.title'|trans([], 'User') }}">
+                                    <i class="fa-sharp fa-regular fa-user-lock fa-lg"></i>
+                                </a>
+                            </div>
+                        </td>
+                        <td class="border-b border-slate-300 p-4 pl-8">
+                            <a class="d-flex justify-content-center text-decoration-none fa-lg"
+                               href="{{ path('back_user_delete', {'id': user.id}) }}"
+                               title="{{ 'delete.title'|trans([], 'User') }}">
+                                {{ ux_icon('fa6-regular:trash-can', {width: '20px', height: '20px'}) }}
+                            </a>
+                        </td>
+                    </tr>
+                {% endfor %}
             </tbody>
         </table>
+
+        <!-- Pagination -->
+        <div>
+            {% trans_default_domain 'PaginationComponent' %}
+            {% if pagination is not empty and pagination.getTotalItemCount > pagination.getPaginationData.numItemsPerPage %}
+                {% set route = app.request.attributes.get('_route') %}
+                {% set route_params = app.request.attributes.get('_route_params')|merge(app.request.query.all) %}
+
+                <nav class="flex flex-row justify-center w-4/5 my-5 items-center gap-4 text-base text-blue-700">
+                    <span class="text-neutral-400">
+                        {{ "count"|trans({
+                            "%count%": pagination.pageCount,
+                        }) }}
+                    </span>
+                    <ul class="flex flex-row gap-2 ">
+                        <li class="aspect-square w-6 text-center rounded-full flex justify-center items-center
+                       aria-[current]:text-white aria-[current]:bg-blue-700
+                       hover:bg-blue-400
+                       {% if pagination.getPaginationData.current <= 1 %}text-neutral-400{% endif %}
+                      ">
+                            <a class="w-full h-full text-center block"
+                               href="{{ path(route, route_params|merge({'page': 1})) }}"
+                               tabindex="-1" {% if pagination.getPaginationData.current <= 1 %}aria-disabled="true" {% endif %}>
+                                {{ ux_icon('fa6-solid:angles-left', {width: '24px', height: '24px'}) }}
+                            </a>
+                        </li>
+                        <li class="aspect-square w-6 text-center rounded-full flex justify-center items-center
+                       aria-[current]:text-white aria-[current]:bg-blue-700
+                       hover:bg-blue-400
+                       {% if pagination.getPaginationData.current <= 1 %}text-neutral-400{% endif %}
+                      ">
+                            <a class="w-full h-full text-center block"
+                               href="{{ path(route, route_params|merge({'page': (pagination.getPaginationData.current-1)})) }}"
+                               tabindex="-1" {% if pagination.getPaginationData.current <= 1 %}aria-disabled="true" {% endif %}>
+                                {{ ux_icon('fa6-solid:angle-left', {width: '24px', height: '24px'}) }}
+                            </a>
+                        </li>
+                        {% if pagination.getPaginationData.pagesInRange|first != 1 %}
+                            <li class="aspect-square w-6 text-center rounded-full flex justify-center items-center
+                           aria-[current]:text-white aria-[current]:bg-blue-700
+                           hover:bg-blue-400
+                          ">
+                                <span class="w-full h-full text-center block">...</span>
+                            </li>
+                        {% endif %}
+                        {% for page in pagination.getPaginationData.pagesInRange %}
+                            <li class="aspect-square w-6 text-center rounded-full
+                           aria-[current]:text-white aria-[current]:bg-blue-700
+                           hover:bg-blue-400
+                          " {{ page == pagination.getPaginationData.current ? 'aria-current="page"' }}>
+                                <a class="w-full h-full text-center block"
+                                   href="{{ path(route, route_params|merge({'page': page})) }}">{{ page }}</a>
+                            </li>
+                        {% endfor %}
+                        {% if pagination.getPaginationData.pagesInRange|last != pagination.getPaginationData.pageCount %}
+                            <li class="aspect-square w-6 text-center rounded-full
+                           aria-[current]:text-white aria-[current]:bg-blue-700
+                           hover:bg-blue-400
+                          ">
+                                <span class="w-full h-full text-center block">...</span>
+                            </li>
+                        {% endif %}
+                        <li class="aspect-square w-6 text-center rounded-full flex justify-center items-center
+                       aria-[current]:text-white aria-[current]:bg-blue-700
+                       hover:bg-blue-400
+                       {% if pagination.getPaginationData.current == pagination.getPaginationData.endPage %}text-neutral-400{% endif %}
+                      ">
+                            <a class="w-full h-full text-center block"
+                               href="{{ path(route, route_params|merge({'page': (pagination.getPaginationData.current+1)})) }}"
+                               {% if pagination.getPaginationData.current == pagination.getPaginationData.endPage %}aria-disabled="true" {% endif %}>
+                                {{ ux_icon('fa6-solid:angle-right', {width: '24px', height: '24px'}) }}
+                            </a>
+                        </li>
+                        <li class="aspect-square w-6 text-center rounded-full flex justify-center items-center
+                       aria-[current]:text-white aria-[current]:bg-blue-700
+                       hover:bg-blue-400
+                       {% if pagination.getPaginationData.current == pagination.getPaginationData.endPage %}text-neutral-400{% endif %}
+                      ">
+                            <a class="w-full h-full text-center block"
+                               href="{{ path(route, route_params|merge({'page': (pagination.getPaginationData.pageCount)})) }}"
+                               {% if pagination.getPaginationData.current == pagination.getPaginationData.endPage %}aria-disabled="true" {% endif %}>
+                                {{ ux_icon('fa6-solid:angles-right', {width: '24px', height: '24px'}) }}
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            {% endif %}
+        </div>
     </div>
 {% endblock %}
