@@ -1,0 +1,8 @@
+ux_icons:
+  icon_sets:
+    fa6-solid:
+      path: '%kernel.project_dir%/node_modules/@fortawesome/fontawesome-free/svgs/solid'
+    fa6-regular:
+      path: '%kernel.project_dir%/node_modules/@fortawesome/fontawesome-free/svgs/regular'
+    fa6-brands:
+      path: '%kernel.project_dir%/node_modules/@fortawesome/fontawesome-free/svgs/brands'

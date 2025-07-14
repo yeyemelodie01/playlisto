@@ -131,11 +131,23 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     /**
      * @param string $username
      *
-     * @return void
+     * @return $this
      */
-    public function setUsername(string $username): void
+    public function setUsername(string $username): static
     {
         $this->username = $username;
+
+        return $this;
+    }
+
+    public function getSpotifyId(): int
+    {
+        return $this->spotifyId;
+    }
+
+    public function setSpotifyId(int $spotifyId): void
+    {
+        $this->spotifyId = $spotifyId;
     }
 
     /**

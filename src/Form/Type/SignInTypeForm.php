@@ -10,11 +10,11 @@ use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
 /**
- * Form SignInType.
+ * Form SignInTypeForm.
  *
  * @extends AbstractType<User>
  */
-final class SignInType extends AbstractType
+final class SignInTypeForm extends AbstractType
 {
     /**
      * @param FormBuilderInterface $builder

@@ -2,7 +2,7 @@
 
 namespace App\Controller;
 
-use App\Form\Type\SignInType;
+use App\Form\Type\SignInTypeForm;
 use App\Service\FirewallDetector;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
@@ -64,7 +64,7 @@ final class SecurityController extends AbstractController
 
         return $this->render($view, [
             'signInForm' => $this->createForm(
-                SignInType::class,
+                SignInTypeForm::class,
                 null,
                 [
                     'action' => $this->generateUrl('login'),
