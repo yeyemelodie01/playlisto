@@ -98,37 +98,37 @@ class Playlist
     }
 
     /**
-     * @return string
+     * @return MoodType
      */
-    public function getMood(): string
+    public function getMood(): MoodType
     {
         return $this->mood;
     }
 
     /**
-     * @param string $mood
+     * @param MoodType $mood
      *
      * @return void
      */
-    public function setMood(string $mood): void
+    public function setMood(MoodType $mood): void
     {
         $this->mood = $mood;
     }
 
     /**
-     * @return string
+     * @return ActivityType
      */
-    public function getActivity(): string
+    public function getActivity(): ActivityType
     {
         return $this->activity;
     }
 
     /**
-     * @param string $activity
+     * @param ActivityType $activity
      *
      * @return void
      */
-    public function setActivity(string $activity): void
+    public function setActivity(ActivityType $activity): void
     {
         $this->activity = $activity;
     }

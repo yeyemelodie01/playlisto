@@ -5,6 +5,7 @@ namespace App\DataFixtures;
 use App\Entity\User;
 use App\Repository\UserRepository;
 use Doctrine\Bundle\FixturesBundle\Fixture;
+use Doctrine\Common\DataFixtures\OrderedFixtureInterface;
 use Doctrine\Persistence\ObjectManager;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
@@ -14,14 +15,33 @@ use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
  * This fixture is responsible for creating and inserting predefined user accounts
  * into the database, including their roles and other attributes.
  */
-final class UserFixtures extends Fixture
+final class UserFixtures extends Fixture implements OrderedFixtureInterface
 {
+    /**
+     * UserFixtures constructor.
+     *
+     * @param UserPasswordHasherInterface $passwordHasher
+     * @param UserRepository              $userRepository
+     */
     public function __construct(
         private readonly UserPasswordHasherInterface $passwordHasher,
         private readonly UserRepository $userRepository
     ) {
     }
 
+    /**
+     * @return int
+     */
+    public function getOrder(): int
+    {
+        return 1; // doit être exécuté avant PlaylistFixtures
+    }
+
+    /**
+     * @param ObjectManager $manager
+     *
+     * @return void
+     */
     public function load(ObjectManager $manager): void
     {
         $users = [

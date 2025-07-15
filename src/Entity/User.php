@@ -63,9 +63,16 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\OneToMany(targetEntity: Playlist::class, mappedBy: 'user')]
     private Collection $playlists;
 
+    /**
+     * @var Collection<int, Question>
+     */
+    #[ORM\OneToMany(targetEntity: Question::class, mappedBy: 'user')]
+    private Collection $questions;
+
     public function __construct()
     {
         $this->playlists = new ArrayCollection();
+        $this->questions = new ArrayCollection();
     }
 
     /**
@@ -184,6 +191,38 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
             // set the owning side to null (unless already changed)
             if ($playlist->getUser() === $this) {
                 $playlist->setUser(null);
+            }
+        }
+
+        return $this;
+    }
+
+    public function getQuestions(): Collection
+    {
+        return $this->questions;
+    }
+
+    public function setQuestions(Collection $questions): void
+    {
+        $this->questions = $questions;
+    }
+
+    public function addQuestion(Question $question): static
+    {
+        if (!$this->questions->contains($question)) {
+            $this->questions->add($question);
+            $question->setUser($this);
+        }
+
+        return $this;
+    }
+
+    public function removeQuestion(Question $question): static
+    {
+        if ($this->questions->removeElement($question)) {
+            // set the owning side to null (unless already changed)
+            if ($question->getUser() === $this) {
+                $question->setUser(null);
             }
         }
 
