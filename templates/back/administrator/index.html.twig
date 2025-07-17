@@ -15,9 +15,7 @@
                             {{ name|upper }}
                         </a>
                     {% else %}
-                        <span class="text-orange-400">
-                        {{ name|upper }}
-                    </span>
+                        <span class="text-orange-400">{{ name|upper }}</span>
                     {% endif %}
                 </li>
             {% endfor %}
@@ -46,11 +44,11 @@
                 {% for administrator in pagination %}
                     <tr class="{{ loop.index is odd ? 'bg-slate-300' : '' }}">
                         <td class="p-4 text-center text-base">{{ administrator.firstName }}</td>
-                        <td class="p-4 flex justify-center w-[128px]">{{ administrator.lastName }}</td>
+                        <td class="p-4 text-center text-base">{{ administrator.lastName }}</td>
                         <td class="p-4 text-center text-base">{{ administrator.email }}</td>
                         <td class="p-4 text-center text-base">{{ administrator.roles | join(', ') }}</td>
                         <td class="p-4 text-center text-base">{{ administrator.superAdministrator }}</td>
-                        <td class="p-4 text-center text-base">
+                        <td class="p-4 flex justify-center text-base">
                             {% set activeUrl = path('back_administrator_enable', {'id': administrator.id}) %}
                             {% set activeTitle = 'enable.title'|trans([], 'Administrator') %}
                             {% set activeClass = 'text-red-600' %}
@@ -59,7 +57,7 @@
                                 {% set activeTitle = 'disable.title'|trans([], 'Administrator') %}
                                 {% set activeClass = 'text-green-600' %}
                             {% endif %}
-                            <a class="mx-4" href="{{ activeUrl }}" title="{{ activeTitle }}">
+                            <a class="" href="{{ activeUrl }}" title="{{ activeTitle }}">
                                 {{ ux_icon('fa6-regular:circle-check', {class: activeClass, width: '20px', height: '20px'}) }}
                             </a>
                         </td>
@@ -75,18 +73,6 @@
                 {% endfor %}
             </tbody>
         </table>
-
-        <div class="join">
-            <input
-                    class="join-item btn btn-square"
-                    type="radio"
-                    name="options"
-                    aria-label="1"
-                    checked="checked" />
-            <input class="join-item btn btn-square" type="radio" name="options" aria-label="2" />
-            <input class="join-item btn btn-square" type="radio" name="options" aria-label="3" />
-            <input class="join-item btn btn-square" type="radio" name="options" aria-label="4" />
-        </div>
 
         <div class="flex justify-center">
             {% trans_default_domain 'PaginationComponent' %}
