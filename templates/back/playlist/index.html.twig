@@ -1,54 +1,159 @@
 {% extends 'back/layout.html.twig' %}
 
 {% block breadcrumb %}
+    {% set pathsNames = {
+        ('home'|trans({}, 'Menu')): 'back_index',
+        ('title'|trans({}, 'Playlist')): 'back_playlist_index',
+    } %}
+
     <div class="breadcrumbs text-sm">
         <ul>
-            <li><a class="text-red-300">Home</a></li>
-            <li><a>Playlists</a></li>
-            <li>List Playlists</li>
+            {% for name, route in pathsNames %}
+                <li>
+                    {% if route is defined and route is not empty %}
+                        <a href="{{ path(route) }}" class="text-gray-700 hover:underline">
+                            {{ name|upper }}
+                        </a>
+                    {% else %}
+                        <span class="text-orange-400">{{ name|upper }}</span>
+                    {% endif %}
+                </li>
+            {% endfor %}
         </ul>
     </div>
 {% endblock %}
 
 {% block content %}
     <h1 class="text-3xl font-bold no-underline text-lime-600">
-        List of Playlists
+        Liste de Playlists
     </h1>
 
-    <div class="overflow-x-auto">
-        <table class="table table-zebra">
-            <!-- head -->
-            <thead>
-            <tr>
-                <th></th>
-                <th>Name</th>
-                <th>Job</th>
-                <th>Favorite Color</th>
-            </tr>
-            </thead>
-            <tbody>
-            <!-- row 1 -->
-            <tr>
-                <th>1</th>
-                <td>Cy Ganderton</td>
-                <td>Quality Control Specialist</td>
-                <td>Blue</td>
-            </tr>
-            <!-- row 2 -->
-            <tr>
-                <th>2</th>
-                <td>Hart Hagerty</td>
-                <td>Desktop Support Technician</td>
-                <td>Purple</td>
-            </tr>
-            <!-- row 3 -->
-            <tr>
-                <th>3</th>
-                <td>Brice Swyre</td>
-                <td>Tax Accountant</td>
-                <td>Red</td>
-            </tr>
-            </tbody>
-        </table>
+    <div>
+        <div class="overflow-x-auto rounded-box border border-base-content/5 bg-base-100">
+            <table class="table">
+                <!-- head -->
+                <thead>
+                <tr>
+                    <th class="text-center">{{ 'username'|trans({}, 'Playlist') }}</th>
+                    <th class="text-center">{{ 'title'|trans({}, 'Playlist') }}</th>
+                    <th class="text-center">{{ 'description'|trans({}, 'Playlist') }}</th>
+                    <th class="text-center">{{ 'mood'|trans({}, 'Playlist') }}</th>
+                    <th class="text-center">{{ 'activity'|trans({}, 'Playlist') }}</th>
+                    <th class="text-center">{{ 'createdAt'|trans({}, 'Playlist') }}</th>
+                    <th class="text-center">{{ 'updatedAt'|trans({}, 'Playlist') }}</th>
+                    <th class="text-center">{{ 'delete'|trans({}, 'Crud') }}</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for playlist in pagination %}
+                    <tr>
+                        <td class="text-center">{{ playlist.user.username ?? 'N/A' }}</td>
+                        <td class="text-center">{{ playlist.title }}</td>
+                        <td class="text-center">{{ playlist.description }}</td>
+                        <td class="text-center">{{ playlist.mood.value ?? 'N/A' }}</td>
+                        <td class="text-center">{{ playlist.activity.value ?? 'N/A' }}</td>
+                        <td class="text-center">{{ playlist.createdAt ? playlist.createdAt|date('d/m/Y') : 'N/A' }}</td>
+                        <td class="text-center">{{ playlist.updatedAt ? playlist.updatedAt|date('d/m/Y') : 'N/A' }}</td>
+                        <td class="flex justify-center">
+                            <a class="text-decoration-none fa-lg"
+                               href="{{ path('back_playlist_delete', {'id': playlist.id}) }}"
+                               title="{{ 'delete.title'|trans([], 'Playlist') }}">
+                                {{ ux_icon('fa6-regular:trash-can', {width: '20px', height: '20px'}) }}
+                            </a>
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+
+        <!-- Pagination -->
+        <div>
+            {% trans_default_domain 'PaginationComponent' %}
+            {% if pagination is not empty and pagination.getTotalItemCount > pagination.getPaginationData.numItemsPerPage %}
+                {% set route = app.request.attributes.get('_route') %}
+                {% set route_params = app.request.attributes.get('_route_params')|merge(app.request.query.all) %}
+
+                <nav class="flex flex-row justify-center w-4/5 my-5 items-center gap-4 text-base text-blue-700">
+                    <span class="text-neutral-400">
+                        {{ "count"|trans({
+                            "%count%": pagination.pageCount,
+                        }) }}
+                    </span>
+                    <ul class="flex flex-row gap-2 ">
+                        <li class="aspect-square w-6 text-center rounded-full flex justify-center items-center
+                       aria-[current]:text-white aria-[current]:bg-blue-700
+                       hover:bg-blue-400
+                       {% if pagination.getPaginationData.current <= 1 %}text-neutral-400{% endif %}
+                      ">
+                            <a class="w-full h-full text-center block"
+                               href="{{ path(route, route_params|merge({'page': 1})) }}"
+                               tabindex="-1" {% if pagination.getPaginationData.current <= 1 %}aria-disabled="true" {% endif %}>
+                                {{ ux_icon('fa6-solid:angles-left', {width: '24px', height: '24px'}) }}
+                            </a>
+                        </li>
+                        <li class="aspect-square w-6 text-center rounded-full flex justify-center items-center
+                       aria-[current]:text-white aria-[current]:bg-blue-700
+                       hover:bg-blue-400
+                       {% if pagination.getPaginationData.current <= 1 %}text-neutral-400{% endif %}
+                      ">
+                            <a class="w-full h-full text-center block"
+                               href="{{ path(route, route_params|merge({'page': (pagination.getPaginationData.current-1)})) }}"
+                               tabindex="-1" {% if pagination.getPaginationData.current <= 1 %}aria-disabled="true" {% endif %}>
+                                {{ ux_icon('fa6-solid:angle-left', {width: '24px', height: '24px'}) }}
+                            </a>
+                        </li>
+                        {% if pagination.getPaginationData.pagesInRange|first != 1 %}
+                            <li class="aspect-square w-6 text-center rounded-full flex justify-center items-center
+                           aria-[current]:text-white aria-[current]:bg-blue-700
+                           hover:bg-blue-400
+                          ">
+                                <span class="w-full h-full text-center block">...</span>
+                            </li>
+                        {% endif %}
+                        {% for page in pagination.getPaginationData.pagesInRange %}
+                            <li class="aspect-square w-6 text-center rounded-full
+                           aria-[current]:text-white aria-[current]:bg-blue-700
+                           hover:bg-blue-400
+                          " {{ page == pagination.getPaginationData.current ? 'aria-current="page"' }}>
+                                <a class="w-full h-full text-center block"
+                                   href="{{ path(route, route_params|merge({'page': page})) }}">{{ page }}</a>
+                            </li>
+                        {% endfor %}
+                        {% if pagination.getPaginationData.pagesInRange|last != pagination.getPaginationData.pageCount %}
+                            <li class="aspect-square w-6 text-center rounded-full
+                           aria-[current]:text-white aria-[current]:bg-blue-700
+                           hover:bg-blue-400
+                          ">
+                                <span class="w-full h-full text-center block">...</span>
+                            </li>
+                        {% endif %}
+                        <li class="aspect-square w-6 text-center rounded-full flex justify-center items-center
+                       aria-[current]:text-white aria-[current]:bg-blue-700
+                       hover:bg-blue-400
+                       {% if pagination.getPaginationData.current == pagination.getPaginationData.endPage %}text-neutral-400{% endif %}
+                      ">
+                            <a class="w-full h-full text-center block"
+                               href="{{ path(route, route_params|merge({'page': (pagination.getPaginationData.current+1)})) }}"
+                               {% if pagination.getPaginationData.current == pagination.getPaginationData.endPage %}aria-disabled="true" {% endif %}>
+                                {{ ux_icon('fa6-solid:angle-right', {width: '24px', height: '24px'}) }}
+                            </a>
+                        </li>
+                        <li class="aspect-square w-6 text-center rounded-full flex justify-center items-center
+                       aria-[current]:text-white aria-[current]:bg-blue-700
+                       hover:bg-blue-400
+                       {% if pagination.getPaginationData.current == pagination.getPaginationData.endPage %}text-neutral-400{% endif %}
+                      ">
+                            <a class="w-full h-full text-center block"
+                               href="{{ path(route, route_params|merge({'page': (pagination.getPaginationData.pageCount)})) }}"
+                               {% if pagination.getPaginationData.current == pagination.getPaginationData.endPage %}aria-disabled="true" {% endif %}>
+                                {{ ux_icon('fa6-solid:angles-right', {width: '24px', height: '24px'}) }}
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            {% endif %}
+        </div>
     </div>
 {% endblock %}
