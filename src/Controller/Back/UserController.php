@@ -36,6 +36,13 @@ final class UserController extends AbstractController
     {
     }
 
+    /**
+     * @param Request            $request
+     * @param PaginatorInterface $paginator
+     * @param int                $backPaginateMaxPerPage
+     *
+     * @return Response
+     */
     #[Route(name: 'index')]
     public function index(Request $request, PaginatorInterface $paginator, #[Autowire('%back_paginate_max_per_page%')] int $backPaginateMaxPerPage): Response
     {

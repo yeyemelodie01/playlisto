@@ -38,7 +38,6 @@
                         <th class="text-center">{{ 'label'|trans({}, 'Question') }}</th>
                         <th class="text-center">{{ 'answer'|trans({}, 'Question') }}</th>
                         <th class="text-center">{{ 'actions'|trans({}, 'Crud') }}</th>
-                        <th class="text-center">{{ 'delete'|trans({}, 'Crud') }}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -46,37 +45,10 @@
                     <tr>
                         <td>{{ question.user.username ?? 'N/A' }}</td>
                         <td>{{ question.label }}</td>
-                        <td>{{ question.answer.label }}</td>
-                        <td>{% if user.active == false %}{{ 'no'|trans([], 'Crud') }}{% else %}{{ 'yes'|trans([], 'Crud') }}{% endif %}</td>
-                        <td>{{ user.createdAt|date('d/m/Y') }}</td>
-                        <td>{{ user.updatedAt|date('d/m/Y') }}</td>
-                        <td>
-                            <div class="flex">
-                                <a class="" href="{{ path('back_user_edit', {'id': user.id}) }}"
-                                   title="{{ 'edit.title'|trans([], 'Question') }}">
-                                    {{ ux_icon('fa6-solid:pencil', {width: '20px', height: '20px'}) }}
-                                </a>
-                                {% set activeUrl = path('back_user_enable', {'id': user.id}) %}
-                                {% set activeTitle = 'enable.title'|trans([], 'Question') %}
-                                {% set activeClass = 'text-red-600' %}
-                                {% if user.active %}
-                                    {% set activeUrl = path('back_user_disable', {'id': user.id}) %}
-                                    {% set activeTitle = 'disable.title'|trans([], 'Question') %}
-                                    {% set activeClass = 'text-green-600' %}
-                                {% endif %}
-                                <a class="mx-4" href="{{ activeUrl }}" title="{{ activeTitle }}">
-                                    {{ ux_icon('fa6-regular:circle-check', {class: activeClass, width: '20px', height: '20px'}) }}
-                                </a>
-
-                                <a class="" href="#"
-                                   title="{{ 'send.password.title'|trans([], 'Question') }}">
-                                    <i class="fa-sharp fa-regular fa-user-lock fa-lg"></i>
-                                </a>
-                            </div>
-                        </td>
+                        <td>{{ question.answer.label ?? ''}}</td>
                         <td>
                             <a class="d-flex justify-content-center text-decoration-none fa-lg"
-                               href="{{ path('back_user_delete', {'id': user.id}) }}"
+                               href="{{ path('back_question_delete', {'id': question.id}) }}"
                                title="{{ 'delete.title'|trans([], 'Question') }}">
                                 {{ ux_icon('fa6-regular:trash-can', {width: '20px', height: '20px'}) }}
                             </a>

@@ -34,35 +34,28 @@
         <table class="table table-zebra">
             <!-- head -->
             <thead>
-            <tr>
-                <th></th>
-                <th>Name</th>
-                <th>Job</th>
-                <th>Favorite Color</th>
-            </tr>
+                <tr>
+                    <th class="text-center">{{ 'username'|trans({}, 'Answer') }}</th>
+                    <th class="text-center">{{ 'question'|trans({}, 'Answer') }}</th>
+                    <th class="text-center">{{ 'réponses'|trans({}, 'Answer') }}</th>
+                    <th class="text-center">{{ 'actions'|trans({}, 'Crud') }}</th>
+                </tr>
             </thead>
             <tbody>
-            <!-- row 1 -->
-            <tr>
-                <th>1</th>
-                <td>Cy Ganderton</td>
-                <td>Quality Control Specialist</td>
-                <td>Blue</td>
-            </tr>
-            <!-- row 2 -->
-            <tr>
-                <th>2</th>
-                <td>Hart Hagerty</td>
-                <td>Desktop Support Technician</td>
-                <td>Purple</td>
-            </tr>
-            <!-- row 3 -->
-            <tr>
-                <th>3</th>
-                <td>Brice Swyre</td>
-                <td>Tax Accountant</td>
-                <td>Red</td>
-            </tr>
+                {% for question in pagination %}
+                    <tr>
+                        <td>{{ question.user.username ?? 'N/A' }}</td>
+                        <td>{{ question.label }}</td>
+                        <td>{{ question.answer.label ?? ''}}</td>
+                        <td>
+                            <a class="d-flex justify-content-center text-decoration-none fa-lg"
+                               href="{{ path('back_question_delete', {'id': question.id}) }}"
+                               title="{{ 'delete.title'|trans([], 'Question') }}">
+                                {{ ux_icon('fa6-regular:trash-can', {width: '20px', height: '20px'}) }}
+                            </a>
+                        </td>
+                    </tr>
+                {% endfor %}
             </tbody>
         </table>
     </div>
