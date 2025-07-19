@@ -54,6 +54,12 @@ final class AnswerController extends AbstractController
         ]);
     }
 
+    public function generatedPlaylist()
+    {
+    }
+
+
+
     /**
      * @param Answer|null $answer
      *

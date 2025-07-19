@@ -48,10 +48,10 @@
                     <tr>
                         <td class="text-center">{{ user.email }}</td>
                         <td class="text-center">{{ user.username }}</td>
-                        <td class="text-center">{{ user.getRoles()|join(', ')  }}</td>
+                        <td class="text-center">{{ user.getRoles() | join(', ')  }}</td>
                         <td class="text-center">{% if user.active == false %}{{ 'no'|trans([], 'Crud') }}{% else %}{{ 'yes'|trans([], 'Crud') }}{% endif %}</td>
-                        <td class="text-center">{{ user.createdAt|date('d/m/Y') }}</td>
-                        <td class="text-center">{{ user.updatedAt|date('d/m/Y') }}</td>
+                        <td class="text-center">{{ user.createdAt | date('d/m/Y') }}</td>
+                        <td class="text-center">{{ user.updatedAt | date('d/m/Y') }}</td>
                         <td>
                             <div class="flex justify-center">
                                 <a class="" href="{{ path('back_user_edit', {'id': user.id}) }}"

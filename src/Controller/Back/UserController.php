@@ -3,7 +3,7 @@
 namespace App\Controller\Back;
 
 use App\Entity\User;
-use App\Form\Type\UserTypeForm;
+use App\Form\Type\Back\UserTypeForm;
 use App\Repository\UserRepository;
 use Knp\Component\Pager\PaginatorInterface;
 use Psr\Log\LoggerInterface;

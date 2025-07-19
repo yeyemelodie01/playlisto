@@ -1,0 +1,14 @@
+api_platform:
+  resource: .
+  type: api_platform
+  prefix: /api
+
+api_auth_login:
+  path: /api/authentication_token
+  controller: App\Controller\Api\AuthController
+  methods: ['POST']
+
+api_signup:
+  path: /api/signup
+  controller: App\Controller\Api\SignupController
+  methods: ['POST']
