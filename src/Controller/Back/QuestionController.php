@@ -2,13 +2,16 @@
 
 namespace App\Controller\Back;
 
+use App\Entity\Question;
 use App\Repository\QuestionRepository;
 use Knp\Component\Pager\PaginatorInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * QuestionController manages question-related operations in the back office.
@@ -21,9 +24,11 @@ final class QuestionController extends AbstractController
     protected const TEMPLATE_DIR = 'back/question';
 
     /**
-     * @param QuestionRepository $questionRepository
+     * @param QuestionRepository  $questionRepository
+     * @param LoggerInterface     $logger
+     * @param TranslatorInterface $translator
      */
-    public function __construct(private readonly QuestionRepository $questionRepository)
+    public function __construct(private readonly QuestionRepository $questionRepository, private readonly LoggerInterface $logger, private readonly TranslatorInterface $translator)
     {
     }
 
@@ -83,18 +88,29 @@ final class QuestionController extends AbstractController
     }
 
     /**
-     * @param Request $request
+     * @param Question|null $question
      *
      * @return Response
      */
     #[Route(path: ['en' => '/{id}/delete', 'fr' => '/{id}/supprimer'], name: 'delete', requirements: ['id' => "\d+"])]
-    public function delete(Request $request): Response
+    public function delete(?Question $question): Response
     {
-        // Logic for deleting a question would go here.
-        // This is a placeholder for the actual implementation.
+        if (null === $question) {
+            $this->addFlash('error', $this->translor->trans('no_element', [], 'Crud'));
 
-        return $this->render(self::TEMPLATE_DIR . DIRECTORY_SEPARATOR . 'delete.html.twig', [
-            // Pass necessary data to the template.
-        ]);
+            return $this->redirectToRoute('back_question_index');
+        }
+
+        $type = 'error';
+        try {
+            $this->questionRepository->remove($question, true);
+            $type = 'success';
+        } catch (\Exception $exception) {
+            $this->logger->error($exception->getMessage(), $exception->getTrace());
+        }
+
+        $this->addFlash($type, $this->translator->trans("delete.$type", [], 'Crud'));
+
+        return $this->redirectToRoute('back_question_index');
     }
 }
