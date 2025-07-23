@@ -5,8 +5,14 @@ namespace App\Controller\Back;
 use App\Entity\Recommendation;
 use App\Repository\QuestionRepository;
 use App\Repository\RecommendationRepository;
+use Knp\Component\Pager\PaginatorInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 #[Route(path: ['en' => '/recommendations', 'fr' => '/recommendations'], name: 'recommendation_')]
 final class RecommendationController extends AbstractController
@@ -53,7 +59,7 @@ final class RecommendationController extends AbstractController
     public function delete(?Recommendation $recommendation): Response
     {
         if (null === $recommendation) {
-            $this->addFlash('error', $this->translor->trans('no_element', [], 'Crud'));
+            $this->addFlash('error', $this->translator->trans('no_element', [], 'Crud'));
 
             return $this->redirectToRoute('back_recommendation_index');
         }
