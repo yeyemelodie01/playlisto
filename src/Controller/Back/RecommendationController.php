@@ -3,7 +3,6 @@
 namespace App\Controller\Back;
 
 use App\Entity\Recommendation;
-use App\Repository\QuestionRepository;
 use App\Repository\RecommendationRepository;
 use Knp\Component\Pager\PaginatorInterface;
 use Psr\Log\LoggerInterface;
