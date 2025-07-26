@@ -64,15 +64,18 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private Collection $playlists;
 
     /**
-     * @var Collection<int, Question>
+     * @var Collection<int, Answer>
      */
-    #[ORM\OneToMany(targetEntity: Question::class, mappedBy: 'user')]
-    private Collection $questions;
+    #[ORM\OneToMany(targetEntity: Answer::class, mappedBy: 'user')]
+    private Collection $answers;
+
+    #[ORM\OneToMany(targetEntity: Recommendation::class, mappedBy: 'user')]
+    private Collection $recommendations;
 
     public function __construct()
     {
         $this->playlists = new ArrayCollection();
-        $this->questions = new ArrayCollection();
+        $this->answers = new ArrayCollection();
     }
 
     /**
@@ -197,35 +200,45 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
-    public function getQuestions(): Collection
+    public function getAnswers(): Collection
     {
-        return $this->questions;
+        return $this->answers;
     }
 
-    public function setQuestions(Collection $questions): void
+    public function setAnswers(Collection $answers): void
     {
-        $this->questions = $questions;
+        $this->answers = $answers;
     }
 
-    public function addQuestion(Question $question): static
+    public function addAnswer(Answer $answer): static
     {
-        if (!$this->questions->contains($question)) {
-            $this->questions->add($question);
-            $question->setUser($this);
+        if (!$this->answers->contains($answer)) {
+            $this->answers->add($answer);
+            $answer->setUser($this);
         }
 
         return $this;
     }
 
-    public function removeQuestion(Question $question): static
+    public function removeAnswer(Answer $answer): static
     {
-        if ($this->questions->removeElement($question)) {
+        if ($this->answers->removeElement($answer)) {
             // set the owning side to null (unless already changed)
-            if ($question->getUser() === $this) {
-                $question->setUser(null);
+            if ($answer->getUser() === $this) {
+                $answer->setUser(null);
             }
         }
 
         return $this;
+    }
+
+    public function getRecommendations(): Collection
+    {
+        return $this->recommendations;
+    }
+
+    public function setRecommendations(Collection $recommendations): void
+    {
+        $this->recommendations = $recommendations;
     }
 }

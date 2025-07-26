@@ -34,19 +34,15 @@
                 <!-- head -->
                 <thead>
                     <tr>
-                        <th class="text-center">{{ 'username'|trans({}, 'Question') }}</th>
-                        <th class="text-center">{{ 'label'|trans({}, 'Question') }}</th>
-                        <th class="text-center">{{ 'answer'|trans({}, 'Question') }}</th>
+                        <th>{{ 'label'|trans({}, 'Question') }}</th>
                         <th class="text-center">{{ 'actions'|trans({}, 'Crud') }}</th>
                     </tr>
                 </thead>
                 <tbody>
                 {% for question in pagination %}
                     <tr>
-                        <td>{{ question.user.username ?? 'N/A' }}</td>
                         <td>{{ question.label }}</td>
-                        <td>{{ question.answer.label ?? ''}}</td>
-                        <td>
+                        <td class="flex justify-center">
                             <a class="d-flex justify-content-center text-decoration-none fa-lg"
                                href="{{ path('back_question_delete', {'id': question.id}) }}"
                                title="{{ 'delete.title'|trans([], 'Question') }}">

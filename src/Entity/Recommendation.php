@@ -28,6 +28,9 @@ class Recommendation
     #[ORM\Column(length: 255)]
     private string $source;
 
+    #[ORM\ManyToOne(inversedBy: 'recommendations')]
+    private ?User $user = null;
+
     /**
      * @return string
      */
@@ -62,5 +65,15 @@ class Recommendation
     public function setGeneratedAt(\DateTime $generatedAt): void
     {
         $this->generatedAt = $generatedAt;
+    }
+
+    public function getUser(): ?User
+    {
+        return $this->user;
+    }
+
+    public function setUser(?User $user): void
+    {
+        $this->user = $user;
     }
 }
