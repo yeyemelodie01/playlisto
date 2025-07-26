@@ -30,6 +30,8 @@ class Answer
     #[ORM\ManyToOne(inversedBy: 'answers')]
     private ?Question $question = null;
 
+    #[ORM\ManyToOne(inversedBy: 'answers')]
+    private ?User $user = null;
     /**
      * @return string
      */
@@ -48,22 +50,32 @@ class Answer
         $this->label = $label;
     }
 
-    /**
-     * @return Question|null
-     */
     public function getQuestion(): ?Question
     {
         return $this->question;
     }
 
+    public function setQuestion(?Question $question): void
+    {
+        $this->question = $question;
+    }
+
     /**
-     * @param Question|null $question
+     * @return User|null
+     */
+    public function getUser(): ?User
+    {
+        return $this->user;
+    }
+
+    /**
+     * @param User|null $user
      *
      * @return $this
      */
-    public function setQuestion(?Question $question): static
+    public function setUser(?User $user): static
     {
-        $this->question = $question;
+        $this->user = $user;
 
         return $this;
     }

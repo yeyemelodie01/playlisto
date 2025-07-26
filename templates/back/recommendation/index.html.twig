@@ -43,10 +43,10 @@
                 <tbody>
                 {% for recommendation in pagination %}
                     <tr>
-                        <td>{{ recommendation.user.username ?? 'N/A' }}</td>
-                        <td>{{ recommendation.source }}</td>
-                        <td>{{ recommendation.generatedAt | date('d/m/Y') }}</td>
-                        <td>
+                        <td class="text-center">{{ recommendation.user.username ?? 'N/A' }}</td>
+                        <td class="text-center">{{ recommendation.source }}</td>
+                        <td class="text-center">{{ recommendation.generatedAt | date('d/m/Y') }}</td>
+                        <td class="flex justify-center">
                             <a class="d-flex justify-content-center text-decoration-none fa-lg"
                                href="{{ path('back_recommendation_delete', {'id': recommendation.id}) }}"
                                title="{{ 'delete.title'|trans([], 'Recommendation') }}">

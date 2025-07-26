@@ -11,16 +11,8 @@ use Doctrine\Persistence\ObjectManager;
 
 class QuestionFixtures extends Fixture implements OrderedFixtureInterface
 {
-    /**
-     * @param UserRepository $userRepository
-     */
-    public function __construct(private readonly UserRepository $userRepository)
-    {
-    }
     public function load(ObjectManager $manager): void
     {
-        $users = $this->userRepository->getAll();
-
         $questions = [
             'Quel est ton style musical préféré ?',
             'À quel moment de la journée écoutes-tu le plus de musique ?',
@@ -44,11 +36,9 @@ class QuestionFixtures extends Fixture implements OrderedFixtureInterface
             'As-tu une chanson fétiche pour les moments tristes ?',
         ];
 
-        $users = $manager->getRepository(User::class)->findAll();
         foreach ($questions as $label) {
             $question = new Question();
             $question->setLabel($label);
-            $question->setUser($users[array_rand($users)]);
             $manager->persist($question);
         }
 

@@ -37,9 +37,6 @@ class Question
     #[ORM\OneToMany(targetEntity: Answer::class, mappedBy: 'question')]
     private Collection $answers;
 
-    #[ORM\ManyToOne(inversedBy: 'questions')]
-    private ?User $user = null;
-
     public function __construct()
     {
         $this->answers = new ArrayCollection();
@@ -101,15 +98,5 @@ class Question
         }
 
         return $this;
-    }
-
-    public function getUser(): User
-    {
-        return $this->user;
-    }
-
-    public function setUser(User $user): void
-    {
-        $this->user = $user;
     }
 }

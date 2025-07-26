@@ -60,9 +60,9 @@
                         {% set active = menuRecommendation.activeMenu()%}
                         <a href="{{ path('back_recommendation_index')}}" class="{{ linkClass }} {{ active  ? activeClass : '' }}">
                         <span class="inline-flex justify-center items-center ml-4">
-                            {{ ux_icon('fa6-solid:circle-question', {width: '18px', height: '18px'}) }}
+                            {{ ux_icon('fa6-solid:lightbulb', {width: '18px', height: '18px'}) }}
                         </span>
-                            <span class="ml-2 text-sm tracking-wide truncate">{{ 'recommmendation'|trans({}, 'Menu') }}</span>
+                            <span class="ml-2 text-sm tracking-wide truncate">{{ 'recommendation'|trans({}, 'Menu') }}</span>
                         </a>
                     </li>
                     <li>
