@@ -24,7 +24,7 @@ use Symfony\Component\Security\Core\User\UserInterface;
 #[ORM\Table(name: 'base_user')]
 #[ORM\InheritanceType('JOINED')]
 #[ORM\DiscriminatorColumn(name: 'dtype', type: 'string')]
-#[ORM\DiscriminatorMap(['user' => \App\Entity\User::class, 'admin' => \App\Entity\Administrator::class])]
+#[ORM\DiscriminatorMap(['user' => User::class, 'admin' => Administrator::class])]
 abstract class BaseUser implements UserInterface, PasswordAuthenticatedUserInterface
 {
     use IdTrait;
