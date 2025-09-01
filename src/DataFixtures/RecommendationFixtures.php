@@ -8,7 +8,7 @@ use Doctrine\Persistence\ObjectManager;
 use App\Entity\Recommendation;
 use App\Entity\User;
 
-class RecommendationFixtures extends Fixture implements OrderedFixtureInterface
+final class RecommendationFixtures extends Fixture implements OrderedFixtureInterface
 {
     public function load(ObjectManager $manager): void
     {

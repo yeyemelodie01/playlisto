@@ -11,7 +11,7 @@ use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 /**
  * Loads default administrator accounts into the database.
  */
-class AdminFixtures extends Fixture
+final class AdminFixtures extends Fixture
 {
     /**
      * AdminFixtures constructor.

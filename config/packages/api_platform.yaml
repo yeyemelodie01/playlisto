@@ -1,0 +1,29 @@
+api_platform:
+    title: 'Playlisto API'
+    version: '1.0.0'
+
+    # Response formats exposed by the API
+    formats:
+        jsonld: ['application/ld+json']
+        json:   ['application/json']
+
+    # Support PATCH with JSON Merge Patch (useful for partial updates from React)
+    patch_formats:
+        json: ['application/merge-patch+json']
+
+    # Return RFC7807-compatible errors (cleaner for front apps)
+    error_formats:
+        jsonproblem: ['application/problem+json']
+
+    defaults:
+        stateless: true
+        cache_headers:
+            vary: ['Content-Type', 'Authorization', 'Origin']
+
+    # OpenAPI/Swagger UI configuration (Bearer token auth)
+    swagger:
+        versions: [3]
+        api_keys:
+            bearerAuth:
+                name: Authorization
+                type: header
