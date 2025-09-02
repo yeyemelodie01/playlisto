@@ -2,8 +2,10 @@
 
 namespace App\ApiResource;
 
+use ApiPlatform\Metadata\ApiProperty;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Delete;
+use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\Post;
@@ -32,6 +34,13 @@ use Symfony\Component\Serializer\Annotation\Groups;
             security: "is_granted('ROLE_USER')",
             name: 'GetMyPlaylists',
             provider: PlaylistProvider::class
+        ),
+        new Get(
+            uriTemplate: '/me/playlists/{id}',
+            description: 'Get a specific playlist of the currently authenticated user',
+            security: "is_granted('ROLE_USER')",
+            name: 'GetMyPlaylist',
+            provider: PlaylistItemProvider::class
         ),
         new Post(
             uriTemplate: '/me/playlists',
@@ -62,31 +71,26 @@ use Symfony\Component\Serializer\Annotation\Groups;
 )]
 final class PlaylistOutput
 {
-    /** Identifiant de la playlist */
     #[Groups(['playlist:read'])]
     public int $id;
 
-    /** Titre de la playlist */
     #[Groups(['playlist:read'])]
     public string $title;
 
-    /** Description éventuelle */
     #[Groups(['playlist:read'])]
     public ?string $description;
 
-    /** Humeur associée (enum value) */
+    #[ApiProperty(openapiContext: ['enum' => ['happy', 'sad', 'energetic', 'stressed', 'calm']])]
     #[Groups(['playlist:read'])]
     public ?string $mood;
 
-    /** Activité associée (enum value) */
+    #[ApiProperty(openapiContext: ['enum' => ['sport', 'work', 'relax', 'study', 'cooking']])]
     #[Groups(['playlist:read'])]
     public ?string $activity;
-
-    /** Nombre de pistes contenues */
     #[Groups(['playlist:read'])]
     public int $trackCount;
 
-    /** Date de création */
+    #[ApiProperty(example: '2025-09-01T10:00:00+00:00')]
     #[Groups(['playlist:read'])]
     public ?\DateTimeInterface $createdAt;
 

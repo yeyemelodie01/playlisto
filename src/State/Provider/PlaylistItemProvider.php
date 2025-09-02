@@ -6,6 +6,7 @@ use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProviderInterface;
 use App\ApiResource\PlaylistOutput;
 use App\Entity\Playlist;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
@@ -59,14 +60,14 @@ final readonly class PlaylistItemProvider implements ProviderInterface
         }
 
         $tracks = method_exists($playlist, 'getTracks') ? $playlist->getTracks() : null;
-        $trackCount = is_object($tracks) && method_exists($tracks, 'count') ? $tracks->count() : (is_countable($tracks) ? \count($tracks) : 0);
+        $trackCount = $tracks instanceof Collection ? $tracks->count() : (is_countable($tracks) ? count($tracks) : 0);
 
         return new PlaylistOutput(
-            id: $playlist->getId(),
-            title: $playlist->getTitle(),
+            id: (int)$playlist->getId(),
+            title: (string) $playlist->getTitle(),
             description: method_exists($playlist, 'getDescription') ? $playlist->getDescription() : null,
-            mood: method_exists($playlist, 'getMood') ? $playlist->getMood() : null,
-            activity: method_exists($playlist, 'getActivity') ? $playlist->getActivity() : null,
+            mood: method_exists($playlist, 'getMood') ? $playlist->getMood()?->value : null,
+            activity: method_exists($playlist, 'getActivity') ? $playlist->getActivity()?->value : null,
             trackCount: $trackCount,
             createdAt: method_exists($playlist, 'getCreatedAt') ? $playlist->getCreatedAt() : null
         );

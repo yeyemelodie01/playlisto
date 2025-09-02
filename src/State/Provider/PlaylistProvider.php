@@ -90,26 +90,27 @@ final readonly class PlaylistProvider implements ProviderInterface
     /**
      * Maps a Playlist entity to a PlaylistOutput DTO.
      *
-     * @param PlaylistEntity $p the Playlist entity to map
+     * @param PlaylistEntity $playlist the Playlist entity to map
      *
      * @return PlaylistOutput the mapped PlaylistOutput DTO
      */
-    private function mapEntityToDto(PlaylistEntity $p): PlaylistOutput
+    private function mapEntityToDto(PlaylistEntity $playlist): PlaylistOutput
     {
         // Adapt this mapping to the fields of your PlaylistOutput DTO
         // and to your Playlist entity getters
-        $trackCount = method_exists($p, 'getTracks') && $p->getTracks() !== null
-            ? (method_exists($p->getTracks(), 'count') ? $p->getTracks()->count() : (is_countable($p->getTracks()) ? count($p->getTracks()) : 0))
-            : 0;
+        $mood = method_exists($playlist, 'getMood') ? $playlist->getMood()?->value : null;
+        $activity = method_exists($playlist, 'getActivity') ? $playlist->getActivity()?->value : null;
+        $tracks = method_exists($playlist, 'getTracks') ? $playlist->getTracks() : null;
+        $trackCount = $tracks instanceof Collection ? $tracks->count() : (is_countable($tracks) ? count($tracks) : 0);
 
         return new PlaylistOutput(
-            id: (int) $p->getId(),
-            title: (string) $p->getTitle(),
-            description: method_exists($p, 'getDescription') ? ($p->getDescription() ?? null) : null,
-            mood: method_exists($p, 'getMood') ? ($p->getMood() ?? null) : null,
-            activity: method_exists($p, 'getActivity') ? ($p->getActivity() ?? null) : null,
+            id: (int) $playlist->getId(),
+            title: (string) $playlist->getTitle(),
+            description: method_exists($playlist, 'getDescription') ? ($playlist->getDescription() ?? null) : null,
+            mood: $mood,
+            activity: $activity,
             trackCount: $trackCount,
-            createdAt: method_exists($p, 'getCreatedAt') ? $p->getCreatedAt() : null,
+            createdAt: method_exists($playlist, 'getCreatedAt') ? $playlist->getCreatedAt() : null,
         );
     }
 }

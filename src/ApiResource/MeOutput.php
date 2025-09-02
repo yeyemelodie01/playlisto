@@ -29,7 +29,7 @@ final class MeOutput
      * Constructor to initialize all properties.
      *
      * @param string  $email the user's email
-     * @param array[] $roles the user's roles
+     * @param string[] $roles the user's roles
      */
     public function __construct(public string $email, public array $roles)
     {
