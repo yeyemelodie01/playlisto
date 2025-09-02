@@ -6,6 +6,11 @@ use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Get;
 use App\State\Provider\MeOutputProvider;
 
+/**
+ * Data Transfer Object (DTO) for returning the current authenticated user's information.
+ *
+ * @psalm-suppress PossiblyUnusedProperty
+ */
 #[ApiResource(
     operations: [
         new Get(

@@ -3,12 +3,26 @@
 namespace App\ApiResource;
 
 use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Metadata\GetCollection;
+use ApiPlatform\Metadata\Patch;
+use ApiPlatform\Metadata\Post;
+use App\State\Processor\PlaylistProcessor;
+use App\State\Provider\PlaylistItemProvider;
 use App\State\Provider\PlaylistProvider;
 use Symfony\Component\Serializer\Annotation\Groups;
 
-/**
- * DTO exposé pour la lecture des playlists côté front.
+/** * Data Transfer Object (DTO) representing a playlist output for API responses.
+ *
+ * This resource provides:
+ * - the playlist ID,
+ * - the title,
+ * - an optional description,
+ * - associated mood and activity (as enum values),
+ * - the number of tracks contained,
+ * - the creation date.
+ *
+ * @psalm-suppress PossiblyUnusedProperty
  */
 #[ApiResource(
     operations: [
@@ -18,6 +32,30 @@ use Symfony\Component\Serializer\Annotation\Groups;
             security: "is_granted('ROLE_USER')",
             name: 'GetMyPlaylists',
             provider: PlaylistProvider::class
+        ),
+        new Post(
+            uriTemplate: '/me/playlists',
+            security: "is_granted('ROLE_USER')",
+            input: PlaylistInput::class,
+            output: PlaylistOutput::class,
+            name: 'CreateMyPlaylist',
+            processor: PlaylistProcessor::class
+        ),
+        new Patch(
+            uriTemplate: '/me/playlists/{id}',
+            security: "is_granted('ROLE_USER')",
+            input: PlaylistInput::class,
+            output: PlaylistOutput::class,
+            name: 'UpdateMyPlaylist',
+            provider: PlaylistItemProvider::class,
+            processor: PlaylistProcessor::class
+        ),
+        new Delete(
+            uriTemplate: '/me/playlists/{id}',
+            security: "is_granted('ROLE_USER')",
+            name: 'DeleteMyPlaylist',
+            provider: PlaylistItemProvider::class,
+            processor: PlaylistProcessor::class
         ),
     ],
     normalizationContext: ['groups' => ['playlist:read']]
