@@ -4,6 +4,12 @@ namespace App\State\Processor;
 
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
+use App\Entity\SurveyAnswer;
+use App\Entity\SurveySubmission;
+use App\Entity\User;
+use App\Enum\ActivityType;
+use App\Enum\MoodType;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\SecurityBundle\Security;
 use App\ApiResource\AnswerInput;
 use App\ApiResource\AnswerResultOutput;
@@ -27,7 +33,7 @@ final readonly class AnswerProcessor implements ProcessorInterface
      *
      * @psalm-suppress PossiblyUnusedMethod
      */
-    public function __construct(private Security $security)
+    public function __construct(private Security $security, private EntityManagerInterface $entityManager)
     {
     }
 
@@ -115,7 +121,43 @@ final readonly class AnswerProcessor implements ProcessorInterface
 
         $seeds = array_values(array_unique($seeds));
 
-        // TODO: persist a SurveySubmission + SurveyAnswer entities if needed
+
+        $user = $this->security->getUser();
+
+        if (!$user instanceof User) {
+            $userEntity = $this->entityManager->getRepository(User::class)->findOneBy([
+                'email' => method_exists($user, 'getUserIdentifier') ? $user->getUserIdentifier() : null,
+            ]);
+            if (!$userEntity) {
+                throw new AccessDeniedHttpException('Authenticated user entity not found.');
+            }
+            $user = $userEntity;
+        }
+
+
+        $submission = new SurveySubmission();
+        $submission->setSurveyId((int)$data->surveyId);
+        $submission->setUser($user);
+        $submission->setDeducedMood(MoodType::from($deducedMood));
+        $submission->setDeducedActivity(ActivityType::from($deducedActivity));
+        $this->entityManager->persist($submission);
+
+        foreach ($data->answers as $item) {
+            $questionId = (int)($item['questionId'] ?? 0);
+            $optionIds = $item['optionIds'] ?? [];
+            if (!\is_array($optionIds)) {
+                continue;
+            }
+            foreach ($optionIds as $oid) {
+                $answer = new SurveyAnswer();
+                $answer->setSubmission($submission);
+                $answer->setQuestionId($questionId);
+                $answer->setOptionId((int)$oid);
+                $this->entityManager->persist($answer);
+            }
+        }
+
+        $this->entityManager->flush();
 
         return new AnswerResultOutput(
             surveyId: (int)$data->surveyId,
