@@ -54,6 +54,11 @@ security:
     access_control:
         - { route: login, roles: PUBLIC_ACCESS }
         - { route: logout, roles: PUBLIC_ACCESS }
+        - { path: ^/api/docs, roles: PUBLIC_ACCESS }
+        - { path: ^/api/authentication_token, roles: PUBLIC_ACCESS }
+        - { path: ^/api/token/refresh, roles: PUBLIC_ACCESS }
+        - { path: ^/api/signup, roles: PUBLIC_ACCESS }
+        - { path: ^/api, roles: IS_AUTHENTICATED_FULLY}
         - { path: ^/, roles: ROLE_ADMIN, host: '%back_domain_default%' }
 
 when@test:

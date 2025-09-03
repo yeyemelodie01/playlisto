@@ -1,0 +1,17 @@
+api_platform:
+    title: 'Playlisto API'
+    version: '1.0.0'
+    formats:
+        jsonld: ['application/ld+json']
+        json:   ['application/json']
+    defaults:
+        stateless: true
+        cache_headers:
+            vary: ['Content-Type', 'Authorization', 'Origin']
+    swagger:
+        api_keys:
+            bearerAuth:
+                name: Authorization
+                type: header
+    graphql:
+        enabled: false

@@ -1,0 +1,52 @@
+<?php
+
+namespace App\ApiResource;
+
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Get;
+use Symfony\Component\Serializer\Annotation\Groups;
+
+/**
+ * Data Transfer Object (DTO) for returning the active question for the current user.
+ *
+ * This class encapsulates the question ID, title, and a list of associated survey questions.
+ * * @psalm-suppress PossiblyUnusedProperty
+ */
+#[ApiResource(
+    operations: [
+        new Get(
+            uriTemplate: 'me/questions',
+            description: 'Get active question for the current user',
+            security: "is_granted('ROLE_USER')",
+            name: 'GetActiveQuestion',
+            provider: QuestionProvider::class
+        ),
+    ],
+    normalizationContext: ['groups' => ['question:read']],
+)]
+final class QuestionOutput
+{
+    #[Groups(['question:read'])]
+    public int $id;
+
+    #[Groups(['question:read'])]
+    public string $title;
+
+    /** @var SurveyQuestionOutput[] */
+    #[Groups(['question:read'])]
+    public array $questions = [];
+
+    /**
+     * Constructor to initialize all properties.
+     *
+     * @param int                    $id        the question ID
+     * @param string                 $title     the question title
+     * @param SurveyQuestionOutput[] $questions the list of survey questions
+     */
+    public function __construct(int $id, string $title, array $questions)
+    {
+        $this->id = $id;
+        $this->title = $title;
+        $this->questions = $questions;
+    }
+}

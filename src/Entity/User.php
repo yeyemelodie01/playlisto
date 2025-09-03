@@ -2,16 +2,10 @@
 
 namespace App\Entity;
 
-use App\Entity\Traits\ActiveTrait;
-use App\Entity\Traits\IdTrait;
-use App\Entity\Traits\PasswordTrait;
 use App\Repository\UserRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
-use Gedmo\Timestampable\Traits\TimestampableEntity;
-use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
-use Symfony\Component\Security\Core\User\UserInterface;
 
 /**
  * Represents a user of the application.
@@ -31,31 +25,17 @@ use Symfony\Component\Security\Core\User\UserInterface;
  * for compatibility with Symfony's security system.
  */
 #[ORM\Entity(repositoryClass: UserRepository::class)]
-#[ORM\UniqueConstraint(name: 'UNIQ_IDENTIFIER_EMAIL', fields: ['email'])]
-class User implements UserInterface, PasswordAuthenticatedUserInterface
+#[ORM\Table(name: 'users')]
+class User extends BaseUser
 {
-    use IdTrait;
-    use TimestampableEntity;
-    use ActiveTrait;
-    use PasswordTrait;
-
-    #[ORM\Column(length: 180)]
-    private ?string $email = null;
-
-    /**
-     * @var list<string> The user roles
-     */
-    #[ORM\Column]
-    private array $roles = [];
-
     /**
      * @var string The username or display name of the user
      */
     #[ORM\Column(length: 255)]
     private string $username;
 
-    #[ORM\Column(type: 'integer')]
-    private int $spotifyId;
+    #[ORM\Column(length: 255, nullable: true, unique: true)]
+    private ?string $spotifyId = null;
 
     /**
      * @var Collection<int, Playlist>
@@ -76,59 +56,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     {
         $this->playlists = new ArrayCollection();
         $this->answers = new ArrayCollection();
+        $this->recommendations = new ArrayCollection();
     }
 
-    /**
-     * @return string|null
-     */
-    public function getEmail(): ?string
-    {
-        return $this->email;
-    }
-
-    /**
-     * @param string $email
-     *
-     * @return $this
-     */
-    public function setEmail(string $email): static
-    {
-        $this->email = $email;
-
-        return $this;
-    }
-
-    /**
-     * A visual identifier that represents this user.
-     *
-     * @see UserInterface
-     */
-    public function getUserIdentifier(): string
-    {
-        return (string) $this->email;
-    }
-
-    /**
-     * @see UserInterface
-     */
-    public function getRoles(): array
-    {
-        $roles = $this->roles;
-        // guarantee every user at least has ROLE_USER
-        $roles[] = 'ROLE_USER';
-
-        return array_unique($roles);
-    }
-
-    /**
-     * @param list<string> $roles
-     */
-    public function setRoles(array $roles): static
-    {
-        $this->roles = $roles;
-
-        return $this;
-    }
 
     /**
      * @return string
@@ -150,14 +80,15 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
-    public function getSpotifyId(): int
+    public function getSpotifyId(): ?string
     {
         return $this->spotifyId;
     }
 
-    public function setSpotifyId(int $spotifyId): void
+    public function setSpotifyId(?string $spotifyId): static
     {
         $this->spotifyId = $spotifyId;
+        return $this;
     }
 
     /**

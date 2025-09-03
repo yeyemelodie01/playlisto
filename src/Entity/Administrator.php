@@ -2,13 +2,7 @@
 
 namespace App\Entity;
 
-use App\Entity\Traits\ActiveTrait;
-use App\Entity\Traits\IdTrait;
-use App\Entity\Traits\PasswordTrait;
 use App\Repository\AdministratorRepository;
-use Gedmo\Timestampable\Traits\TimestampableEntity;
-use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
-use Symfony\Component\Security\Core\User\UserInterface;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
 
@@ -17,14 +11,8 @@ use Symfony\Component\Validator\Constraints as Assert;
  */
 #[ORM\Entity(repositoryClass: AdministratorRepository::class)]
 #[ORM\Table(name: 'administrator')]
-#[ORM\UniqueConstraint(name: 'UNIQ_IDENTIFIER_EMAIL', fields: ['email'])]
-class Administrator implements UserInterface, PasswordAuthenticatedUserInterface
+class Administrator extends BaseUser
 {
-    use IdTrait;
-    use ActiveTrait;
-    use PasswordTrait;
-    use TimestampableEntity;
-
     /**
      * @var string
      */
@@ -41,21 +29,6 @@ class Administrator implements UserInterface, PasswordAuthenticatedUserInterface
     #[Assert\NotBlank]
     private string $lastName = '';
 
-    /**
-     * @var string|null
-     */
-    #[ORM\Column(length: 180, unique: true)]
-    #[Assert\NotBlank(message: 'Email cannot be empty.')]
-    #[Assert\Email(message: 'Invalid email format.')]
-    #[Assert\Length(max: 180, maxMessage: 'Email cannot exceed 180 characters.')]
-    #[Assert\Regex(pattern: "/^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/", message: 'Invalid email format.')]
-    private ?string $email = null;
-
-    /**
-     * @var list<string> The user roles
-     */
-    #[ORM\Column]
-    private array $roles = [];
 
     /**
      * @var bool
@@ -92,29 +65,11 @@ class Administrator implements UserInterface, PasswordAuthenticatedUserInterface
     /**
      * @param string $lastName
      *
-     * @return void
+     * @return Administrator
      */
-    public function setLastName(string $lastName): void
+    public function setLastName(string $lastName): static
     {
         $this->lastName = $lastName;
-    }
-
-    /**
-     * @return string|null
-     */
-    public function getEmail(): ?string
-    {
-        return $this->email;
-    }
-
-    /**
-     * @param string|null $email
-     *
-     * @return void
-     */
-    public function setEmail(?string $email): void
-    {
-        $this->email = $email;
     }
 
     /**
@@ -133,45 +88,5 @@ class Administrator implements UserInterface, PasswordAuthenticatedUserInterface
     public function setSuperAdministrator(bool $superAdministrator): void
     {
         $this->superAdministrator = $superAdministrator;
-    }
-
-    /**
-     * @return array|string[]
-     */
-    #[\Override]
-    public function getRoles(): array
-    {
-        $roles = $this->roles;
-        // garantir que chaque utilisateur possède au moins ROLE_USER
-        $roles[] = 'ROLE_USER';
-
-        return array_values(array_unique($roles));
-    }
-
-    /**
-     * @param list<string> $roles
-     *
-     * @return $this
-     *
-     * @psalm-suppress PossiblyUnusedMethod
-     */
-    public function setRoles(array $roles): static
-    {
-        $this->roles = $roles;
-
-        return $this;
-    }
-
-    /**
-     * @return string
-     */
-    #[\Override]
-    public function getUserIdentifier(): string
-    {
-        if (null === $this->email || '' === $this->email) {
-            throw new \LogicException('L\'email ne peut pas être vide.');
-        }
-
-        return $this->email;
     }
 }
