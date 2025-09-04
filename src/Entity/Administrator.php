@@ -70,6 +70,7 @@ class Administrator extends BaseUser
     public function setLastName(string $lastName): static
     {
         $this->lastName = $lastName;
+        return $this;
     }
 
     /**

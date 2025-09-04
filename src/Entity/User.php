@@ -3,6 +3,7 @@
 namespace App\Entity;
 
 use App\Repository\UserRepository;
+use DateTimeImmutable;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
@@ -17,9 +18,13 @@ use Doctrine\ORM\Mapping as ORM;
  * - Username (`username`): The display name or pseudonym of the user.
  * - Created at (`createdAt`): The timestamp of account creation.
  * - Updated at (`updatedAt`): The timestamp of the last update.
+ * - Spotify ID (`spotifyId`): An optional identifier linking to the user's Spotify account.
+ * - Last login at (`lastLoginAt`): The timestamp of the user's last login.
  *
  * Relationships:
  * - One-to-many with `Playlist`: a user can create multiple playlists.
+ * - One-to-many with `Answer`: a user can provide multiple answers.
+ * - One-to-many with `Recommendation`: a user can receive multiple recommendations.
  *
  * This entity implements `UserInterface` and `PasswordAuthenticatedUserInterface`
  * for compatibility with Symfony's security system.
@@ -34,8 +39,11 @@ class User extends BaseUser
     #[ORM\Column(length: 255)]
     private string $username;
 
-    #[ORM\Column(length: 255, nullable: true, unique: true)]
+    #[ORM\Column(length: 255, unique: true, nullable: true)]
     private ?string $spotifyId = null;
+
+    #[ORM\Column(type: 'datetime_immutable', nullable: true)]
+    private ?DateTimeImmutable $lastLoginAt;
 
     /**
      * @var Collection<int, Playlist>
@@ -80,15 +88,41 @@ class User extends BaseUser
         return $this;
     }
 
+    /**
+     * @return string|null
+     */
     public function getSpotifyId(): ?string
     {
         return $this->spotifyId;
     }
 
+    /**
+     * @param string|null $spotifyId
+     *
+     * @return $this
+     */
     public function setSpotifyId(?string $spotifyId): static
     {
         $this->spotifyId = $spotifyId;
         return $this;
+    }
+
+    /**
+     * @return DateTimeImmutable|null
+     */
+    public function getLastLoginAt(): ?DateTimeImmutable
+    {
+        return $this->lastLoginAt;
+    }
+
+    /**
+     * @param DateTimeImmutable|null $lastLoginAt
+     *
+     * @return void
+     */
+    public function setLastLoginAt(?DateTimeImmutable $lastLoginAt): void
+    {
+        $this->lastLoginAt = $lastLoginAt;
     }
 
     /**
@@ -131,16 +165,29 @@ class User extends BaseUser
         return $this;
     }
 
+    /**
+     * @return Collection<int, Answer>
+     */
     public function getAnswers(): Collection
     {
         return $this->answers;
     }
 
+    /**
+     * @param Collection<int, Answer> $answers
+     *
+     * @return void
+     */
     public function setAnswers(Collection $answers): void
     {
         $this->answers = $answers;
     }
 
+    /**
+     * @param Answer $answer
+     *
+     * @return $this
+     */
     public function addAnswer(Answer $answer): static
     {
         if (!$this->answers->contains($answer)) {
@@ -151,6 +198,11 @@ class User extends BaseUser
         return $this;
     }
 
+    /**
+     * @param Answer $answer
+     *
+     * @return $this
+     */
     public function removeAnswer(Answer $answer): static
     {
         if ($this->answers->removeElement($answer)) {
@@ -163,11 +215,19 @@ class User extends BaseUser
         return $this;
     }
 
+    /**
+     * @return Collection<int, Recommendation>
+     */
     public function getRecommendations(): Collection
     {
         return $this->recommendations;
     }
 
+    /**
+     * @param Collection<int, Recommendation> $recommendations
+     *
+     * @return void
+     */
     public function setRecommendations(Collection $recommendations): void
     {
         $this->recommendations = $recommendations;
