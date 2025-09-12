@@ -4,7 +4,6 @@ namespace App\DataFixtures;
 
 use App\Entity\User;
 use App\Repository\UserRepository;
-use DateTime;
 use DateTimeImmutable;
 use Doctrine\Bundle\FixturesBundle\Fixture;
 use Doctrine\Common\DataFixtures\OrderedFixtureInterface;
@@ -62,16 +61,15 @@ final class UserFixtures extends Fixture implements OrderedFixtureInterface
         ];
 
         foreach ($users as $data) {
-            if (null === $this->userRepository->findOneBy(['email' => $data['email']])) {
+            $email = mb_strtolower(trim($data['email']));
+            if (null === $this->userRepository->findOneBy(['email' => $email])) {
                 $user = new User();
                 $user->setUsername($data['username']);
-                $user->setEmail($data['email']);
+                $user->setEmail($email);
                 $user->setSpotifyId((string) $data['spotifyId']);
                 $user->setRoles(['ROLE_USER']);
                 $user->setActive(true);
-                $user->setCreatedAt(new DateTime());
-                $user->setUpdatedAt(new DateTime());
-                $user->setLastLoginAt(new DateTimeImmutable('-' . rand(1, 100) . ' days'));
+                $user->setLastLoginAt(new DateTimeImmutable('-' . rand(1, 60) . ' days'));
                 $user->setPassword($this->passwordHasher->hashPassword($user, 'password'));
 
                 $this->userRepository->save($user, true);

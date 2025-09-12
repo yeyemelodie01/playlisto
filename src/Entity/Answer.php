@@ -26,8 +26,7 @@ class Answer
      * @var string | null The text content of the answer.
      */
     #[ORM\Column(length: 255)]
-    private ?string $label;
-
+    private string $label;
     #[ORM\ManyToOne(inversedBy: 'answers')]
     private ?Question $question = null;
 
