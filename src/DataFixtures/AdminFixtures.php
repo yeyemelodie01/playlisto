@@ -45,21 +45,23 @@ final class AdminFixtures extends Fixture
         ];
 
         foreach ($admins as $adminData) {
-            if (null === $this->administratorRepository->findOneBy(['email' => $adminData['email']])) {
+            $email = mb_strtolower(trim($adminData['email']));
+            if (null === $this->administratorRepository->findOneBy(['email' => $email])) {
                 $admin = new Administrator();
+                if (!\in_array('ROLE_ADMIN', $adminData['roles'], true)) {
+                    $adminData['roles'][] = 'ROLE_ADMIN';
+                }
                 $admin->setFirstName($adminData['firstName']);
                 $admin->setLastName($adminData['lastName']);
-                $admin->setEmail($adminData['email']);
+                $admin->setEmail($email);
                 $admin->setRoles($adminData['roles']);
                 $admin->setSuperAdministrator($adminData['superAdministrator']);
 
                 $hashedPassword = $this->passwordHasher->hashPassword($admin, $adminData['password']);
                 $admin->setPassword($hashedPassword);
 
-                $manager->persist($admin);
+                $this->administratorRepository->save($admin, true);
             }
         }
-
-        $manager->flush();
     }
 }

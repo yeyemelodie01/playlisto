@@ -78,21 +78,18 @@ final class PlaylistOutput
     public string $title;
 
     #[Groups(['playlist:read'])]
-    public ?string $description;
+    public ?string $description = null;
 
-    #[ApiProperty(openapiContext: ['enum' => ['happy', 'sad', 'energetic', 'stressed', 'calm']])]
     #[Groups(['playlist:read'])]
-    public ?string $mood;
+    public ?string $mood = null;
 
-    #[ApiProperty(openapiContext: ['enum' => ['sport', 'work', 'relax', 'study', 'cooking']])]
     #[Groups(['playlist:read'])]
-    public ?string $activity;
+    public ?string $activity = null;
     #[Groups(['playlist:read'])]
-    public int $trackCount;
+    public int $trackCount = 0;
 
-    #[ApiProperty(example: '2025-09-01T10:00:00+00:00')]
     #[Groups(['playlist:read'])]
-    public ?\DateTimeInterface $createdAt;
+    public ?\DateTimeInterface $createdAt = null;
 
     public function __construct(
         int $id,

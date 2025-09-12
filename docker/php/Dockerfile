@@ -41,7 +41,7 @@ RUN curl --location --output /usr/local/bin/composer https://getcomposer.org/com
     chmod +x /usr/local/bin/composer
 
 # Installation de Node.js, npm et outils associés
-RUN apt-get update && apt-get install -y software-properties-common nodejs npm
+RUN apt-get update && apt-get install -y nodejs npm && rm -rf /var/lib/apt/lists/*
 RUN echo node -v
 RUN npm install npm@9 -g && \
     npm install n -g && \

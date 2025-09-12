@@ -5,6 +5,7 @@ namespace App\Controller\Api;
 use App\Entity\Administrator;
 use App\Entity\User;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 
 /**
@@ -24,7 +25,7 @@ final class AuthController
     public function __invoke(#[CurrentUser] User|Administrator|null $user): JsonResponse
     {
         if (null === $user) {
-            return new JsonResponse(['message' => 'Email ou mot de passe incorrect.'], JsonResponse::HTTP_UNAUTHORIZED);
+            return new JsonResponse(['message' => 'Email ou mot de passe incorrect.'], Response::HTTP_UNAUTHORIZED);
         }
 
         return new JsonResponse([

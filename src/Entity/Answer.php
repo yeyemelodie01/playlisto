@@ -26,12 +26,14 @@ class Answer
      * @var string | null The text content of the answer.
      */
     #[ORM\Column(length: 255)]
-    private string $label;
-    #[ORM\ManyToOne(inversedBy: 'answers')]
+    private ?string $label;
+    #[ORM\ManyToOne(targetEntity: Question::class, inversedBy: 'answers')]
+    #[ORM\JoinColumn(nullable: false)]
     private ?Question $question = null;
 
     #[ORM\ManyToOne(inversedBy: 'answers')]
     private ?User $user = null;
+
     /**
      * @return string
      */

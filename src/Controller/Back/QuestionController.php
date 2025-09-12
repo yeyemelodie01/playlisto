@@ -4,6 +4,8 @@ namespace App\Controller\Back;
 
 use App\Entity\Question;
 use App\Repository\QuestionRepository;
+use App\Service\OpenAIService;
+use Doctrine\ORM\EntityManagerInterface;
 use Knp\Component\Pager\PaginatorInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -161,9 +163,11 @@ final class QuestionController extends AbstractController
 
 
     /**
+     * @param Question|null $question
+     *
      * @return Response
      */
-    #[Route(path: ['en' => '/{id}', 'fr' => '/{id}'], name: 'show', methods: ['GET'], requirements: ['id' => "\d+"])]
+    #[Route(path: ['en' => '/{id}', 'fr' => '/{id}'], name: 'show', requirements: ['id' => "\d+"], methods: ['GET'])]
     public function show(?Question $question): Response
     {
         if (null === $question) {
@@ -201,5 +205,32 @@ final class QuestionController extends AbstractController
         $this->addFlash($type, $this->translator->trans("delete.$type", [], 'Crud'));
 
         return $this->redirectToRoute('question_index');
+    }
+
+    /**
+     * Generate questions using OpenAI and save them to the database.
+     *
+     * @param OpenAIService           $openAI
+     * @param EntityManagerInterface  $em
+     *
+     * @return Response
+     */
+    #[Route(path: ['en' => '/generate', 'fr' => '/generer'], name: 'generate')]
+    public function generate(OpenAIService $openAI, EntityManagerInterface $em): Response
+    {
+        $items = $openAI->generateQuestions(6);
+        foreach ($items as $i) {
+            $q = new Question();
+            $q->setTitle($i['title']);
+            $q->setType($i['type']); // string, ou ton enum si tu en as un pour le type
+            if (isset($i['options'])) {
+                $q->setOptions($i['options']); // array JSON dans l’entité (json type)
+            }
+            $em->persist($q);
+        }
+        $em->flush();
+
+        $this->addFlash('success', 'Questions générées');
+        return $this->redirectToRoute('back_question_index');
     }
 }
