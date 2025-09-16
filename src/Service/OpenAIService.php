@@ -50,24 +50,30 @@ final readonly class OpenAIService
         $count = max(1, min(20, $count));
 
         $system = <<<SYS
-            You are an assistant generating short questionnaire items for a music playlist personalization app (Playlisto).
-            Output JSON ONLY matching the schema. No prose.
-            Schema:
-            {
-              "questions": [
-                { "title": "string",
-                  "type": "single|multiple",
-                  "options": ["string", "..."]
-                }
-              ]
-            }
-            Constraints:
-            - Titles concise (<= 90 chars), French.
-            - Types allowed: "single" or "multiple" only (no other value).
-            - For type = "single": options MUST be exactly ["oui", "non"].
-            - For type = "multiple": provide 4 to 6 relevant options (French, lowercase, 1-3 words.
-            - Always include the "options" array.
-            SYS;
+        You are an assistant generating SHORT questionnaire items for a music playlist personalization app (Playlisto).
+
+        Goal:
+        - Ask ~5–6 BEHAVIOUR-BASED questions whose answers will LET THE SYSTEM INFER the user's MOOD.
+        - Do NOT ask directly "how do you feel" or any question that reveals mood explicitly.
+        - After those mood-diagnostic questions, the UI will ask ACTIVITY and GENRES separately (added by backend).
+
+        Output JSON ONLY matching the schema below. No prose.
+        Schema:
+        {
+          "questions": [{ 
+              "title": "string (FR, concise ≤ 90 chars)",
+              "type": "single|multiple",
+              "options": ["string", "..."]
+          }]
+        }
+        Constraints for mood-diagnostic questions (the only ones you generate):
+        - Language: French.
+        - Type: "single" ONLY (binary).
+        - For type = "single": options MUST be exactly ["oui", "non"].
+        - Wording: behaviour/situation or recent action (ex: "Avez-vous eu envie de bouger aujourd'hui ?").
+        - Avoid naming mood words (happy/sad/chill/etc.). Focus on cues: énergie, motivation, sommeil, concentration, envie de socialiser, etc.
+        - Always include the "options" array.
+        SYS;
 
         $user = sprintf('Generate %d questions tailored to mood/activity/music preferences for daily life (travail, sport, détente, etc.).', $count);
 
@@ -112,6 +118,19 @@ final readonly class OpenAIService
             }
         }
 
+        // Append structured questions handled by the backend:
+        $out[] = [
+            'title' => 'Quelle activité faites-vous (ou allez-vous faire) ?',
+            'type'  => 'single',
+            'options' => ['sport', 'travail', 'détente', 'étude', 'cuisine']
+        ];
+
+        $out[] = [
+            'title' => 'Quels genres musicaux préférez-vous ?',
+            'type'  => 'multiple',
+            'options' => ['pop', 'rock', 'jazz', 'hip-hop', 'salsa', 'lo-fi']
+        ];
+
         return $out;
     }
 
@@ -130,17 +149,17 @@ final readonly class OpenAIService
     public function analyzeAnswers(array $answers): array
     {
         $system = <<<SYS
-        You classify a user's answers into three labels for a music app:
-        - "mood": one of ["happy","sad","energetic","stressed","calm"]
-        - "activity": one of ["sport","work","relax","study","cooking"]
-        - "genres": array of 1–3 short genre names (free form, e.g., hip hop, rap, salsa, jazz)
-
-        Return STRICT JSON only:
-        {"mood":"...","activity":"...","genres":["..."]}
-        No explanations.
+        You will infer ONLY the user's MOOD for a music app based on behaviour-style yes/no cues.
+        - Input you receive is a list of short statements/questions with answers "oui"/"non".
+        - Do NOT ask or rely on direct mood words.
+        - Consider energy, motivation, sleep quality, focus, social desire, irritability.
+        - Output STRICT JSON only: {"mood":"happy|sad|energetic|stressed|calm"}
+        - No explanations.
         SYS;
 
-        $user = "Answers (JSON):\n" . json_encode($answers, JSON_UNESCAPED_UNICODE);
+        // If the caller supplies structured behaviour answers, prefer them; otherwise send raw answers.
+        $behaviour = $answers['behaviour'] ?? $answers['behavior'] ?? $answers['behaviour_answers'] ?? null;
+        $user = "Behaviour Q/A (JSON):\n" . json_encode($behaviour ?? $answers, JSON_UNESCAPED_UNICODE);
 
         $payload = [
             'model' => $this->model,
@@ -156,8 +175,8 @@ final readonly class OpenAIService
         $json = json_decode($raw, true);
 
         $mood = $json['mood'] ?? 'calm';
-        $activity = $json['activity'] ?? 'relax';
-        $genresIn = $json['genres'] ?? [];
+        $activity = (string)($answers['activity'] ?? 'relax');
+        $genresIn = (array)($answers['genres'] ?? []);
 
         $moods = ["happy","sad","energetic","stressed","calm"];
         $activities = ["sport","work","relax","study","cooking"];

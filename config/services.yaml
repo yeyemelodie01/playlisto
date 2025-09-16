@@ -47,11 +47,11 @@ services:
 
     App\Service\SpotifyService:
       arguments:
-        $client: '@http_client'
+        $http: '@http_client'
         $cache: '@cache.app'
         $clientId: '%env(SPOTIFY_CLIENT_ID)%'
         $clientSecret: '%env(SPOTIFY_CLIENT_SECRET)%'
-        $baseUri: '%env(SPOTIFY_API_BASE)%'
+        $baseUrl: '%env(SPOTIFY_API_BASE)%'
 
     # Firewall for Host
     App\Service\FirewallDetector:
