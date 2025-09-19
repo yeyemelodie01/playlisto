@@ -20,11 +20,13 @@ Encore
      * Each entry will result in one JavaScript file (e.g. app.js)
      * and one CSS file (e.g. app.css) if your JavaScript imports CSS.
      */
-    .addEntry('app', './assets/app.js')
+    .addEntry('app', './assets/react/index.js')
     .enablePostCssLoader()
 
     // When enabled, Webpack "splits" your files into smaller pieces for greater optimization.
     .splitEntryChunks()
+
+    .enableReactPreset()
 
     // will require an extra script tag for runtime.js
     // but, you probably want this, unless you're building a single-page app
@@ -74,4 +76,29 @@ Encore
     //.autoProvidejQuery()
 ;
 
-module.exports = Encore.getWebpackConfig();
+let config = Encore.getWebpackConfig();
+
+config.watchOptions = {
+    ignored: [
+        '**/public/build/**',
+        '**/node_modules/**',
+        '**/.git/**'
+    ]
+};
+
+// Ajoutez un alias explicite pour "process/browser"
+config.resolve = {
+    ...config.resolve,
+    fallback: {
+        process: require.resolve('process/browser'),
+        buffer: require.resolve('buffer/'),
+    },
+    alias: {
+        ...config.resolve.alias,
+        'process/browser': require.resolve('process/browser'),
+        process: require.resolve('process/browser'),
+        buffer: require.resolve('buffer/'),
+    },
+};
+
+module.exports = config;
