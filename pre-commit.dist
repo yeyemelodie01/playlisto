@@ -1,0 +1,15 @@
+#!/bin/sh
+
+# Run GrumPHP inside the php-fpm container
+docker compose exec -T php-fpm vendor/bin/grumphp git:pre-commit --skip-success-output
+
+# Capture exit code
+STATUS=$?
+
+# Stop commit if GrumPHP fails
+if [ "$STATUS" -ne 0 ]; then
+  echo "❌ GrumPHP failed, commit aborted."
+  exit $STATUS
+fi
+
+exit 0

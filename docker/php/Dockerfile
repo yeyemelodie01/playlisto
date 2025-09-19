@@ -1,4 +1,4 @@
-FROM php:8.3-fpm
+FROM php:8.3-fpm-bookworm
 
 # Installation des dépendances système
 RUN apt-get update && \

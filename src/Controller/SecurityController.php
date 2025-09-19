@@ -53,7 +53,7 @@ final class SecurityController extends AbstractController
 
         // last username entered by the user
         $lastUsername = $authenticationUtils->getLastUsername();
-
+        dd($this->firewallDetector->getFirewallShortName());
         if ('back' === $this->firewallDetector->getFirewallShortName()) {
             $view = 'back/security/login.html.twig';
         } elseif ('front' === $this->firewallDetector->getFirewallShortName()) {

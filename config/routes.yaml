@@ -1,8 +1,7 @@
-controllers:
-    resource:
-        path: ../src/Controller/
-        namespace: App\Controller
+api:
+    resource: '../src/Controller/Api'
     type: attribute
+    host: '%api_domain_default%'
 
 back:
     name_prefix: 'back_'
@@ -15,3 +14,11 @@ front:
     resource: ../src/Controller/Front
     type: attribute
     host: '%front_domain_default%'
+
+app:
+    resource: ../src/Controller/**/*
+    exclude:
+        - ../src/Controller/Back
+        - ../src/Controller/Front
+        - ../src/Controller/Api
+    type: attribute
