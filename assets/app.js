@@ -1,5 +1,7 @@
 import { registerReactControllerComponents } from '@symfony/ux-react';
 import './bootstrap.js';
+import process from 'process';
+import { Buffer } from 'buffer';
 /*
  * Welcome to your app's main JavaScript file!
  *
@@ -11,3 +13,5 @@ import './bootstrap.js';
 import './styles/app.css';
 
 registerReactControllerComponents(require.context('./react/controllers', true, /\.(j|t)sx?$/));
+window.process = process;
+window.Buffer = Buffer;

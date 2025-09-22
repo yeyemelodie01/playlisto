@@ -26,18 +26,36 @@ return [
         'version' => '7.3.0',
     ],
     'react' => [
-        'version' => '18.3.1',
+        'version' => '19.1.1',
     ],
     'react-dom/client' => [
         'version' => '18.3.1',
     ],
     'react-dom' => [
-        'version' => '18.3.1',
+        'version' => '19.1.1',
     ],
     'scheduler' => [
         'version' => '0.23.2',
     ],
     '@symfony/ux-react' => [
         'path' => './vendor/symfony/ux-react/assets/dist/loader.js',
+    ],
+    'axios' => [
+        'version' => '1.12.2',
+    ],
+    'react-router-dom' => [
+        'version' => '7.9.1',
+    ],
+    'react-router/dom' => [
+        'version' => '7.9.1',
+    ],
+    'react-router' => [
+        'version' => '7.9.1',
+    ],
+    'cookie' => [
+        'version' => '1.0.2',
+    ],
+    'set-cookie-parser' => [
+        'version' => '2.7.1',
     ],
 ];

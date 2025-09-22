@@ -18,9 +18,8 @@ class SurveyAnswer
     #[ORM\Column]
     private int $optionId;
 
-    #[ORM\ManyToOne(targetEntity: SurveySubmission::class, inversedBy: 'answers')]
-    #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
-    private SurveySubmission $submission;
+    #[ORM\ManyToOne(inversedBy: 'surveyAnswers')]
+    private ?SurveySubmission $submission;
 
     /**
      * @return int

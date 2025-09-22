@@ -27,12 +27,11 @@ class SurveySubmission
     #[ORM\Column(nullable: true, enumType: ActivityType::class)]
     private ?ActivityType $deducedActivity = null;
 
-    #[ORM\ManyToOne(targetEntity: User::class)]
-    #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
-    private User $user;
+    #[ORM\ManyToOne(inversedBy: 'surveySubmissions')]
+    private ?User $user;
 
-    #[ORM\OneToMany(targetEntity: SurveyAnswer::class, mappedBy: 'submission', cascade: ['persist'], orphanRemoval: true)]
-    private Collection $answers;
+    #[ORM\OneToMany(targetEntity: SurveyAnswer::class, mappedBy: 'submission')]
+    private Collection $surveyAnswers;
 
     /**
      * Constructor to initialize the SurveySubmission entity.

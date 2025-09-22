@@ -56,6 +56,9 @@ class Playlist
     #[ORM\ManyToMany(targetEntity: Track::class, inversedBy: 'playlists')]
     private Collection $tracks;
 
+    #[ORM\OneToMany(targetEntity: Recommendation::class, mappedBy: 'playlist')]
+    private Collection $recommendations;
+
     public function __construct()
     {
         $this->tracks = new ArrayCollection();
