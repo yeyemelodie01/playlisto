@@ -79,52 +79,49 @@ export default function Login() {
     };
 
     return (
-        <main className="min-h-screen flex items-center justify-center bg-base-200">
-            <div className="form-width flex flex-col items-center">
-                <img src="/images/playlisto-logo.png" alt="Logo" className="w-64 px-4 py-2"/>
-                <h1 className="text-xl text-center my-4">Log in</h1>
-                <div className="flex flex-col gap-6 mb-4">
-                    <h3>Spotify Log in</h3>
-                </div>
-                <div className="flex flex-row gap-2 items-center">
-                    <span className="block h-px grow bg-neutral-800"></span>
-                    <span className="text-xs text-terciary schrink">or</span>
-                    <span className="block h-px grow bg-neutral-800"></span>
-                </div>
-                <form onSubmit={handleSubmit} method="post" className="form-login w-80">
-                    <Textfield
-                        type="email"
-                        placeholder="Email"
-                        size="md"
-                        value={email}
-                        onChange={handleEmailChange}
-                        isError={emailError}
-                        errorCaption={emailError}
-                        required
-                    />
-                    <span id="email_error_message" className="text-red-500"></span>
-                    <Textfield
-                        type="password"
-                        placeholder="Password"
-                        size="md"
-                        value={password}
-                        onChange={handlePasswordChange}
-                        isError={passwordError}
-                        errorCaption={passwordError}
-                        required
-                    />
-                    <span id="password_error_message" className="text-red-500"></span>
-                    <div className="grid">
-                        <button
-                            type="submit"
-                            className="mt-5 bg-black text-white px-4 py-2 rounded-md">
-                            Log in
-                        </button>
-                    </div>
-                </form>
+      <main className="min-h-screen flex items-center justify-center bg-base-200">
+        <form onSubmit={handleSubmit} method="post" className="form-width flex flex-col items-center">
+          {/* Messages globaux */}
+          {message && (
+            <div className="alert alert-error w-80 mb-4">
+              {message}
             </div>
-        </main>
+          )}
 
+          <img src="/images/playlisto-logo.png" alt="Logo" className="w-64 px-4 py-2" />
+          <h1 className="text-xl text-center my-4">Log in</h1>
 
+          <div className="form-login w-80">
+            <Textfield
+              type="email"
+              placeholder="Email"
+              value={email}
+              onChange={handleEmailChange}
+              isError={!!emailError}
+              errorCaption={emailError}
+              required
+              className="w-full form-control rounded-t-lg px-4 py-2 border-2 border-gray-700 focus:border-pink-600"
+            />
+            <span id="email_error_message" className="text-red-500"></span>
+
+            <Textfield
+              type="password"
+              placeholder="Password"
+              value={password}
+              onChange={handlePasswordChange}
+              isError={!!passwordError}
+              errorCaption={passwordError}
+              required
+              className="w-full form-control rounded-b-lg px-4 py-2 border-2 border-gray-700 focus:border-pink-600"
+            />
+
+            <div className="grid">
+              <button type="submit" className="mt-5 bg-black text-white px-4 py-2 rounded-md">
+                Log in
+              </button>
+            </div>
+          </div>
+        </form>
+      </main>
     );
 }

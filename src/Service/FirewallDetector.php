@@ -28,7 +28,6 @@ final readonly class FirewallDetector
      */
     public function getFirewallConfig(): ?FirewallConfig
     {
-        dd($this->requestStack->getCurrentRequest(), $this->firewallMap->getFirewallConfig($this->requestStack->getCurrentRequest()));
         return null !== $this->requestStack->getCurrentRequest() ? $this->firewallMap->getFirewallConfig($this->requestStack->getCurrentRequest()) : null;
     }
 
@@ -38,7 +37,7 @@ final readonly class FirewallDetector
     public function getFirewallName(): ?string
     {
         $firewallConfig = $this->getFirewallConfig();
-        dd($firewallConfig);
+
         return $firewallConfig?->getName();
     }
 
@@ -48,7 +47,7 @@ final readonly class FirewallDetector
     public function getFirewallShortName(): ?string
     {
         $name = $this->getFirewallName();
-        dd($name);
+
         return null !== $name ? str_replace('_secured_area', '', $name) : null;
     }
 }
