@@ -7,7 +7,7 @@ export default function RedirectIfAuth({ children }) {
     const location = useLocation();
 
     if (token) {
-        return <Navigate to="/teams" replace />;
+        return <Navigate to="/home" replace />;
     }
 
     return children;
