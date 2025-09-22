@@ -70,9 +70,19 @@ const setToken = (token) => {
 /**
  * Removes the authentication token by setting its expiration date to the past.
  */
-const removeToken = (token) => {
-    const secureFlag = window.location.protocol === 'https:' ? '' : '';
-    document.cookie = `auth_token=${token}; path=/; ${secureFlag} samesite=strict;`;
+const removeToken = () => {
+    const isHttps = window.location.protocol === 'https:';
+    const attrs = `Path=/; SameSite=Strict;${isHttps ? ' Secure;' : ''} Expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+
+    // Remove on current host
+    document.cookie = `auth_token=; ${attrs}`;
+
+    // Also try removing on parent domain (e.g., .playlisto.com)
+    const parts = location.hostname.split('.');
+    if (parts.length >= 2) {
+        const parent = '.' + parts.slice(-2).join('.');
+        document.cookie = `auth_token=; Domain=${parent}; ${attrs}`;
+    }
 };
 
 /**
