@@ -25,7 +25,7 @@ use Doctrine\ORM\Mapping as ORM;
  * for compatibility with Symfony's security system.
  */
 #[ORM\Entity(repositoryClass: UserRepository::class)]
-#[ORM\Table(name: 'users')]
+#[ORM\Table(name: 'user')]
 class User extends BaseUser
 {
     /**
@@ -52,11 +52,15 @@ class User extends BaseUser
     #[ORM\OneToMany(targetEntity: Recommendation::class, mappedBy: 'user')]
     private Collection $recommendations;
 
+    #[ORM\OneToMany(targetEntity: SurveySubmission::class, mappedBy: 'user')]
+    private Collection $surveySubmissions;
+
     public function __construct()
     {
         $this->playlists = new ArrayCollection();
         $this->answers = new ArrayCollection();
         $this->recommendations = new ArrayCollection();
+        $this->surveySubmissions = new ArrayCollection();
     }
 
 
@@ -171,5 +175,37 @@ class User extends BaseUser
     public function setRecommendations(Collection $recommendations): void
     {
         $this->recommendations = $recommendations;
+    }
+
+    public function addRecommendation(Recommendation $recommendation): static
+    {
+        if (!$this->recommendations->contains($recommendation)) {
+            $this->recommendations->add($recommendation);
+            $recommendation->setUser($this);
+        }
+
+        return $this;
+    }
+
+    public function removeRecommendation(Recommendation $recommendation): static
+    {
+        if ($this->recommendations->removeElement($recommendation)) {
+            // set the owning side to null (unless already changed)
+            if ($recommendation->getUser() === $this) {
+                $recommendation->setUser(null);
+            }
+        }
+
+        return $this;
+    }
+
+    public function getSurveySubmissions(): Collection
+    {
+        return $this->surveySubmissions;
+    }
+
+    public function setSurveySubmissions(Collection $surveySubmissions): void
+    {
+        $this->surveySubmissions = $surveySubmissions;
     }
 }
