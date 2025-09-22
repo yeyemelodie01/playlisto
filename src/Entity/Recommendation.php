@@ -31,6 +31,9 @@ class Recommendation
     #[ORM\ManyToOne(inversedBy: 'recommendations')]
     private ?User $user = null;
 
+    #[ORM\ManyToOne(inversedBy: 'recommendations')]
+    private ?Playlist $playlist = null;
+
     /**
      * @return string
      */

@@ -27,8 +27,8 @@ class Answer
      */
     #[ORM\Column(length: 255)]
     private ?string $label;
-    #[ORM\ManyToOne(targetEntity: Question::class, inversedBy: 'answers')]
-    #[ORM\JoinColumn(nullable: false)]
+
+    #[ORM\ManyToOne(inversedBy: 'answers')]
     private ?Question $question = null;
 
     #[ORM\ManyToOne(inversedBy: 'answers')]

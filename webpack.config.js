@@ -1,4 +1,5 @@
 const Encore = require('@symfony/webpack-encore');
+const webpack = require('webpack');
 
 // Manually configure the runtime environment if not already configured yet by the "encore" command.
 // It's useful when you use tools that rely on webpack.config.js file.
@@ -68,7 +69,7 @@ Encore
     // uncomment if you use React
     //.enableReactPreset()
 
-    // uncomment to get integrity="..." attributes on your script & link tags
+    // uncomment to get integrity"..." attributes on your script & link tags
     // requires WebpackEncoreBundle 1.4 or higher
     //.enableIntegrityHashes(Encore.isProduction())
 
@@ -100,5 +101,15 @@ config.resolve = {
         buffer: require.resolve('buffer/'),
     },
 };
+
+if (!config.plugins) {
+    config.plugins = [];
+}
+config.plugins.push(
+    new webpack.DefinePlugin({
+        "process.env.REACT_APP_API_URL": JSON.stringify(process.env.REACT_APP_API_URL || "")
+    })
+);
+
 
 module.exports = config;
