@@ -22,6 +22,7 @@ Encore
      * and one CSS file (e.g. app.css) if your JavaScript imports CSS.
      */
     .addEntry('app', './assets/react/index.js')
+    .addStyleEntry('tailwind', './assets/styles/scss/tailwind.scss')
     .enablePostCssLoader()
 
     // When enabled, Webpack "splits" your files into smaller pieces for greater optimization.
@@ -61,7 +62,7 @@ Encore
     })
 
     // enables Sass/SCSS support
-    //.enableSassLoader()
+    .enableSassLoader()
 
     // uncomment if you use TypeScript
     //.enableTypeScriptLoader()
