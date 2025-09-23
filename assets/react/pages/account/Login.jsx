@@ -81,12 +81,6 @@ export default function Login() {
     return (
       <main className="min-h-screen flex items-center justify-center bg-base-200">
         <form onSubmit={handleSubmit} method="post" className="form-width flex flex-col items-center">
-          {/* Messages globaux */}
-          {message && (
-            <div className="alert alert-error w-80 mb-4">
-              {message}
-            </div>
-          )}
 
           <img src="/images/playlisto-logo.png" alt="Logo" className="w-64 px-4 py-2" />
           <h1 className="text-xl text-center my-4">Log in</h1>
@@ -100,9 +94,8 @@ export default function Login() {
               isError={!!emailError}
               errorCaption={emailError}
               required
-              className="w-full form-control rounded-t-lg px-4 py-2 border-2 border-gray-700 focus:border-pink-600"
+              inputClass="w-full form-control rounded-t-lg px-4 py-2 border-2 border-gray-700 focus:border-pink-600"
             />
-            <span id="email_error_message" className="text-red-500"></span>
 
             <Textfield
               type="password"
@@ -112,7 +105,7 @@ export default function Login() {
               isError={!!passwordError}
               errorCaption={passwordError}
               required
-              className="w-full form-control rounded-b-lg px-4 py-2 border-2 border-gray-700 focus:border-pink-600"
+              inputClass="w-full form-control rounded-b-lg px-4 py-2 border-2 border-gray-700 focus:border-pink-600"
             />
 
             <div className="grid">
