@@ -1,7 +1,7 @@
 import {Navigate, useNavigate} from "react-router-dom";
 import {useEffect, useState} from "react";
-import Textfield from "../../components/Textfield";
-import apiService from "../../services/apiService";
+import Textfield from "@components/Textfield";
+import apiService from "@services/apiService";
 
 export default function Login() {
     const navigate = useNavigate();
