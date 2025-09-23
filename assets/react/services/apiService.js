@@ -1,7 +1,6 @@
 import axios from "axios";
 
 const API_URL = process.env.REACT_APP_API_URL;
-
 /**
  * Creates an Axios instance with default configurations.
  */

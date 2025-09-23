@@ -6,18 +6,18 @@ use Symfony\Component\Serializer\Annotation\Groups;
 
 final class SurveyQuestionOutput
 {
-    #[Groups(['questionnaire:read'])]
+    #[Groups(['question:read'])]
     public int $id;
 
     /** single_choice | multiple_choice | scale | text */
-    #[Groups(['questionnaire:read'])]
+    #[Groups(['question:read'])]
     public string $type;
 
-    #[Groups(['questionnaire:read'])]
+    #[Groups(['question:read'])]
     public string $label;
 
     /** @var SurveyOptionOutput[] */
-    #[Groups(['questionnaire:read'])]
+    #[Groups(['question:read'])]
     public array $options = [];
 
     public function __construct(int $id, string $type, string $label, array $options = [])

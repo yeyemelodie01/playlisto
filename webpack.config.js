@@ -1,5 +1,9 @@
 const Encore = require('@symfony/webpack-encore');
 const webpack = require('webpack');
+const path = require('path');
+const dotenv = require('dotenv');
+
+dotenv.config();
 
 // Manually configure the runtime environment if not already configured yet by the "encore" command.
 // It's useful when you use tools that rely on webpack.config.js file.
@@ -30,6 +34,12 @@ Encore
 
     .enableReactPreset()
 
+    .addAliases({
+        '@components': path.resolve(__dirname, 'assets/react/components'),
+        '@pages':      path.resolve(__dirname, 'assets/react/pages'),
+        '@services':   path.resolve(__dirname, 'assets/react/services'),
+        '@utils':      path.resolve(__dirname, 'assets/react/utils'),
+    })
     // will require an extra script tag for runtime.js
     // but, you probably want this, unless you're building a single-page app
     .enableSingleRuntimeChunk()
@@ -108,7 +118,7 @@ if (!config.plugins) {
 }
 config.plugins.push(
     new webpack.DefinePlugin({
-        "process.env.REACT_APP_API_URL": JSON.stringify(process.env.REACT_APP_API_URL || "")
+        "process.env.REACT_APP_API_URL": JSON.stringify(process.env.REACT_APP_API_URL || 'http://api.playlisto.com:8080/api')
     })
 );
 

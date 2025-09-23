@@ -1,4 +1,4 @@
-import apiService from "../services/apiService";
+import apiService from "@services/apiService";
 import { Navigate, useLocation } from "react-router-dom";
 
 const ProtectedRoute = ({ children }) => {

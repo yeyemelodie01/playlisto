@@ -6,10 +6,10 @@ use Symfony\Component\Serializer\Annotation\Groups;
 
 final class SurveyOptionOutput
 {
-    #[Groups(['questionnaire:read'])]
+    #[Groups(['question:read'])]
     public int $id;
 
-    #[Groups(['questionnaire:read'])]
+    #[Groups(['question:read'])]
     public string $label;
 
     public function __construct(int $id, string $label)

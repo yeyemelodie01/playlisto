@@ -1,9 +1,10 @@
 import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
-import Login from "./pages/account/Login.jsx";
-import RedirectIfAuth from "./components/RedirectIfAuth.jsx";
-import Home from "./pages/home/Home.jsx";
-import ProtectedRoute from "./components/ProtectedRoute";
+import Login from "@pages/account/Login";
+import RedirectIfAuth from "@components/RedirectIfAuth";
+import Home from "@pages/home/Home";
+import ProtectedRoute from "@components/ProtectedRoute";
+import Question from "@pages/question/Question";
 
 const AppRoutes = () => {
   return (
@@ -24,6 +25,7 @@ const AppRoutes = () => {
                 </ProtectedRoute>
             }
         />
+        <Route path="/question" element={ <Question /> }/>
     </Routes>
   );
 };
