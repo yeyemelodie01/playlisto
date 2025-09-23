@@ -9,7 +9,6 @@ final class SurveyQuestionOutput
     #[Groups(['question:read'])]
     public int $id;
 
-    /** single_choice | multiple_choice | scale | text */
     #[Groups(['question:read'])]
     public string $type;
 

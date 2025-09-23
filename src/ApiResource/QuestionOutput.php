@@ -31,7 +31,7 @@ final class QuestionOutput
     public int $id;
 
     #[Groups(['question:read'])]
-    public string $title;
+    public string $label;
 
     /** @var SurveyQuestionOutput[] */
     #[Groups(['question:read'])]
@@ -41,13 +41,13 @@ final class QuestionOutput
      * Constructor to initialize all properties.
      *
      * @param int                    $id        the question ID
-     * @param string                 $title     the question title
+     * @param string                 $label     the question title
      * @param SurveyQuestionOutput[] $questions the list of survey questions
      */
-    public function __construct(int $id, string $title, array $questions)
+    public function __construct(int $id, string $label, array $questions)
     {
         $this->id = $id;
-        $this->title = $title;
+        $this->label = $label;
         $this->questions = $questions;
     }
 }
