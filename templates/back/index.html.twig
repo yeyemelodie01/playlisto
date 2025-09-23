@@ -100,11 +100,14 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
   (function() {
-    // Prepare data (arrays of {mood, total} and {activity, total})
+      // Prepare data (arrays of {mood, total} and {activity, total})
     const moodData = {{ (stats.playlistsByMood ?? [])|json_encode|raw }};
     const activityData = {{ (stats.playlistsByActivity ?? [])|json_encode|raw }};
 
-    // Mood chart
+      console.log('[Dashboard] moodData =', moodData);
+      console.log('[Dashboard] activityData =', activityData);
+
+      // Mood chart
     const moodEl = document.getElementById('chartMood');
     if (moodEl && Array.isArray(moodData) && moodData.length) {
       const labels = moodData.map(r => (typeof r.mood === 'string' ? r.mood : (r.mood && r.mood.value) ? r.mood.value : ''));
