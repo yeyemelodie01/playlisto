@@ -191,7 +191,7 @@ final class QuestionController extends AbstractController
         if (null === $question) {
             $this->addFlash('error', $this->translator->trans('no_element', [], 'Crud'));
 
-            return $this->redirectToRoute('question_index');
+            return $this->redirectToRoute('back_question_index');
         }
 
         $type = 'error';
