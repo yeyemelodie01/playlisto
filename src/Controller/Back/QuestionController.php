@@ -13,6 +13,10 @@ use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Contracts\HttpClient\Exception\ClientExceptionInterface;
+use Symfony\Contracts\HttpClient\Exception\RedirectionExceptionInterface;
+use Symfony\Contracts\HttpClient\Exception\ServerExceptionInterface;
+use Symfony\Contracts\HttpClient\Exception\TransportExceptionInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
@@ -210,10 +214,15 @@ final class QuestionController extends AbstractController
     /**
      * Generate questions using OpenAI and save them to the database.
      *
-     * @param OpenAIService           $openAI
-     * @param EntityManagerInterface  $em
+     * @param OpenAIService $openAI
+     * @param EntityManagerInterface $em
      *
      * @return Response
+     *
+     * @throws ClientExceptionInterface
+     * @throws RedirectionExceptionInterface
+     * @throws ServerExceptionInterface
+     * @throws TransportExceptionInterface
      */
     #[Route(path: ['en' => '/generate', 'fr' => '/generer'], name: 'generate')]
     public function generate(OpenAIService $openAI, EntityManagerInterface $em): Response
@@ -221,35 +230,8 @@ final class QuestionController extends AbstractController
         $items = $openAI->generateQuestions(6);
         foreach ($items as $i) {
             $q = new Question();
-            $q->setTitle($i['title']);
-            $q->setType($i['type']); // string, ou ton enum si tu en as un pour le type
-            if (isset($i['options'])) {
-                $q->setOptions($i['options']); // array JSON dans l’entité (json type)
-            }
-            $em->persist($q);
-        }
-        $em->flush();
-
-        $this->addFlash('success', 'Questions générées');
-        return $this->redirectToRoute('back_question_index');
-    }
-
-    /**
-     * Generate questions using OpenAI and save them to the database.
-     *
-     * @param OpenAIService           $openAI
-     * @param EntityManagerInterface  $em
-     *
-     * @return Response
-     */
-    #[Route(path: ['en' => '/generate', 'fr' => '/generer'], name: 'generate')]
-    public function generate(OpenAIService $openAI, EntityManagerInterface $em): Response
-    {
-        $items = $openAI->generateQuestions(6);
-        foreach ($items as $i) {
-            $q = new Question();
-            $q->setTitle($i['title']);
-            $q->setType($i['type']); // string, ou ton enum si tu en as un pour le type
+            $q->setLabel($i['title']);
+            $q->setType($i['type']);
             if (isset($i['options'])) {
                 $q->setOptions($i['options']); // array JSON dans l’entité (json type)
             }

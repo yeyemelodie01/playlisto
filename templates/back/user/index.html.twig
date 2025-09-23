@@ -33,25 +33,25 @@
                 <!-- head -->
                 <thead>
                 <tr>
-                    <th class="text-center">{{ 'email'|trans({}, 'User') }}</th>
-                    <th class="text-center">{{ 'username'|trans({}, 'User') }}</th>
-                    <th class="text-center">{{ 'role'|trans({}, 'User') }}</th>
-                    <th class="text-center">{{ 'isActive'|trans({}, 'User') }}</th>
-                    <th class="text-center">{{ 'createdAt'|trans({}, 'User') }}</th>
-                    <th class="text-center">{{ 'updatedAt'|trans({}, 'User') }}</th>
-                    <th class="text-center">{{ 'actions'|trans({}, 'Crud') }}</th>
-                    <th class="text-center">{{ 'delete'|trans({}, 'Crud') }}</th>
+                    <th class="font-medium p-4 text-base text-center">{{ 'email'|trans({}, 'User') }}</th>
+                    <th class="font-medium p-4 text-base text-center">{{ 'username'|trans({}, 'User') }}</th>
+                    <th class="font-medium p-4 text-base text-center">{{ 'role'|trans({}, 'User') }}</th>
+                    <th class="font-medium p-4 text-base text-center">{{ 'isActive'|trans({}, 'User') }}</th>
+                    <th class="font-medium p-4 text-base text-center">{{ 'createdAt'|trans({}, 'User') }}</th>
+                    <th class="font-medium p-4 text-base text-center">{{ 'updatedAt'|trans({}, 'User') }}</th>
+                    <th class="font-medium p-4 text-base text-center">{{ 'actions'|trans({}, 'Crud') }}</th>
+                    <th class="font-medium p-4 text-base text-center">{{ 'delete'|trans({}, 'Crud') }}</th>
                 </tr>
                 </thead>
                 <tbody>
                 {% for user in pagination %}
-                    <tr>
-                        <td class="text-center">{{ user.email }}</td>
-                        <td class="text-center">{{ user.username }}</td>
-                        <td class="text-center">{{ user.getRoles() | join(', ')  }}</td>
-                        <td class="text-center">{% if user.active == false %}{{ 'no'|trans([], 'Crud') }}{% else %}{{ 'yes'|trans([], 'Crud') }}{% endif %}</td>
-                        <td class="text-center">{{ user.createdAt | date('d/m/Y') }}</td>
-                        <td class="text-center">{{ user.updatedAt | date('d/m/Y') }}</td>
+                    <tr class="{{ loop.index is odd ? 'bg-slate-300' : '' }}">
+                        <td class="p-4 text-center text-base">{{ user.email }}</td>
+                        <td class="p-4 text-center text-base">{{ user.username }}</td>
+                        <td class="p-4 text-center text-base">{{ user.getRoles() | join(', ')  }}</td>
+                        <td class="p-4 text-center text-base">{% if user.active == false %}{{ 'no'|trans([], 'Crud') }}{% else %}{{ 'yes'|trans([], 'Crud') }}{% endif %}</td>
+                        <td class="p-4 text-center text-base">{{ user.createdAt | date('d/m/Y') }}</td>
+                        <td class="p-4 text-center text-base">{{ user.updatedAt | date('d/m/Y') }}</td>
                         <td>
                             <div class="flex justify-center">
                                 <a class="" href="{{ path('back_user_edit', {'id': user.id}) }}"
