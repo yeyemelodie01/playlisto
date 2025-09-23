@@ -4,6 +4,7 @@ namespace App\Controller\Back;
 
 use App\Entity\Playlist;
 use App\Repository\PlaylistRepository;
+use Exception;
 use Knp\Component\Pager\PaginatorInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -26,7 +27,9 @@ final class PlaylistController extends AbstractController
     protected const TEMPLATE_DIR = 'back/playlist';
 
     /**
-     * @param PlaylistRepository $playlistRepository
+     * @param PlaylistRepository  $playlistRepository
+     * @param LoggerInterface     $logger
+     * @param TranslatorInterface $translator
      */
     public function __construct(
         private readonly PlaylistRepository $playlistRepository,
@@ -57,6 +60,98 @@ final class PlaylistController extends AbstractController
     }
 
     /**
+     * @param Request $request
+     *
+     * @return Response
+     */
+    #[Route(path: ['en' => '/new', 'fr' => '/nouveau'], name: 'new')]
+    public function create(Request $request): Response
+    {
+        if ($request->isMethod('POST')) {
+            $title = trim((string) $request->request->get('title', ''));
+            $description = $request->request->get('description');
+
+            if ($title === '') {
+                $this->addFlash('error', $this->translator->trans('form.invalid', [], 'Crud'));
+            } else {
+                $playlist = new Playlist();
+                if (method_exists($playlist, 'setTitle')) {
+                    $playlist->setTitle($title);
+                }
+                if (method_exists($playlist, 'setDescription')) {
+                    $playlist->setDescription($description ?: null);
+                }
+
+                // Persist via repository SaveTrait
+                $this->playlistRepository->save($playlist, true);
+
+                $this->addFlash('success', $this->translator->trans('create.success', [], 'Crud'));
+                return $this->redirectToRoute('back_playlist_index');
+            }
+        }
+
+        return $this->render(self::TEMPLATE_DIR . DIRECTORY_SEPARATOR . 'new.html.twig');
+    }
+
+    /**
+     * @param Playlist|null $playlist
+     *
+     * @return Response
+     */
+    #[Route(path: ['en' => '/{id}', 'fr' => '/{id}'], name: 'show', requirements: ['id' => "\\d+"])]
+    public function show(?Playlist $playlist): Response
+    {
+        if (null === $playlist) {
+            $this->addFlash('error', $this->translator->trans('no_element', [], 'Crud'));
+            return $this->redirectToRoute('back_playlist_index');
+        }
+
+        return $this->render(self::TEMPLATE_DIR . DIRECTORY_SEPARATOR . 'show.html.twig', [
+            'playlist' => $playlist,
+        ]);
+    }
+
+    /**
+     * @param Request       $request
+     * @param Playlist|null $playlist
+     *
+     * @return Response
+     */
+    #[Route(path: ['en' => '/{id}/edit', 'fr' => '/{id}/editer'], name: 'edit', requirements: ['id' => "\\d+"])]
+    public function edit(Request $request, ?Playlist $playlist): Response
+    {
+        if (null === $playlist) {
+            $this->addFlash('error', $this->translator->trans('no_element', [], 'Crud'));
+            return $this->redirectToRoute('back_playlist_index');
+        }
+
+        if ($request->isMethod('POST')) {
+            $title = trim((string) $request->request->get('title', ''));
+            $description = $request->request->get('description');
+
+            if ($title === '') {
+                $this->addFlash('error', $this->translator->trans('form.invalid', [], 'Crud'));
+            } else {
+                if (method_exists($playlist, 'setTitle')) {
+                    $playlist->setTitle($title);
+                }
+                if (method_exists($playlist, 'setDescription')) {
+                    $playlist->setDescription($description ?: null);
+                }
+
+                $this->playlistRepository->save($playlist, true);
+
+                $this->addFlash('success', $this->translator->trans('update.success', [], 'Crud'));
+                return $this->redirectToRoute('back_playlist_index');
+            }
+        }
+
+        return $this->render(self::TEMPLATE_DIR . DIRECTORY_SEPARATOR . 'edit.html.twig', [
+            'playlist' => $playlist,
+        ]);
+    }
+
+    /**
      * @param Playlist|null $playlist
      *
      * @return Response
@@ -74,7 +169,7 @@ final class PlaylistController extends AbstractController
         try {
             $this->playlistRepository->remove($playlist, true);
             $type = 'success';
-        } catch (\Exception $exception) {
+        } catch (Exception $exception) {
             $this->logger->error($exception->getMessage(), $exception->getTrace());
         }
 

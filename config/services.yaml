@@ -31,6 +31,28 @@ services:
             - '../src/Kernel.php'
             - '../src/Migrations/'
 
+    App\Controller\:
+        resource: '../src/Controller/'
+        public: true
+        autowire: true
+        autoconfigure: true
+        tags: ['controller.service_arguments']
+
+    App\Service\OpenAIService:
+      arguments:
+        $httpClient: '@http_client'
+        $apiKey: '%env(OPENAI_API_KEY)%'
+        $model: '%env(default::string:OPENAI_MODEL)%'
+        $timeout: '%env(int:OPENAI_TIMEOUT)%'
+
+    App\Service\SpotifyService:
+      arguments:
+        $http: '@http_client'
+        $cache: '@cache.app'
+        $clientId: '%env(SPOTIFY_CLIENT_ID)%'
+        $clientSecret: '%env(SPOTIFY_CLIENT_SECRET)%'
+        $baseUrl: '%env(SPOTIFY_API_BASE)%'
+
     # Firewall for Host
     App\Service\FirewallDetector:
         arguments:

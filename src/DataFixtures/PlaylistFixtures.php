@@ -9,15 +9,14 @@ use App\Enum\MoodType;
 use Doctrine\Bundle\FixturesBundle\Fixture;
 use Doctrine\Common\DataFixtures\OrderedFixtureInterface;
 use Doctrine\Persistence\ObjectManager;
+use App\Repository\PlaylistRepository;
 
-/**
- * Loads default playlist data into the database.
- *
- * This fixture is responsible for creating and inserting predefined playlists
- * into the database, which can be used for testing or initial setup.
- */
 final class PlaylistFixtures extends Fixture implements OrderedFixtureInterface
 {
+    public function __construct(private readonly PlaylistRepository $playlistRepository)
+    {
+    }
+
     /**
      * @return int
      */
@@ -70,6 +69,11 @@ final class PlaylistFixtures extends Fixture implements OrderedFixtureInterface
         $users = $manager->getRepository(User::class)->findAll();
         $userCount = count($users);
 
+        if ($userCount === 0) {
+            // No users to attach playlists to; skip
+            return;
+        }
+
         for ($i = 0; $i < 20; $i++) {
             $playlist = new Playlist();
             $playlist->setTitle($titles[$i]);
@@ -77,12 +81,16 @@ final class PlaylistFixtures extends Fixture implements OrderedFixtureInterface
             $playlist->setMood($moods[array_rand($moods)]);
             $playlist->setActivity($activities[array_rand($activities)]);
             $playlist->setUser($users[$i % $userCount]);
-            $playlist->setCreatedAt(new \DateTime());
-            $playlist->setUpdatedAt(new \DateTime());
+            $daysAgo = random_int(0, 60);
+            $createdAt = (new \DateTime('now'))->modify('-' . $daysAgo . ' days');
+            if (method_exists($playlist, 'setCreatedAt')) {
+                $playlist->setCreatedAt($createdAt);
+            }
+            if (method_exists($playlist, 'setUpdatedAt')) {
+                $playlist->setUpdatedAt($createdAt);
+            }
 
-            $manager->persist($playlist);
+            $this->playlistRepository->save($playlist, true);
         }
-
-        $manager->flush();
     }
 }

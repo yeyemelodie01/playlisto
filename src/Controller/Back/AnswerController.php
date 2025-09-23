@@ -4,6 +4,8 @@ namespace App\Controller\Back;
 
 use App\Entity\Answer;
 use App\Repository\AnswerRepository;
+use App\Repository\QuestionRepository;
+use App\Repository\UserRepository;
 use Knp\Component\Pager\PaginatorInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -24,12 +26,19 @@ final class AnswerController extends AbstractController
     protected const TEMPLATE_DIR = 'back/answer';
 
     /**
-     * @param AnswerRepository  $answerRepository
+     * @param AnswerRepository    $answerRepository
+     * @param QuestionRepository  $questionRepository
+     * @param UserRepository      $userRepository
      * @param LoggerInterface     $logger
      * @param TranslatorInterface $translator
      */
-    public function __construct(private readonly AnswerRepository $answerRepository, private readonly LoggerInterface $logger, private readonly TranslatorInterface $translator)
-    {
+    public function __construct(
+        private readonly AnswerRepository $answerRepository,
+        private readonly QuestionRepository $questionRepository,
+        private readonly UserRepository $userRepository,
+        private readonly LoggerInterface $logger,
+        private readonly TranslatorInterface $translator
+    ) {
     }
 
     /**
@@ -54,11 +63,119 @@ final class AnswerController extends AbstractController
         ]);
     }
 
-    public function generatedPlaylist()
+    /**
+     * @param Request $request
+     *
+     * @return Response
+     */
+    #[Route(path: ['en' => '/new', 'fr' => '/nouveau'], name: 'new', methods: ['GET','POST'])]
+    public function create(Request $request): Response
     {
+        if ($request->isMethod('POST')) {
+            $questionId = (int) $request->request->get('questionId', 0);
+            $userId     = (int) $request->request->get('userId', 0);
+            $label      = trim((string) $request->request->get('label', ''));
+
+            $errors = [];
+            if ($questionId <= 0) {
+                $errors[] = 'Question is required.';
+            }
+            if ($userId <= 0) {
+                $errors[] = 'User is required.';
+            }
+            if ($label === '') {
+                $errors[] = 'Label is required.';
+            }
+
+            $question = $questionId > 0 ? $this->questionRepository->find($questionId) : null;
+            $user     = $userId > 0 ? $this->userRepository->find($userId) : null;
+            if (!$question) {
+                $errors[] = 'Question not found.';
+            }
+            if (!$user) {
+                $errors[] = 'User not found.';
+            }
+
+            if (empty($errors)) {
+                $answer = new Answer();
+                $answer->setQuestion($question);
+                $answer->setUser($user);
+                $answer->setLabel($label);
+                if (method_exists($answer, 'setAnsweredAt')) {
+                    $answer->setAnsweredAt(new \DateTimeImmutable());
+                }
+
+                $this->answerRepository->save($answer, true);
+                $this->addFlash('success', $this->translator->trans('create.success', [], 'Crud'));
+                return $this->redirectToRoute('back_answer_index');
+            }
+
+            foreach ($errors as $e) {
+                $this->addFlash('error', $e);
+            }
+        }
+
+        return $this->render(self::TEMPLATE_DIR . DIRECTORY_SEPARATOR . 'new.html.twig');
     }
 
+    /**
+     * @param Request     $request
+     * @param Answer|null $answer
+     *
+     * @return Response
+     */
+    #[Route(path: ['en' => '/{id}/edit', 'fr' => '/{id}/editer'], name: 'edit', methods: ['GET','POST'], requirements: ['id' => "\\d+"])]
+    public function edit(Request $request, ?Answer $answer): Response
+    {
+        if (null === $answer) {
+            $this->addFlash('error', $this->translator->trans('no_element', [], 'Crud'));
+            return $this->redirectToRoute('answer_index');
+        }
 
+        if ($request->isMethod('POST')) {
+            $label      = trim((string) $request->request->get('label', ''));
+            $questionId = (int) $request->request->get('questionId', 0);
+            $userId     = (int) $request->request->get('userId', 0);
+
+            $errors = [];
+            if ($label === '') {
+                $errors[] = 'Label is required.';
+            }
+            if ($questionId <= 0) {
+                $errors[] = 'Question is required.';
+            }
+            if ($userId <= 0) {
+                $errors[] = 'User is required.';
+            }
+
+            $question = $questionId > 0 ? $this->questionRepository->find($questionId) : null;
+            $user     = $userId > 0 ? $this->userRepository->find($userId) : null;
+            if (!$question) {
+                $errors[] = 'Question not found.';
+            }
+            if (!$user) {
+                $errors[] = 'User not found.';
+            }
+
+            if (empty($errors)) {
+                $answer->setLabel($label);
+                $answer->setQuestion($question);
+                $answer->setUser($user);
+
+                $this->answerRepository->save($answer, true);
+                $this->addFlash('success', $this->translator->trans('update.success', [], 'Crud'));
+                return $this->redirectToRoute('back_answer_index');
+            }
+
+            foreach ($errors as $e) {
+                $this->addFlash('error', $e);
+            }
+        }
+
+        return $this->render(self::TEMPLATE_DIR . DIRECTORY_SEPARATOR . 'edit.html.twig', [
+            'answer' => $answer,
+        ]);
+    }
 
     /**
      * @param Answer|null $answer
@@ -69,9 +186,8 @@ final class AnswerController extends AbstractController
     public function delete(?Answer $answer): Response
     {
         if (null === $answer) {
-            $this->addFlash('error', $this->translor->trans('no_element', [], 'Crud'));
-
-            return $this->redirectToRoute('back_question_index');
+            $this->addFlash('error', $this->translator->trans('no_element', [], 'Crud'));
+            return $this->redirectToRoute('answer_index');
         }
 
         $type = 'error';

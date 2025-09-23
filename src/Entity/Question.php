@@ -3,10 +3,13 @@
 namespace App\Entity;
 
 use App\Entity\Traits\IdTrait;
+use App\Enum\QuestionType;
 use App\Repository\QuestionRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
+use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Validator\Constraints as Assert;
 
 /**
  * Represents a question in the application.
@@ -31,10 +34,14 @@ class Question
     #[ORM\Column(length: 255)]
     private string $label;
 
+    #[ORM\Column(type: Types::STRING, length: 16, options: ['default' => 'single'])]
+    #[Assert\Choice(choices: ['single','multiple'])]
+    private string $type = 'single';
+
     /**
      * @var Collection<int, Answer>
      */
-    #[ORM\OneToMany(targetEntity: Answer::class, mappedBy: 'question')]
+    #[ORM\OneToMany(targetEntity: Answer::class, mappedBy: 'question', cascade: ['persist'], orphanRemoval: true)]
     private Collection $answers;
 
     public function __construct()
@@ -98,5 +105,23 @@ class Question
         }
 
         return $this;
+    }
+
+    /**
+     * @return QuestionType
+     */
+    public function getType(): QuestionType
+    {
+        return QuestionType::from($this->type);
+    }
+
+    /**
+     * @param QuestionType|string $type
+     *
+     * @return void
+     */
+    public function setType(QuestionType|string $type): void
+    {
+        $this->type = $type instanceof QuestionType ? $type->value : (string)$type;
     }
 }

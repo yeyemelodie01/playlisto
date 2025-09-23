@@ -2,6 +2,7 @@
 
 namespace App\Security\Authentication;
 
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -31,8 +32,10 @@ final class LoginFormAuthenticator extends AbstractLoginFormAuthenticator
      *
      * @psalm-suppress PossiblyUnusedMethod
      */
-    public function __construct(private readonly UrlGeneratorInterface $urlGenerator)
-    {
+    public function __construct(
+        private readonly UrlGeneratorInterface $urlGenerator,
+        private readonly EntityManagerInterface $em,
+    ) {
     }
 
     /**
@@ -65,6 +68,13 @@ final class LoginFormAuthenticator extends AbstractLoginFormAuthenticator
      */
     public function onAuthenticationSuccess(Request $request, TokenInterface $token, string $firewallName): Response
     {
+        // Update last login timestamp if the authenticated user supports it
+        $user = $token->getUser();
+        if (\is_object($user) && \method_exists($user, 'setLastLoginAt')) {
+            $user->setLastLoginAt(new \DateTimeImmutable());
+            $this->em->flush();
+        }
+
         $targetPath = $this->getTargetPath($request->getSession(), $firewallName);
         if ($targetPath) {
             return new RedirectResponse($targetPath);

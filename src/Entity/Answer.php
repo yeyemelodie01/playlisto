@@ -32,6 +32,7 @@ class Answer
 
     #[ORM\ManyToOne(inversedBy: 'answers')]
     private ?User $user = null;
+
     /**
      * @return string
      */

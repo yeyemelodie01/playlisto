@@ -4,6 +4,8 @@ namespace App\Controller\Back;
 
 use App\Entity\Question;
 use App\Repository\QuestionRepository;
+use App\Service\OpenAIService;
+use Doctrine\ORM\EntityManagerInterface;
 use Knp\Component\Pager\PaginatorInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -59,31 +61,122 @@ final class QuestionController extends AbstractController
      *
      * @return Response
      */
-    #[Route(path: ['en' => '/', 'fr' => '/nouveau'], name: 'new')]
-    public function addQuestion(Request $request): Response
+    #[Route(path: ['en' => '/create', 'fr' => '/creer'], name: 'create')]
+    public function createQuestion(Request $request): Response
     {
-        // Logic for creating a new question would go here.
-        // This is a placeholder for the actual implementation.
+        if ($request->isMethod('POST')) {
+            $label   = trim((string)$request->request->get('label', ''));
+            $type    = trim((string)$request->request->get('type', ''));
 
+            $errors = [];
+            if ($label === '') {
+                $errors[] = 'Label is required.';
+            }
+            if ($type === '') {
+                $errors[] = 'Type is required.';
+            }
+            if (!\in_array($type, ['single_choice','multiple_choice','scale','text'], true)) {
+                $errors[] = 'Invalid type.';
+            }
+
+            if (empty($errors)) {
+                $question = new Question();
+                if (method_exists($question, 'setLabel')) {
+                    $question->setLabel($label);
+                }
+                if (method_exists($question, 'setType')) {
+                    $question->setType($type);
+                }
+
+                $this->questionRepository->save($question, true);
+
+                $this->addFlash('success', $this->translator->trans('create.success', [], 'Crud'));
+                return $this->redirectToRoute('question_index');
+            }
+
+            // Display errors
+            foreach ($errors as $e) {
+                $this->addFlash('error', $e);
+            }
+        }
 
         return $this->render(self::TEMPLATE_DIR . DIRECTORY_SEPARATOR . 'new.html.twig', [
-            // Pass necessary data to the template.
+            'data' => [
+                'label'   => $request->request->get('label'),
+                'type'    => $request->request->get('type'),
+            ],
         ]);
     }
 
     /**
      * @param Request $request
+     * @param Question|null $question
      *
      * @return Response
      */
     #[Route(path: ['en' => '/{id}/edit', 'fr' => '/{id}/editer'], name: 'edit', requirements: ['id' => "\d+"])]
-    public function edit(Request $request): Response
+    public function edit(Request $request, ?Question $question): Response
     {
-        // Logic for editing a question would go here.
-        // This is a placeholder for the actual implementation.
+        if (null === $question) {
+            $this->addFlash('error', $this->translator->trans('no_element', [], 'Crud'));
+            return $this->redirectToRoute('question_index');
+        }
+
+        if ($request->isMethod('POST')) {
+            $label   = trim((string)$request->request->get('label', ''));
+            $type    = trim((string)$request->request->get('type', ''));
+
+            $errors = [];
+            if ($label === '') {
+                $errors[] = 'Label is required.';
+            }
+            if ($type === '') {
+                $errors[] = 'Type is required.';
+            }
+            if (!\in_array($type, ['single_choice','multiple_choice','scale','text'], true)) {
+                $errors[] = 'Invalid type.';
+            }
+
+            if (empty($errors)) {
+                if (method_exists($question, 'setLabel')) {
+                    $question->setLabel($label);
+                }
+                if (method_exists($question, 'setType')) {
+                    $question->setType($type);
+                }
+
+                $this->questionRepository->save($question, true);
+
+                $this->addFlash('success', $this->translator->trans('update.success', [], 'Crud'));
+                return $this->redirectToRoute('question_index');
+            }
+
+            foreach ($errors as $e) {
+                $this->addFlash('error', $e);
+            }
+        }
 
         return $this->render(self::TEMPLATE_DIR . DIRECTORY_SEPARATOR . 'edit.html.twig', [
-            // Pass necessary data to the template.
+            'question' => $question,
+        ]);
+    }
+
+
+    /**
+     * @param Question|null $question
+     *
+     * @return Response
+     */
+    #[Route(path: ['en' => '/{id}', 'fr' => '/{id}'], name: 'show', requirements: ['id' => "\d+"], methods: ['GET'])]
+    public function show(?Question $question): Response
+    {
+        if (null === $question) {
+            $this->addFlash('error', $this->translator->trans('no_element', [], 'Crud'));
+            return $this->redirectToRoute('question_index');
+        }
+
+        return $this->render(self::TEMPLATE_DIR . DIRECTORY_SEPARATOR . 'show.html.twig', [
+            'question' => $question,
         ]);
     }
 
@@ -96,7 +189,7 @@ final class QuestionController extends AbstractController
     public function delete(?Question $question): Response
     {
         if (null === $question) {
-            $this->addFlash('error', $this->translor->trans('no_element', [], 'Crud'));
+            $this->addFlash('error', $this->translator->trans('no_element', [], 'Crud'));
 
             return $this->redirectToRoute('back_question_index');
         }
@@ -111,6 +204,60 @@ final class QuestionController extends AbstractController
 
         $this->addFlash($type, $this->translator->trans("delete.$type", [], 'Crud'));
 
+        return $this->redirectToRoute('question_index');
+    }
+
+    /**
+     * Generate questions using OpenAI and save them to the database.
+     *
+     * @param OpenAIService           $openAI
+     * @param EntityManagerInterface  $em
+     *
+     * @return Response
+     */
+    #[Route(path: ['en' => '/generate', 'fr' => '/generer'], name: 'generate')]
+    public function generate(OpenAIService $openAI, EntityManagerInterface $em): Response
+    {
+        $items = $openAI->generateQuestions(6);
+        foreach ($items as $i) {
+            $q = new Question();
+            $q->setTitle($i['title']);
+            $q->setType($i['type']); // string, ou ton enum si tu en as un pour le type
+            if (isset($i['options'])) {
+                $q->setOptions($i['options']); // array JSON dans l’entité (json type)
+            }
+            $em->persist($q);
+        }
+        $em->flush();
+
+        $this->addFlash('success', 'Questions générées');
+        return $this->redirectToRoute('back_question_index');
+    }
+
+    /**
+     * Generate questions using OpenAI and save them to the database.
+     *
+     * @param OpenAIService           $openAI
+     * @param EntityManagerInterface  $em
+     *
+     * @return Response
+     */
+    #[Route(path: ['en' => '/generate', 'fr' => '/generer'], name: 'generate')]
+    public function generate(OpenAIService $openAI, EntityManagerInterface $em): Response
+    {
+        $items = $openAI->generateQuestions(6);
+        foreach ($items as $i) {
+            $q = new Question();
+            $q->setTitle($i['title']);
+            $q->setType($i['type']); // string, ou ton enum si tu en as un pour le type
+            if (isset($i['options'])) {
+                $q->setOptions($i['options']); // array JSON dans l’entité (json type)
+            }
+            $em->persist($q);
+        }
+        $em->flush();
+
+        $this->addFlash('success', 'Questions générées');
         return $this->redirectToRoute('back_question_index');
     }
 }
