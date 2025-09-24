@@ -25,6 +25,7 @@ final readonly class SpotifyService
 
     /**
      * Get track recommendations based on mood, activity, and optional genres.
+     *
      * @param string $q
      * @param string $type
      * @param int    $limit
@@ -75,7 +76,6 @@ final readonly class SpotifyService
         $userSeeds = $this->normalizeGenres($genres);
         [$baseSeeds, $targets] = $this->seedsForMoodActivity($mood, $activity);
 
-        // Build a randomized seed pick (max 5) so that consecutive calls can vary
         $seedPool = !empty($userSeeds) ? $userSeeds : $baseSeeds;
         $seedPool = array_values(array_unique(array_map('strval', $seedPool)));
         if (!empty($seedPool)) {
@@ -83,7 +83,6 @@ final readonly class SpotifyService
         }
         $seedPick = array_slice($seedPool, 0, min(5, count($seedPool)));
 
-        // Try recommendations with randomized seeds + slight jitter on targets (to avoid identical results)
         if (!empty($seedPick)) {
             try {
                 $jittered = $this->jitterTargets($targets);
@@ -95,7 +94,6 @@ final readonly class SpotifyService
                 error_log('[Spotify] recommendations (seedPick+jitter) failed: ' . $e->getMessage());
             }
 
-            // Retry without targets (still randomized seeds)
             try {
                 $reco = $this->recommendations($seedPick, [], $limit, 'FR');
                 if (!empty($reco)) {
@@ -106,7 +104,6 @@ final readonly class SpotifyService
             }
         }
 
-        // Fallback strictly by user-provided genres: aggregate across multiple genre playlists
         if (!empty($userSeeds)) {
             $seedGenres = array_slice(array_values(array_unique($userSeeds)), 0, 5);
             $bag = [];
@@ -167,7 +164,6 @@ final readonly class SpotifyService
             trim("$activity mix"),
         ])));
 
-        // Aggregate from mood/activity variants
         $bag = [];
         foreach ($variants as $q) {
             try {
@@ -188,7 +184,7 @@ final readonly class SpotifyService
                 error_log('[Spotify] playlist search error for "' . $q . '": ' . $e->getMessage());
             }
         }
-        // Also aggregate from seed genres directly
+
         foreach (($seedGenres ?? []) as $seed) {
             try {
                 $pls = $this->search(trim($seed . ' playlist'), 'playlist', 5, 'FR');
@@ -205,7 +201,6 @@ final readonly class SpotifyService
                     }
                 }
 
-                // Last resort: direct track search on the seed term
                 $tracks = $this->search($seed, 'track', 25, 'FR');
                 if (!empty($tracks)) {
                     $mapped = array_values(array_filter(array_map(function ($t) {
@@ -216,10 +211,10 @@ final readonly class SpotifyService
                             'id'           => $t['id'] ?? null,
                             'name'         => $t['name'] ?? null,
                             'artists'      => array_map(fn($a) => $a['name'] ?? '', $t['artists'] ?? []),
-                            'preview_url'  => $t['preview_url'] ?? null,
-                            'external_url' => $t['external_urls']['spotify'] ?? null,
+                            'album'        => $t['album']['name'] ?? null,
                             'image_url'    => $t['album']['images'][0]['url'] ?? null,
                             'duration_ms'  => $t['duration_ms'] ?? null,
+                            'external_url' => $item['external_urls']['spotify'] ?? null,
                         ];
                     }, $tracks)));
                     $bag = array_merge($bag, $mapped);
@@ -239,6 +234,15 @@ final readonly class SpotifyService
     }
 
     /**
+     * Get track recommendations from Spotify API based on seed genres and target attributes.
+     *
+     * @param array  $seedGenres List of seed genres (max 5).
+     * @param array  $targets    Associative array of target audio features (e.g. target_valence, target_energy).
+     * @param int    $limit      Number of tracks to return (max 100).
+     * @param string $market     Market code (e.g. 'FR').
+     *
+     * @return array List of recommended tracks.
+     *
      * @throws RedirectionExceptionInterface
      * @throws DecodingExceptionInterface
      * @throws ClientExceptionInterface
@@ -371,7 +375,6 @@ final readonly class SpotifyService
             'hiphop'      => SpotifyGenre::HIP_HOP->value,
             'hip-hop'     => SpotifyGenre::HIP_HOP->value,
             'dancehall'   => SpotifyGenre::DANCEHALL->value,
-            // "zouk" n'est pas un seed officiel Spotify : on rapproche sur "world-music"
             'zouk'        => SpotifyGenre::WORLD_MUSIC->value,
         ];
 
@@ -461,7 +464,7 @@ final readonly class SpotifyService
                 'id'           => $t['id'] ?? null,
                 'name'         => $t['name'] ?? null,
                 'artists'      => array_map(fn($a) => $a['name'] ?? '', $t['artists'] ?? []),
-                'preview_url'  => $t['preview_url'] ?? null,
+                'album'        => $t['album']['name'] ?? null,
                 'external_url' => $t['external_urls']['spotify'] ?? null,
                 'image_url'    => $t['album']['images'][0]['url'] ?? null,
                 'duration_ms'  => $t['duration_ms'] ?? null,
@@ -470,6 +473,10 @@ final readonly class SpotifyService
     }
     /**
      * Apply slight randomness to recommendation target params so repeated calls vary.
+     *
+     * @param array $targets
+     *
+     * @return array
      */
     private function jitterTargets(array $targets): array
     {
@@ -485,14 +492,12 @@ final readonly class SpotifyService
             return max(0.0, min(1.0, $v));
         };
 
-        // Jitter common audio features when present
         foreach (['target_valence','target_energy','target_acousticness','min_danceability'] as $k) {
             if (isset($out[$k])) {
                 $out[$k] = $j((float)$out[$k]);
             }
         }
 
-        // Tempo bounds can be jittered by a few BPM
         foreach (['min_tempo','max_tempo'] as $k) {
             if (isset($out[$k])) {
                 $shift = mt_rand(-8, 8); // +/- 8 BPM
@@ -501,7 +506,6 @@ final readonly class SpotifyService
             }
         }
 
-        // Occasionally add a min_popularity to diversify (30..85)
         if (!isset($out['min_popularity']) && mt_rand(0, 1) === 1) {
             $out['min_popularity'] = mt_rand(30, 85);
         }
@@ -511,6 +515,10 @@ final readonly class SpotifyService
 
     /**
      * Deduplicate tracks by id while preserving first occurrence.
+     *
+     * @param array $tracks
+     *
+     * @return array
      */
     private function dedupeTracks(array $tracks): array
     {

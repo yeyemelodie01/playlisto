@@ -3,6 +3,15 @@
 namespace App\Controller\Api;
 
 use App\Service\SpotifyService;
+use App\Enum\MoodType;
+use App\Enum\ActivityType;
+use App\Entity\Playlist;
+use App\Entity\Track;
+use App\Entity\User;
+use DateTime;
+use App\Repository\PlaylistRepository;
+use App\Repository\TrackRepository;
+use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
@@ -21,8 +30,12 @@ final class GeneratePlaylistController
     /**
      * @param SpotifyService $spotify The Spotify service for interacting with the Spotify API.
      */
-    public function __construct(private readonly SpotifyService $spotify)
-    {
+    public function __construct(
+        private readonly SpotifyService $spotify,
+        private PlaylistRepository $playlistRepository,
+        private TrackRepository $trackRepository,
+        private Security $security,
+    ) {
     }
 
     /**
@@ -50,20 +63,62 @@ final class GeneratePlaylistController
         $genres   = array_values(array_filter(array_map(fn($g) => strtolower(trim((string)$g)), $genres)));
         $limit    = max(1, min($limit, 50));
 
+        // Convert to enums expected by Playlist entity
+        $moodEnum = MoodType::tryFrom($mood);
+        if (!$moodEnum) {
+            throw new \InvalidArgumentException(sprintf('Invalid mood "%s"', $mood));
+        }
+        $activityEnum = ActivityType::tryFrom($activity);
+        if (!$activityEnum) {
+            throw new \InvalidArgumentException(sprintf('Invalid activity "%s"', $activity));
+        }
+
         try {
             $tracks = $this->spotify->tracksForMoodActivity($mood, $activity, $genres, $limit);
+
+            // Persist the generated playlist and its tracks
+            $owner = $this->security->getUser();
+            if (!$owner instanceof User) {
+                throw new \RuntimeException('Authenticated user not found or invalid.');
+            }
+
+            $playlist = new Playlist();
+            $playlist->setTitle(sprintf('%s • %s', ucfirst($mood), ucfirst($activity)));
+            $playlist->setDescription(sprintf('Auto-generated from mood=%s, activity=%s, genres=%s', $mood, $activity, implode(', ', $genres)));
+            $playlist->setMood($moodEnum);
+            $playlist->setActivity($activityEnum);
+            $playlist->setCreatedAt(new DateTime());
+            $playlist->setUser($owner);
+
+            $this->playlistRepository->save($playlist, true);
+
+            // Tracks are simple arrays here; map to Track entities if available
+            foreach ($tracks as $t) {
+                $track = new Track();
+                $track->setSpotifyId((int)($t['id'] ?? ''));
+                $track->setTitle((string)($t['name'] ?? ''));
+                $track->setArtist(\is_array($t['artists'] ?? null) ? implode(', ', $t['artists']) : (string)($t['artists'] ?? ''));
+                $track->setAlbum($t['album'] ?? '');
+                $track->setGenre(!empty($genres) ? implode(', ', $genres) : null);
+                $track->setCoverUrl($t['image_url'] ?? null);
+                $track->setDuration((int) ((int)($t['duration_ms'] ?? 0) / 1000));
+                $track->addPlaylist($playlist);
+                $this->trackRepository->save($track, true);
+            }
 
             return new JsonResponse([
                 'status' => 'ok',
                 'query'  => compact('mood', 'activity', 'genres', 'limit'),
+                'playlist_id' => $playlist->getId(),
                 'count'  => count($tracks),
                 'tracks' => $tracks,
             ]);
         } catch (\Throwable $e) {
+            $status = $e instanceof \InvalidArgumentException ? 400 : 500;
             return new JsonResponse([
                 'status'  => 'error',
                 'message' => 'Failed to generate playlist: ' . $e->getMessage(),
-            ], 500);
+            ], $status);
         }
     }
 }
