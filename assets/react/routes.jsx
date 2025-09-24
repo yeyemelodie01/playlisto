@@ -5,6 +5,7 @@ import RedirectIfAuth from "@components/RedirectIfAuth";
 import Home from "@pages/home/Home";
 import ProtectedRoute from "@components/ProtectedRoute";
 import Question from "@pages/question/Question";
+import Playlist from "@pages/playlist/Playlist";
 
 const AppRoutes = () => {
   return (
@@ -26,6 +27,7 @@ const AppRoutes = () => {
             }
         />
         <Route path="/question" element={ <Question /> }/>
+        <Route path="/playlist" element={ <Playlist /> } />
     </Routes>
   );
 };
