@@ -11,9 +11,25 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Gedmo\Timestampable\Traits\TimestampableEntity;
 
+/**
+ * Represents a survey submission in the application.
+ *
+ * This entity is used to store user responses to surveys.
+ * Each survey submission includes:
+ * - Survey ID (`surveyId`): Identifier for the specific survey.
+ * - Deduced Mood (`deducedMood`): The mood inferred from the user's answers.
+ * - Deduced Activity (`deducedActivity`): The activity inferred from the user's answers.
+ * - Preferred Genres (`preferredGenres`): A list of music genres preferred by the user.
+ * - User (`user`): The user who submitted the survey.
+ * - Survey Answers (`surveyAnswers`): A collection of answers provided in the survey.
+ *
+ * Survey submissions are linked to users and contain multiple answers,
+ * enabling analysis of user preferences and behaviors.
+ */
 #[ORM\Entity(repositoryClass: SurveySubmissionRepository::class)]
 #[ORM\Table(name: 'survey_submission')]
-#[ORM\UniqueConstraint(name: 'uniq_survey_user', columns: ['survey_id', 'user_id'])]
+#[ORM\Index(name: 'idx_survey_submission_survey', columns: ['survey_id'])]
+#[ORM\Index(name: 'idx_survey_submission_user', columns: ['user_id'])]
 class SurveySubmission
 {
     use IdTrait;
@@ -23,26 +39,27 @@ class SurveySubmission
     private int $surveyId;
     #[ORM\Column(nullable: true, enumType: MoodType::class)]
     private ?MoodType $deducedMood = null;
-
     #[ORM\Column(nullable: true, enumType: ActivityType::class)]
     private ?ActivityType $deducedActivity = null;
 
-    #[ORM\ManyToOne(inversedBy: 'surveySubmissions')]
-    private ?User $user;
+    #[ORM\Column(type: 'json', nullable: true)]
+    private ?array $preferredGenres = null;
 
-    #[ORM\OneToMany(targetEntity: SurveyAnswer::class, mappedBy: 'submission')]
+    #[ORM\ManyToOne(inversedBy: 'surveySubmissions')]
+    #[ORM\JoinColumn(name: 'user_id', nullable: false, onDelete: 'CASCADE')]
+    private ?User $user = null;
+
+    #[ORM\OneToMany(targetEntity: SurveyAnswer::class, mappedBy: 'submission', cascade: ['persist', 'remove'], orphanRemoval: true)]
     private Collection $surveyAnswers;
 
     /**
      * Constructor to initialize the SurveySubmission entity.
      *
-     * Initializes the createdAt property to the current date and time,
-     * and sets up an empty collection for answers.
+     * Initializes the 'answers' collection.
      */
     public function __construct()
     {
-        $this->createdAt = new \DateTimeImmutable();
-        $this->answers = new ArrayCollection();
+        $this->surveyAnswers = new ArrayCollection();
     }
 
     /**
@@ -100,9 +117,25 @@ class SurveySubmission
     }
 
     /**
-     * @return User
+     * @return array|null
      */
-    public function getUser(): User
+    public function getPreferredGenres(): ?array
+    {
+        return $this->preferredGenres;
+    }
+
+    /**
+     * @param array|null $preferredGenres
+     */
+    public function setPreferredGenres(?array $preferredGenres): void
+    {
+        $this->preferredGenres = $preferredGenres;
+    }
+
+    /**
+     * @return User|null
+     */
+    public function getUser(): ?User
     {
         return $this->user;
     }
@@ -122,7 +155,7 @@ class SurveySubmission
      */
     public function getAnswers(): Collection
     {
-        return $this->answers;
+        return $this->surveyAnswers;
     }
 
     /**
@@ -132,7 +165,7 @@ class SurveySubmission
      */
     public function setAnswers(Collection $answers): void
     {
-        $this->answers = $answers;
+        $this->surveyAnswers = $answers;
     }
 
     /**
@@ -142,8 +175,8 @@ class SurveySubmission
      */
     public function addAnswer(SurveyAnswer $answer): void
     {
-        if (!$this->answers->contains($answer)) {
-            $this->answers->add($answer);
+        if (!$this->surveyAnswers->contains($answer)) {
+            $this->surveyAnswers->add($answer);
             $answer->setSubmission($this);
         }
     }
@@ -155,9 +188,10 @@ class SurveySubmission
      */
     public function removeAnswer(SurveyAnswer $answer): void
     {
-        if ($this->answers->removeElement($answer)) {
+        if ($this->surveyAnswers->removeElement($answer)) {
+            // set the owning side to null (unless already changed)
             if ($answer->getSubmission() === $this) {
-                $answer->setSubmission($this);
+                $answer->setSubmission(null);
             }
         }
     }

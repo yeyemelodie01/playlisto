@@ -44,8 +44,8 @@ class Track
     #[ORM\Column(type: 'integer')]
     private int $duration;
 
-    #[ORM\Column(type: 'integer')]
-    private int $spotifyId;
+    #[ORM\Column(length: 64)]
+    private string $spotifyId;
 
     #[ORM\Column(length: 255)]
     private string $coverUrl;
@@ -152,19 +152,19 @@ class Track
     }
 
     /**
-     * @return int
+     * @return string
      */
-    public function getSpotifyId(): int
+    public function getSpotifyId(): string
     {
         return $this->spotifyId;
     }
 
     /**
-     * @param int $spotifyId
+     * @param string $spotifyId
      *
      * @return void
      */
-    public function setSpotifyId(int $spotifyId): void
+    public function setSpotifyId(string $spotifyId): void
     {
         $this->spotifyId = $spotifyId;
     }

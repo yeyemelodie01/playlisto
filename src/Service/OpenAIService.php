@@ -45,37 +45,40 @@ final readonly class OpenAIService
      * @throws ServerExceptionInterface
      * @throws TransportExceptionInterface
      */
-    public function generateQuestions(int $count = 6): array
+    public function generateQuestions(int $count = 10): array
     {
+        // Clamp requested count between 1 and 20 (safety bound)
         $count = max(1, min(20, $count));
 
+        // System prompt: generate behaviour-only questions to infer MOOD (not activity/genres).
         $system = <<<SYS
         You are an assistant generating SHORT questionnaire items for a music playlist personalization app (Playlisto).
 
         Goal:
-        - Ask ~5–6 BEHAVIOUR-BASED questions whose answers will LET THE SYSTEM INFER the user's MOOD.
+        - Ask 10 BEHAVIOUR-BASED questions whose answers will LET THE SYSTEM INFER the user's MOOD.
         - Do NOT ask directly "how do you feel" or any question that reveals mood explicitly.
         - After those mood-diagnostic questions, the UI will ask ACTIVITY and GENRES separately (added by backend).
 
         Output JSON ONLY matching the schema below. No prose.
         Schema:
         {
-          "questions": [{ 
-              "title": "string (FR, concise ≤ 90 chars)",
-              "type": "single|multiple",
-              "options": ["string", "..."]
-          }]
-        }
+        "questions": [{
+          "title": "string (FR, concise ≤ 90 chars)",
+          "type": "single|multiple",
+          "options": ["string", "..."]
+        }]
         Constraints for mood-diagnostic questions (the only ones you generate):
         - Language: French.
+        - Count: exactly 10 questions.
         - Type: "single" ONLY (binary).
         - For type = "single": options MUST be exactly ["oui", "non"].
         - Wording: behaviour/situation or recent action (ex: "Avez-vous eu envie de bouger aujourd'hui ?").
-        - Avoid naming mood words (happy/sad/chill/etc.). Focus on cues: énergie, motivation, sommeil, concentration, envie de socialiser, etc.
+        - Avoid naming mood words (happy/sad/chill/etc.). Focus on cues: énergie, motivation, sommeil, concentration, envie de socialiser, irritabilité, stress perçu, patience, etc.
         - Always include the "options" array.
         SYS;
 
-        $user = sprintf('Generate %d questions tailored to mood/activity/music preferences for daily life (travail, sport, détente, etc.).', $count);
+        // User hint to the model (kept short — we control details in the system message)
+        $user = sprintf('Generate %d behaviour questions for everyday life contexts (travail, sport, détente, étude, trajets, maison).', $count);
 
         $payload = [
             'model' => $this->model,
@@ -118,28 +121,45 @@ final readonly class OpenAIService
             }
         }
 
+        // Full official Spotify seed genres list (kept in PHP for backend-driven select).
+        // Source: Spotify "available-genre-seeds" (flattened and curated; update if Spotify adds more).
+        $spotifySeeds = [
+            'acoustic','afrobeat','alt-rock','alternative','ambient','anime','black-metal','bluegrass','blues','bossanova','brazil','breakbeat','british','cantopop','chicago-house','children','chill','classical','club','comedy','country','dance','dancehall','death-metal','deep-house','detroit-techno','disco','disney','drum-and-bass','dub','dubstep','edm','electro','electronic','emo','folk','forro','french','funk','garage','german','gospel','goth','grindcore','groove','grunge','guitar','happy','hard-rock','hardcore','hardstyle','heavy-metal','hip-hop','holidays','honky-tonk','house','idm','indian','indie','indie-pop','industrial','iranian','j-dance','j-idol','j-pop','j-rock','jazz','k-pop','kids','latin','latino','malay','mandopop','metal','metalcore','minimal-techno','movies','mpb','new-age','new-release','opera','pagode','party','philippines-opm','piano','pop','pop-film','post-dubstep','power-pop','progressive-house','psych-rock','punk','punk-rock','r-n-b','rainy-day','reggae','reggaeton','road-trip','rock','rock-n-roll','rockabilly','romance','sad','salsa','samba','sertanejo','show-tunes','singer-songwriter','ska','sleep','songwriter','soul','soundtracks','spanish','study','summer','swedish','synth-pop','tango','techno','trance','trip-hop','turkish','work-out','world-music'
+        ];
+
         // Append structured questions handled by the backend:
+        // Full official Spotify seed genres list (kept in PHP for backend-driven select).
+        // Source: Spotify "available-genre-seeds" (flattened and curated; update if Spotify adds more).
+        // Append structured questions handled by the backend (kept here to guide front):
         $out[] = [
             'title' => 'Quelle activité faites-vous (ou allez-vous faire) ?',
             'type'  => 'single',
             'options' => ['sport', 'travail', 'détente', 'étude', 'cuisine']
         ];
 
+        // For genres, present the entire Spotify seed list (plus a few mapped extras).
         $out[] = [
             'title' => 'Quels genres musicaux préférez-vous ?',
             'type'  => 'multiple',
-            'options' => ['pop', 'rock', 'jazz', 'hip-hop', 'salsa', 'lo-fi']
+            'options' => $spotifySeeds,
         ];
 
         return $out;
     }
 
     /**
-     * Analyze user answers to classify into mood and activity.
+     * Analyze user answers and infer ONLY the mood.
+     *
+     * Notes:
+     * - We intentionally exclude activity (Q7) and genres (Q8) from the LLM prompt.
+     * - Return array contains only: ['mood' => 'happy|sad|energetic|stressed|calm'].
      *
      * @param array $answers
+     *   Supported shapes:
+     *   1) ['answers' => [['questionId'=>int,'optionValue'=>string]|['questionId'=>int,'optionValues'=>string[]], ...], 'activity' => ..., 'genres' => [...]]
+     *   2) Flat behaviour payload under keys 'behaviour'|'behavior'|'behaviour_answers' (activity/genres keys, if present, are dropped before sending).
      *
-     * @return array ['mood' => string, 'activity' => string]
+     * @return array{mood:string}
      *
      * @throws ClientExceptionInterface
      * @throws RedirectionExceptionInterface
@@ -150,16 +170,32 @@ final readonly class OpenAIService
     {
         $system = <<<SYS
         You will infer ONLY the user's MOOD for a music app based on behaviour-style yes/no cues.
-        - Input you receive is a list of short statements/questions with answers "oui"/"non".
+        - Input is a list of short statements/questions with answers "oui"/"non".
         - Do NOT ask or rely on direct mood words.
         - Consider energy, motivation, sleep quality, focus, social desire, irritability.
         - Output STRICT JSON only: {"mood":"happy|sad|energetic|stressed|calm"}
         - No explanations.
         SYS;
 
-        // If the caller supplies structured behaviour answers, prefer them; otherwise send raw answers.
-        $behaviour = $answers['behaviour'] ?? $answers['behavior'] ?? $answers['behaviour_answers'] ?? null;
-        $user = "Behaviour Q/A (JSON):\n" . json_encode($behaviour ?? $answers, JSON_UNESCAPED_UNICODE);
+        // Build a behaviour-only payload for OpenAI (exclude activity & genres prompts).
+        // We support two shapes:
+        //  1) { answers: [{questionId, optionValue|optionValues}, ...], activity: ..., genres: [...] }
+        //  2) a flat object with keys like 'behaviour' / 'behavior' / 'behaviour_answers'
+        if (isset($answers['answers']) && is_array($answers['answers'])) {
+            // Filter out the last two UI questions (activity = Q7, genres = Q8)
+            $behaviourPayload = array_values(array_filter($answers['answers'], static function ($a) {
+                $qid = $a['questionId'] ?? null;
+                return $qid !== 7 && $qid !== 8;
+            }));
+        } else {
+            // Legacy / flat shape
+            $behaviourPayload = $answers['behaviour'] ?? $answers['behavior'] ?? $answers['behaviour_answers'] ?? $answers;
+            if (is_array($behaviourPayload)) {
+                unset($behaviourPayload['activity'], $behaviourPayload['genres']);
+            }
+        }
+
+        $user = "Behaviour Q/A (JSON):\n" . json_encode($behaviourPayload, JSON_UNESCAPED_UNICODE);
 
         $payload = [
             'model' => $this->model,
@@ -171,55 +207,16 @@ final readonly class OpenAIService
             'response_format' => ['type' => 'json_object'],
         ];
 
-        $raw = $this->request($payload);
+        $raw  = $this->request($payload);
         $json = json_decode($raw, true);
 
         $mood = $json['mood'] ?? 'calm';
-        $activity = (string)($answers['activity'] ?? 'relax');
-        $genresIn = (array)($answers['genres'] ?? []);
-
-        $moods = ["happy","sad","energetic","stressed","calm"];
-        $activities = ["sport","work","relax","study","cooking"];
-
-        if (!in_array($mood, $moods, true)) {
+        $allowed = ["happy","sad","energetic","stressed","calm"];
+        if (!in_array($mood, $allowed, true)) {
             $mood = 'calm';
         }
-        if (!in_array($activity, $activities, true)) {
-            $activity = 'relax';
-        }
 
-        // Normalize free-form genres and map to Spotify-friendly seeds when possible
-        $seedMap = [
-            'hip hop' => 'hip-hop', 'hip-hop' => 'hip-hop', 'rap' => 'hip-hop',
-            'r&b' => 'r-n-b', 'rnb' => 'r-n-b', 'r-n-b' => 'r-n-b',
-            'lofi' => 'lo-fi', 'lo-fi' => 'lo-fi', 'chill' => 'chill',
-            'ambient' => 'ambient', 'acoustic' => 'acoustic', 'classical' => 'classical',
-            'pop' => 'pop', 'rock' => 'rock', 'jazz' => 'jazz', 'blues' => 'blues',
-            'soul' => 'soul', 'funk' => 'funk', 'edm' => 'edm', 'dance' => 'dance',
-            'electro' => 'edm', 'electronic' => 'edm',
-            'latin' => 'latin', 'salsa' => 'salsa', 'reggaeton' => 'reggaeton',
-            'afrobeat' => 'afrobeat', 'k-pop' => 'k-pop', 'metal' => 'metal',
-            'punk' => 'punk', 'country' => 'country', 'house' => 'house',
-            'techno' => 'techno', 'trap' => 'trap', 'dubstep' => 'dubstep'
-        ];
-
-        $genres = [];
-        foreach ((array)$genresIn as $g) {
-            $g = strtolower(trim((string)$g));
-            $g = preg_replace('/\s+/', ' ', $g); // normalize spaces
-            $mapped = $seedMap[$g] ?? null;
-            $genres[] = $mapped ?: $g; // keep original if unmapped
-        }
-        // de-dup and keep 1–3
-        $genres = array_values(array_unique(array_filter($genres, fn($v) => $v !== '')));
-        if (count($genres) === 0) {
-            $genres = ['pop'];
-        }
-        if (count($genres) > 3) {
-            $genres = array_slice($genres, 0, 3);
-        }
-
-        return ['mood' => $mood, 'activity' => $activity, 'genres' => $genres];
+        return ['mood' => $mood];
     }
 
 

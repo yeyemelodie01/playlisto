@@ -17,6 +17,7 @@ use Symfony\Component\Validator\Constraints as Assert;
  * This entity defines a quiz or form question that can have multiple answers.
  * Each question includes:
  * - Label (`label`): The textual content of the question.
+ * - Type (`type`): The format of the question, either 'single' or 'multiple' choice.
  * - Answers (`answers`): A collection of possible answers linked to the question.
  *
  * The `answers` are managed through a one-to-many relationship,
