@@ -11,11 +11,16 @@ use App\Entity\User;
 use DateTime;
 use App\Repository\PlaylistRepository;
 use App\Repository\TrackRepository;
+use InvalidArgumentException;
+use RuntimeException;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
+use Throwable;
+
+use function is_array;
 
 /**
  * Controller for generating playlists based on mood, activity, and genres.
@@ -66,11 +71,11 @@ final class GeneratePlaylistController
         // Convert to enums expected by Playlist entity
         $moodEnum = MoodType::tryFrom($mood);
         if (!$moodEnum) {
-            throw new \InvalidArgumentException(sprintf('Invalid mood "%s"', $mood));
+            throw new InvalidArgumentException(sprintf('Invalid mood "%s"', $mood));
         }
         $activityEnum = ActivityType::tryFrom($activity);
         if (!$activityEnum) {
-            throw new \InvalidArgumentException(sprintf('Invalid activity "%s"', $activity));
+            throw new InvalidArgumentException(sprintf('Invalid activity "%s"', $activity));
         }
 
         try {
@@ -79,7 +84,7 @@ final class GeneratePlaylistController
             // Persist the generated playlist and its tracks
             $owner = $this->security->getUser();
             if (!$owner instanceof User) {
-                throw new \RuntimeException('Authenticated user not found or invalid.');
+                throw new RuntimeException('Authenticated user not found or invalid.');
             }
 
             $playlist = new Playlist();
@@ -92,16 +97,26 @@ final class GeneratePlaylistController
 
             $this->playlistRepository->save($playlist, true);
 
-            // Tracks are simple arrays here; map to Track entities if available
             foreach ($tracks as $t) {
-                $track = new Track();
-                $track->setSpotifyId((int)($t['id'] ?? ''));
-                $track->setTitle((string)($t['name'] ?? ''));
-                $track->setArtist(\is_array($t['artists'] ?? null) ? implode(', ', $t['artists']) : (string)($t['artists'] ?? ''));
-                $track->setAlbum($t['album'] ?? '');
-                $track->setGenre(!empty($genres) ? implode(', ', $genres) : null);
-                $track->setCoverUrl($t['image_url'] ?? null);
-                $track->setDuration((int) ((int)($t['duration_ms'] ?? 0) / 1000));
+                $spotifyId = (string)($t['id'] ?? '');
+                if ($spotifyId === '') {
+                    continue;
+                }
+
+                // Reuse existing track if we already saved it before
+                $track = $this->trackRepository->findOneBy(['spotifyId' => $spotifyId]);
+                if (!$track) {
+                    $track = new Track();
+                    $track->setSpotifyId($spotifyId);
+                    $track->setTitle((string)($t['name'] ?? ''));
+                    $track->setArtist(is_array($t['artists'] ?? null) ? implode(', ', $t['artists']) : (string)($t['artists'] ?? ''));
+                    $track->setAlbum((string)($t['album'] ?? ''));
+                    $track->setGenre(!empty($genres) ? implode(', ', $genres) : '');
+                    $track->setCoverUrl((string)($t['image_url'] ?? ''));
+                    $track->setDuration((int) (((int)($t['duration_ms'] ?? 0)) / 1000)); // seconds
+                }
+
+                // Link to the newly created playlist
                 $track->addPlaylist($playlist);
                 $this->trackRepository->save($track, true);
             }
@@ -113,8 +128,8 @@ final class GeneratePlaylistController
                 'count'  => count($tracks),
                 'tracks' => $tracks,
             ]);
-        } catch (\Throwable $e) {
-            $status = $e instanceof \InvalidArgumentException ? 400 : 500;
+        } catch (Throwable $e) {
+            $status = $e instanceof InvalidArgumentException ? 400 : 500;
             return new JsonResponse([
                 'status'  => 'error',
                 'message' => 'Failed to generate playlist: ' . $e->getMessage(),

@@ -1,5 +1,6 @@
 import {useEffect, useState} from "react";
 import apiService from "@services/apiService";
+import Header from "@components/Header";
 
 export default function Playlist() {
     const [playlists, setPlaylists] = useState([]);
@@ -32,47 +33,48 @@ export default function Playlist() {
     }, [playlists]);
 
     return (
-        <main className="min-h-screen bg-base-200 py-8">
-            <div className="max-w-3xl mx-auto px-4">
-                <header className="mb-6">
-                    <h1 className="text-2xl font-semibold">
-                        Playlist
-                    </h1>
-                    <p className="text-sm opacity-70">
-                        Votre playlist personnalisée.
-                    </p>
-                </header>
-                <section>
-                    {error && <p className="text-red-600">{error}</p>}
-                    {!error && playlists.length > 0 && (
-                        <ul>
-                            {playlists.map(playlist => (
-                                <li key={playlist.id} className="p-4 border rounded mb-4 bg-base-100">
-                                    <div className="flex items-start justify-between">
-                                        <h2 className="text-lg font-semibold">{playlist.title ?? `Playlist #${playlist.id}`}</h2>
-                                        <span className="text-sm opacity-70">{playlist.trackCount ?? 0} tracks</span>
-                                    </div>
-                                    {playlist.description && (
-                                        <p className="mt-1 text-sm opacity-80">{playlist.description}</p>
-                                    )}
-                                    <div className="mt-2 text-xs opacity-70">
-                                        {playlist.mood && <span className="mr-3 italic">mood: {playlist.mood}</span>}
-                                        {playlist.activity && <span className="italic">activity: {playlist.activity}</span>}
-                                    </div>
-                                    {playlist.createdAt && (
-                                        <div className="mt-1 text-xs opacity-60">
-                                            created: {new Date(playlist.createdAt).toLocaleString()}
+        <>
+            <Header />
+            <main className="min-h-screen bg-base-200 py-8">
+                <div className="max-w-3xl mx-auto px-4">
+                        <h1 className="text-2xl font-semibold">
+                            Playlist
+                        </h1>
+                        <p className="text-sm opacity-70">
+                            Votre playlist personnalisée.
+                        </p>
+                    <section>
+                        {error && <p className="text-red-600">{error}</p>}
+                        {!error && playlists.length > 0 && (
+                            <ul>
+                                {playlists.map(playlist => (
+                                    <li key={playlist.id} className="p-4 border rounded mb-4 bg-base-100">
+                                        <div className="flex items-start justify-between">
+                                            <h2 className="text-lg font-semibold">{playlist.title ?? `Playlist #${playlist.id}`}</h2>
+                                            <span className="text-sm opacity-70">{playlist.trackCount ?? 0} tracks</span>
                                         </div>
-                                    )}
-                                </li>
-                            ))}
-                        </ul>
-                    )}
-                    {!error && playlists.length === 0 && (
-                        <p>Aucune playlist disponible.</p>
-                    )}
-                </section>
-            </div>
-        </main>
+                                        {playlist.description && (
+                                            <p className="mt-1 text-sm opacity-80">{playlist.description}</p>
+                                        )}
+                                        <div className="mt-2 text-xs opacity-70">
+                                            {playlist.mood && <span className="mr-3 italic">mood: {playlist.mood}</span>}
+                                            {playlist.activity && <span className="italic">activity: {playlist.activity}</span>}
+                                        </div>
+                                        {playlist.createdAt && (
+                                            <div className="mt-1 text-xs opacity-60">
+                                                created: {new Date(playlist.createdAt).toLocaleString()}
+                                            </div>
+                                        )}
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
+                        {!error && playlists.length === 0 && (
+                            <p>Aucune playlist disponible.</p>
+                        )}
+                    </section>
+                </div>
+            </main>
+        </>
     )
 }
