@@ -5,6 +5,9 @@ namespace App\Controller\Api;
 use App\Entity\SurveyAnswer;
 use App\Entity\SurveySubmission;
 use App\Entity\User;
+use App\Enum\ActivityType;
+use App\Enum\MoodType;
+use App\Enum\SpotifyGenre;
 use App\Repository\SurveyAnswerRepository;
 use App\Repository\SurveySubmissionRepository;
 use App\Service\OpenAIService;
@@ -21,12 +24,12 @@ use Symfony\Contracts\HttpClient\Exception\ClientExceptionInterface;
 use Symfony\Contracts\HttpClient\Exception\RedirectionExceptionInterface;
 use Symfony\Contracts\HttpClient\Exception\ServerExceptionInterface;
 use Symfony\Contracts\HttpClient\Exception\TransportExceptionInterface;
+use ValueError;
 
 final class SurveySubmissionController extends AbstractController
 {
-    /** Question IDs coming from your questionnaire */
-    private const ACTIVITY_QID = 11; // "Quelle activité..." (single)
-    private const GENRES_QID   = 12; // "Quels genres..." (multiple)
+    private const ACTIVITY_QID = 11;
+    private const GENRES_QID   = 12;
 
     public function __construct(
         private readonly Security $security,
@@ -53,10 +56,7 @@ final class SurveySubmissionController extends AbstractController
 
         $payload = json_decode($request->getContent(), true) ?? [];
 
-        // ⚠️ IMPORTANT: on lit le surveyId (id du questionnaire)
-        // - Soit on l’exige dans le payload
-        // - Soit on met un défaut (ex: 1) si tu n’as qu’un seul questionnaire
-        $surveyId = $payload['surveyId'] ?? 1; // <-- mets ici la logique que tu veux
+        $surveyId = $payload['surveyId'] ?? 1;
         if (!is_numeric($surveyId)) {
             throw new InvalidArgumentException('`surveyId` must be a number.');
         }
@@ -67,7 +67,7 @@ final class SurveySubmissionController extends AbstractController
             throw new InvalidArgumentException('`answers` must be a non-empty array.');
         }
 
-        // Pre-extract explicit activity (Q11) and genres (Q12) from user answers
+        // Pre-extract explicit activity (Q11) and genres (Q12) from user answers (values must be valid enum strings).
         $activityFromAnswers = null;   // string|null (enum value lowercase)
         $genresFromAnswers   = [];     // array<string>
 
@@ -105,9 +105,33 @@ final class SurveySubmissionController extends AbstractController
                 }
             }
         }
-        // de-duplicate genres
+        // de-duplicate and validate genres against SpotifyGenre enum
         if (!empty($genresFromAnswers)) {
             $genresFromAnswers = array_values(array_unique($genresFromAnswers));
+
+            $invalidGenres   = [];
+            $validatedGenres = [];
+
+            foreach ($genresFromAnswers as $g) {
+                $enum = SpotifyGenre::tryFrom($g);
+                if ($enum !== null) {
+                    // normalize to enum value (already lowercase)
+                    $validatedGenres[] = $enum->value;
+                } else {
+                    $invalidGenres[] = $g;
+                }
+            }
+
+            if (!empty($invalidGenres)) {
+                $allowed = implode(', ', array_map(static fn($c) => $c->value, SpotifyGenre::cases()));
+                throw new InvalidArgumentException(sprintf(
+                    'Invalid genre(s): %s. Allowed values are: %s',
+                    implode(', ', $invalidGenres),
+                    $allowed
+                ));
+            }
+
+            $genresFromAnswers = $validatedGenres;
         }
 
         // 1) Création de la soumission (avec survey_id !)
@@ -235,23 +259,19 @@ final class SurveySubmissionController extends AbstractController
 
         // Enforce explicit activity (Q11) and genres (Q12) from user answers
         if (!empty($activityFromAnswers)) {
-            // Try to set on entity if setter exists (expects enum or string)
-            if (method_exists($submission, 'setDeducedActivity')) {
-                try {
-                    // If your entity expects an enum, attempt conversion
-                    $enumClass = '\\App\\Enum\\ActivityType';
-                    if (class_exists($enumClass) && method_exists($enumClass, 'from')) {
-                        $submission->setDeducedActivity($enumClass::from($activityFromAnswers));
-                    } else {
-                        // fallback to string setter if signature allows
-                        $submission->setDeducedActivity($activityFromAnswers);
-                    }
-                } catch (\Throwable $e) {
-                    // ignore enum conversion errors silently
-                }
+            try {
+                $activityEnum = ActivityType::from($activityFromAnswers);
+            } catch (ValueError $e) {
+                throw new InvalidArgumentException(sprintf(
+                    'Invalid activity value "%s". Must be one of: %s',
+                    $activityFromAnswers,
+                    implode(', ', array_map(fn($c) => $c->value, ActivityType::cases()))
+                ));
             }
-            // Also override analysis
-            $analysis['activity'] = $activityFromAnswers;
+            if (method_exists($submission, 'setDeducedActivity')) {
+                $submission->setDeducedActivity($activityEnum);
+            }
+            $analysis['activity'] = $activityEnum->value;
         }
 
         if (!empty($genresFromAnswers)) {
@@ -263,19 +283,20 @@ final class SurveySubmissionController extends AbstractController
 
         // If mood present in analysis and entity has setter, try to persist mood
         if (!empty($analysis['mood']) && method_exists($submission, 'setDeducedMood')) {
+            $moodRaw = (string)$analysis['mood'];
             try {
-                $enumClass = '\\App\\Enum\\MoodType';
-                if (class_exists($enumClass) && method_exists($enumClass, 'from')) {
-                    $submission->setDeducedMood($enumClass::from((string)$analysis['mood']));
-                } else {
-                    $submission->setDeducedMood((string)$analysis['mood']);
-                }
-            } catch (\Throwable $e) {
-/* ignore */
+                $moodEnum = MoodType::from($moodRaw);
+            } catch (ValueError $e) {
+                throw new InvalidArgumentException(sprintf(
+                    'Invalid mood value "%s". Must be one of: %s',
+                    $moodRaw,
+                    implode(', ', array_map(fn($c) => $c->value, MoodType::cases()))
+                ));
             }
+            $submission->setDeducedMood($moodEnum);
+            $analysis['mood'] = $moodEnum->value;
         }
 
-        // Flush to persist updated submission fields
         $this->surveySubmissionRepo->save($submission, true);
 
         return new JsonResponse([

@@ -29,6 +29,9 @@ class SurveyAnswer
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $optionValue = null;
 
+    #[ORM\Column(type: 'json', nullable: true)]
+    private ?array $optionValues = null;
+
     #[ORM\ManyToOne(inversedBy: 'surveyAnswers')]
     #[ORM\JoinColumn(name: 'survey_id', nullable: false)]
     private ?SurveySubmission $submission = null;
@@ -67,6 +70,24 @@ class SurveyAnswer
     public function setOptionValue(?string $optionValue): void
     {
         $this->optionValue = $optionValue;
+    }
+
+    /**
+     * @return array|null
+     */
+    public function getOptionValues(): ?array
+    {
+        return $this->optionValues;
+    }
+
+    /**
+     * @param array|null $optionValues
+     *
+     * @return void
+     */
+    public function setOptionValues(?array $optionValues): void
+    {
+        $this->optionValues = $optionValues;
     }
 
     /**

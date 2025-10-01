@@ -153,7 +153,7 @@ class SurveySubmission
     /**
      * @return Collection<int, SurveyAnswer>
      */
-    public function getAnswers(): Collection
+    public function getSurveyAnswers(): Collection
     {
         return $this->surveyAnswers;
     }
@@ -163,7 +163,7 @@ class SurveySubmission
      *
      * @return void
      */
-    public function setAnswers(Collection $answers): void
+    public function setSurveyAnswers(Collection $answers): void
     {
         $this->surveyAnswers = $answers;
     }
@@ -173,7 +173,7 @@ class SurveySubmission
      *
      * @return void
      */
-    public function addAnswer(SurveyAnswer $answer): void
+    public function addSurveyAnswer(SurveyAnswer $answer): void
     {
         if (!$this->surveyAnswers->contains($answer)) {
             $this->surveyAnswers->add($answer);
@@ -186,12 +186,12 @@ class SurveySubmission
      *
      * @return void
      */
-    public function removeAnswer(SurveyAnswer $answer): void
+    public function removeSurveyAnswer(SurveyAnswer $answer): void
     {
         if ($this->surveyAnswers->removeElement($answer)) {
             // set the owning side to null (unless already changed)
             if ($answer->getSubmission() === $this) {
-                $answer->setSubmission(null);
+                $answer->setSubmission($this);
             }
         }
     }
