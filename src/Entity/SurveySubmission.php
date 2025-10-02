@@ -39,6 +39,7 @@ class SurveySubmission
     private int $surveyId;
     #[ORM\Column(nullable: true, enumType: MoodType::class)]
     private ?MoodType $deducedMood = null;
+
     #[ORM\Column(nullable: true, enumType: ActivityType::class)]
     private ?ActivityType $deducedActivity = null;
 
