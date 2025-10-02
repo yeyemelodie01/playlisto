@@ -10,7 +10,7 @@ use Doctrine\Migrations\AbstractMigration;
 /**
  * Auto-generated Migration: Please modify to your needs!
  */
-final class Version20250923084001 extends AbstractMigration
+final class Version20251001123735 extends AbstractMigration
 {
     public function getDescription(): string
     {
@@ -119,7 +119,7 @@ final class Version20250923084001 extends AbstractMigration
             ALTER TABLE recommendation DROP FOREIGN KEY FK_433224D26BBD148
         SQL);
         $this->addSql(<<<'SQL'
-            ALTER TABLE survey_answer DROP FOREIGN KEY FK_F2D38249E1FD4933
+            ALTER TABLE survey_answer DROP FOREIGN KEY FK_F2D38249B3FE509D
         SQL);
         $this->addSql(<<<'SQL'
             ALTER TABLE survey_submission DROP FOREIGN KEY FK_9E7F50C4A76ED395

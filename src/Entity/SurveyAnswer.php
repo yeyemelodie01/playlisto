@@ -6,6 +6,17 @@ use App\Entity\Traits\IdTrait;
 use App\Repository\SurveyAnswerRepository;
 use Doctrine\ORM\Mapping as ORM;
 
+/**
+ * Represents an answer to a survey question in the application.
+ *
+ * This entity is used to store individual answers linked to a specific survey submission.
+ * Each survey answer includes:
+ * - Question ID (`questionId`): The identifier of the question being answered.
+ * - Option Value (`optionValue`): The selected answer or response text.
+ * - Submission (`submission`): The related survey submission to which this answer belongs.
+ *
+ * Used in survey modules where users provide responses to multiple questions.
+ */
 #[ORM\Entity(repositoryClass: SurveyAnswerRepository::class)]
 #[ORM\Table(name: 'survey_answer')]
 class SurveyAnswer
@@ -15,11 +26,15 @@ class SurveyAnswer
     #[ORM\Column]
     private int $questionId;
 
-    #[ORM\Column]
-    private int $optionId;
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $optionValue = null;
+
+    #[ORM\Column(type: 'json', nullable: true)]
+    private ?array $optionValues = null;
 
     #[ORM\ManyToOne(inversedBy: 'surveyAnswers')]
-    private ?SurveySubmission $submission;
+    #[ORM\JoinColumn(name: 'survey_id', nullable: false)]
+    private ?SurveySubmission $submission = null;
 
     /**
      * @return int
@@ -40,27 +55,45 @@ class SurveyAnswer
     }
 
     /**
-     * @return int
+     * @return string|null
      */
-    public function getOptionId(): int
+    public function getOptionValue(): ?string
     {
-        return $this->optionId;
+        return $this->optionValue;
     }
 
     /**
-     * @param int $optionId
+     * @param string|null $optionValue
      *
      * @return void
      */
-    public function setOptionId(int $optionId): void
+    public function setOptionValue(?string $optionValue): void
     {
-        $this->optionId = $optionId;
+        $this->optionValue = $optionValue;
     }
 
     /**
-     * @return SurveySubmission
+     * @return array|null
      */
-    public function getSubmission(): SurveySubmission
+    public function getOptionValues(): ?array
+    {
+        return $this->optionValues;
+    }
+
+    /**
+     * @param array|null $optionValues
+     *
+     * @return void
+     */
+    public function setOptionValues(?array $optionValues): void
+    {
+        $this->optionValues = $optionValues;
+    }
+
+    /**
+     * @return SurveySubmission|null
+     */
+    public function getSubmission(): ?SurveySubmission
     {
         return $this->submission;
     }
