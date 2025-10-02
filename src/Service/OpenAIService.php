@@ -215,24 +215,6 @@ final readonly class OpenAIService
         if (!in_array($mood, $allowed, true)) {
             $mood = 'calm';
         }
-        if (!in_array($activity, $activities, true)) {
-            $activity = 'relax';
-        }
-
-        // Normalize free-form genres and map to Spotify-friendly seeds when possible
-        $seedMap = [
-            'hip hop' => 'hip-hop', 'hip-hop' => 'hip-hop', 'rap' => 'hip-hop',
-            'r&b' => 'r-n-b', 'rnb' => 'r-n-b', 'r-n-b' => 'r-n-b',
-            'lofi' => 'lo-fi', 'lo-fi' => 'lo-fi', 'chill' => 'chill',
-            'ambient' => 'ambient', 'acoustic' => 'acoustic', 'classical' => 'classical',
-            'pop' => 'pop', 'rock' => 'rock', 'jazz' => 'jazz', 'blues' => 'blues',
-            'soul' => 'soul', 'funk' => 'funk', 'edm' => 'edm', 'dance' => 'dance',
-            'electro' => 'edm', 'electronic' => 'edm',
-            'latin' => 'latin', 'salsa' => 'salsa', 'reggaeton' => 'reggaeton',
-            'afrobeat' => 'afrobeat', 'k-pop' => 'k-pop', 'metal' => 'metal',
-            'punk' => 'punk', 'country' => 'country', 'house' => 'house',
-            'techno' => 'techno', 'trap' => 'trap', 'dubstep' => 'dubstep'
-        ];
 
         return ['mood' => $mood];
     }

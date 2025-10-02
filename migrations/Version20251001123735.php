@@ -42,13 +42,13 @@ final class Version20251001123735 extends AbstractMigration
             CREATE TABLE recommendation (id INT AUTO_INCREMENT NOT NULL, user_id INT DEFAULT NULL, playlist_id INT DEFAULT NULL, generated_at DATETIME NOT NULL, source VARCHAR(255) NOT NULL, INDEX IDX_433224D2A76ED395 (user_id), INDEX IDX_433224D26BBD148 (playlist_id), PRIMARY KEY(id)) DEFAULT CHARACTER SET utf8mb4 COLLATE `utf8mb4_unicode_ci` ENGINE = InnoDB
         SQL);
         $this->addSql(<<<'SQL'
-            CREATE TABLE survey_answer (id INT AUTO_INCREMENT NOT NULL, submission_id INT DEFAULT NULL, question_id INT NOT NULL, option_id INT NOT NULL, INDEX IDX_F2D38249E1FD4933 (submission_id), PRIMARY KEY(id)) DEFAULT CHARACTER SET utf8mb4 COLLATE `utf8mb4_unicode_ci` ENGINE = InnoDB
+            CREATE TABLE survey_answer (id INT AUTO_INCREMENT NOT NULL, survey_id INT NOT NULL, question_id INT NOT NULL, option_value VARCHAR(255) DEFAULT NULL, option_values JSON DEFAULT NULL COMMENT '(DC2Type:json)', INDEX IDX_F2D38249B3FE509D (survey_id), PRIMARY KEY(id)) DEFAULT CHARACTER SET utf8mb4 COLLATE `utf8mb4_unicode_ci` ENGINE = InnoDB
         SQL);
         $this->addSql(<<<'SQL'
-            CREATE TABLE survey_submission (id INT AUTO_INCREMENT NOT NULL, user_id INT DEFAULT NULL, survey_id INT NOT NULL, deduced_mood VARCHAR(255) DEFAULT NULL, deduced_activity VARCHAR(255) DEFAULT NULL, created_at DATETIME NOT NULL, updated_at DATETIME NOT NULL, INDEX IDX_9E7F50C4A76ED395 (user_id), UNIQUE INDEX uniq_survey_user (survey_id, user_id), PRIMARY KEY(id)) DEFAULT CHARACTER SET utf8mb4 COLLATE `utf8mb4_unicode_ci` ENGINE = InnoDB
+            CREATE TABLE survey_submission (id INT AUTO_INCREMENT NOT NULL, user_id INT NOT NULL, survey_id INT NOT NULL, deduced_mood VARCHAR(255) DEFAULT NULL, deduced_activity VARCHAR(255) DEFAULT NULL, preferred_genres JSON DEFAULT NULL COMMENT '(DC2Type:json)', created_at DATETIME NOT NULL, updated_at DATETIME NOT NULL, INDEX idx_survey_submission_survey (survey_id), INDEX idx_survey_submission_user (user_id), PRIMARY KEY(id)) DEFAULT CHARACTER SET utf8mb4 COLLATE `utf8mb4_unicode_ci` ENGINE = InnoDB
         SQL);
         $this->addSql(<<<'SQL'
-            CREATE TABLE track (id INT AUTO_INCREMENT NOT NULL, title VARCHAR(255) NOT NULL, artist VARCHAR(255) NOT NULL, album VARCHAR(255) NOT NULL, genre VARCHAR(255) NOT NULL, duration INT NOT NULL, spotify_id INT NOT NULL, cover_url VARCHAR(255) NOT NULL, PRIMARY KEY(id)) DEFAULT CHARACTER SET utf8mb4 COLLATE `utf8mb4_unicode_ci` ENGINE = InnoDB
+            CREATE TABLE track (id INT AUTO_INCREMENT NOT NULL, title VARCHAR(255) NOT NULL, artist VARCHAR(255) NOT NULL, album VARCHAR(255) NOT NULL, genre VARCHAR(255) NOT NULL, duration INT NOT NULL, spotify_id VARCHAR(64) NOT NULL, cover_url VARCHAR(255) NOT NULL, PRIMARY KEY(id)) DEFAULT CHARACTER SET utf8mb4 COLLATE `utf8mb4_unicode_ci` ENGINE = InnoDB
         SQL);
         $this->addSql(<<<'SQL'
             CREATE TABLE user (id INT NOT NULL, username VARCHAR(255) NOT NULL, spotify_id VARCHAR(255) DEFAULT NULL, last_login_at DATETIME DEFAULT NULL COMMENT '(DC2Type:datetime_immutable)', UNIQUE INDEX UNIQ_8D93D649A905FC5C (spotify_id), PRIMARY KEY(id)) DEFAULT CHARACTER SET utf8mb4 COLLATE `utf8mb4_unicode_ci` ENGINE = InnoDB
@@ -81,10 +81,10 @@ final class Version20251001123735 extends AbstractMigration
             ALTER TABLE recommendation ADD CONSTRAINT FK_433224D26BBD148 FOREIGN KEY (playlist_id) REFERENCES playlist (id)
         SQL);
         $this->addSql(<<<'SQL'
-            ALTER TABLE survey_answer ADD CONSTRAINT FK_F2D38249E1FD4933 FOREIGN KEY (submission_id) REFERENCES survey_submission (id)
+            ALTER TABLE survey_answer ADD CONSTRAINT FK_F2D38249B3FE509D FOREIGN KEY (survey_id) REFERENCES survey_submission (id)
         SQL);
         $this->addSql(<<<'SQL'
-            ALTER TABLE survey_submission ADD CONSTRAINT FK_9E7F50C4A76ED395 FOREIGN KEY (user_id) REFERENCES user (id)
+            ALTER TABLE survey_submission ADD CONSTRAINT FK_9E7F50C4A76ED395 FOREIGN KEY (user_id) REFERENCES user (id) ON DELETE CASCADE
         SQL);
         $this->addSql(<<<'SQL'
             ALTER TABLE user ADD CONSTRAINT FK_8D93D649BF396750 FOREIGN KEY (id) REFERENCES base_user (id) ON DELETE CASCADE

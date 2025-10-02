@@ -11,6 +11,7 @@ use App\Entity\User;
 use App\Repository\PlaylistRepository;
 use App\Repository\TrackRepository;
 use App\Repository\SurveySubmissionRepository;
+use DateTime;
 use InvalidArgumentException;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -137,7 +138,6 @@ final class GeneratePlaylistController
                 }
 
                 $track->addPlaylist($playlist);
-                $this->trackRepository->save($track, true);
             }
 
             // 4) Flush final
@@ -151,8 +151,8 @@ final class GeneratePlaylistController
                 'count'       => count($tracks),
                 'tracks'      => $tracks,
             ]);
-        } catch (\Throwable $e) {
-            $status = $e instanceof \InvalidArgumentException ? 400 : 500;
+        } catch (Throwable $e) {
+            $status = $e instanceof InvalidArgumentException ? 400 : 500;
             return new JsonResponse([
                 'status'  => 'error',
                 'message' => 'Failed to generate playlist: ' . $e->getMessage(),
