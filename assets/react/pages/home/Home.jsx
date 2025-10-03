@@ -10,8 +10,8 @@ export default function Home() {
             <main className="min-h-[calc(100vh-10rem)] grid lg:grid-cols-5 sm:grid-cols-3 gap-4">
                 <MenuAside />
                 <MainSection
-                    title="Welcome to the Home Page"
-                    description="This is the main section of the home page."
+                    title="Bienvenue sur Playlisto"
+                    description="Playlisto est votre assistant musical intelligent. Générez des playlists adaptées à votre humeur et à vos activités grâce à l’intelligence artificielle et à l’intégration avec Spotify."
                 />
             </main>
             <Footer />

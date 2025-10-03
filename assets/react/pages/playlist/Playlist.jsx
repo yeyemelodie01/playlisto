@@ -1,6 +1,7 @@
 import {useEffect, useState} from "react";
 import apiService from "@services/apiService";
 import Header from "@components/Header";
+import MenuAside from "@components/MenuAside";
 
 export default function Playlist() {
     const [playlists, setPlaylists] = useState([]);
@@ -35,7 +36,9 @@ export default function Playlist() {
     return (
         <>
             <Header />
-            <main className="min-h-screen bg-base-200 py-8">
+            <main className="min-h-[calc(100vh-10rem)] grid lg:grid-cols-5 sm:grid-cols-3 gap-4">
+                <MenuAside />
+
                 <div className="max-w-3xl mx-auto px-4">
                         <h1 className="text-2xl font-semibold">
                             Playlist
