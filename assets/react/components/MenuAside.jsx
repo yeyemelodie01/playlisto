@@ -4,10 +4,10 @@ import Logout from "@components/Logout";
 const MenuAside = () => {
     return (
         <>
-            <section className="flex flex-col justify-between py-6">
-                <ul className="menu bg-base-200 container h-full">
+            <section className="flex flex-col justify-between py-6 border-2 border-r-black">
+                <ul className="menu container h-full">
                     <li>
-                        <Link to="/" className="text-blue-500">
+                        <Link to="/" className="">
                             <svg
                                 xmlns="http://www.w3.org/2000/svg"
                                 className="h-5 w-5"
@@ -24,7 +24,7 @@ const MenuAside = () => {
                         </Link>
                     </li>
                     <li>
-                        <Link to="/playlist" className="text-blue-500">
+                        <Link to="/playlist" className="">
                             <svg
                                 xmlns="http://www.w3.org/2000/svg"
                                 className="h-5 w-5"

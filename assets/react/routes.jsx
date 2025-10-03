@@ -6,6 +6,7 @@ import Home from "@pages/home/Home";
 import ProtectedRoute from "@components/ProtectedRoute";
 import Question from "@pages/question/Question";
 import Playlist from "@pages/playlist/Playlist";
+import OnePlaylist from "@pages/playlist/OnePlaylist";
 
 const AppRoutes = () => {
   return (
@@ -28,6 +29,7 @@ const AppRoutes = () => {
         />
         <Route path="/question" element={ <Question /> }/>
         <Route path="/playlist" element={ <Playlist /> } />
+        <Route path="/playlist/:id" element={ <OnePlaylist /> } />
     </Routes>
   );
 };
