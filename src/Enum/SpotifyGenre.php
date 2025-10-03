@@ -13,7 +13,6 @@ enum SpotifyGenre : string
     case BLUEGRASS = 'bluegrass';
     case BLUES = 'blues';
     case BOSSA_NOVA = 'bossa-nova';
-    case BRAZIL = 'brazil';
     case BREAKBEAT = 'breakbeat';
     case BRITPOP = 'britpop';
     case CHICAGO_HOUSE = 'chicago-house';
@@ -21,7 +20,6 @@ enum SpotifyGenre : string
     case CHILL = 'chill';
     case CLASSICAL = 'classical';
     case CLUB = 'club';
-    case COMEDY = 'comedy';
     case COUNTRY = 'country';
     case DANCE = 'dance';
     case DANCEHALL = 'dancehall';
@@ -38,14 +36,12 @@ enum SpotifyGenre : string
     case FORRO = 'forro';
     case FUNK = 'funk';
     case GARAGE = 'garage';
-    case GERMAN = 'german';
     case GOSPEL = 'gospel';
     case GOTH = 'goth';
     case GRINDCORE = 'grindcore';
     case GROOVE = 'groove';
     case GRUNGE = 'grunge';
     case GUITAR = 'guitar';
-    case HAPPY = 'happy';
     case HARD_ROCK = 'hard-rock';
     case HARDCORE = 'hardcore';
     case HARDSTYLE = 'hardstyle';
@@ -53,7 +49,6 @@ enum SpotifyGenre : string
     case HIP_HOP = 'hip-hop';
     case HOUSE = 'house';
     case IDM = 'idm';
-    case INDIAN = 'indian';
     case INDIE = 'indie';
     case INDIE_POP = 'indie-pop';
     case INDUSTRIAL = 'industrial';
@@ -81,24 +76,14 @@ enum SpotifyGenre : string
     case SALSA = 'salsa';
     case SAMBA = 'samba';
     case SERTANEJO = 'sertanejo';
-    case SHOW_TUNES = 'show-tunes';
-    case SINGER_SONGWRITER = 'singer-songwriter';
     case SKA = 'ska';
-    case SLEEP = 'sleep';
-    case SONGWRITER = 'songwriter';
     case SOUL = 'soul';
-    case SOUNDTRACK = 'soundtrack';
-    case SPANISH = 'spanish';
-    case STUDY = 'study';
-    case SWEDISH = 'swedish';
     case SYNTHPOP = 'synthpop';
     case TANGO = 'tango';
     case TECHNO = 'techno';
     case TRANCE = 'trance';
     case TRAP = 'trap';
     case TRIP_HOP = 'trip-hop';
-    case TURKISH = 'turkish';
-    case WORK_OUT = 'work-out';
     case WORLD_MUSIC = 'world-music';
 
     public static function isValid(string $genre): bool

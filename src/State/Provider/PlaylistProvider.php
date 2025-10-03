@@ -6,9 +6,15 @@ use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProviderInterface;
 use App\ApiResource\PlaylistOutput;
 use App\Entity\Playlist as PlaylistEntity;
+use App\Entity\Track;
 use Doctrine\Common\Collections\Collection;
+use LogicException;
+use Override;
 use Psr\Log\LoggerInterface;
 use Symfony\Bundle\SecurityBundle\Security;
+use App\ApiResource\TrackOutput;
+use App\Entity\Track as TrackEntity;
+use Throwable;
 
 /**
  * Provides a collection of PlaylistOutput DTOs for the currently authenticated user.
@@ -40,9 +46,9 @@ final readonly class PlaylistProvider implements ProviderInterface
      *
      * @return PlaylistOutput[]|null an array of PlaylistOutput DTOs or null if no user is authenticated
      *
-     * @throws \Throwable on unexpected errors
+     * @throws Throwable on unexpected errors
      */
-    #[\Override]
+    #[Override]
     public function provide(Operation $operation, array $uriVariables = [], array $context = []): array|null
     {
         unset($operation, $uriVariables, $context);
@@ -55,25 +61,23 @@ final readonly class PlaylistProvider implements ProviderInterface
             }
 
             if (!method_exists($user, 'getPlaylists')) {
-                throw new \LogicException('The User implementation must have a getPlaylists() method returning a Collection<Playlist>.');
+                throw new LogicException('The User implementation must have a getPlaylists() method returning a Collection<Playlist>.');
             }
 
             /** @var Collection<int, PlaylistEntity>|iterable $collection */
             $collection = $user->getPlaylists();
 
-            // Normalize to iterable
             if ($collection instanceof Collection) {
                 $iterable = $collection->toArray();
             } elseif (is_iterable($collection)) {
                 $iterable = $collection;
             } else {
-                throw new \LogicException('getPlaylists() must return a Doctrine Collection or iterable.');
+                throw new LogicException('getPlaylists() must return a Doctrine Collection or iterable.');
             }
 
             $result = [];
             foreach ($iterable as $playlist) {
                 if (!$playlist instanceof PlaylistEntity) {
-                    // Skip unexpected items but log for visibility
                     $this->logger->warning('PlaylistProvider: encountered non-Playlist entity in user playlists.');
                     continue;
                 }
@@ -81,7 +85,7 @@ final readonly class PlaylistProvider implements ProviderInterface
             }
 
             return $result;
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             $this->logger->error('Error providing playlist data: ' . $e->getMessage(), ['exception' => $e]);
             throw $e;
         }
@@ -96,12 +100,19 @@ final readonly class PlaylistProvider implements ProviderInterface
      */
     private function mapEntityToDto(PlaylistEntity $playlist): PlaylistOutput
     {
-        // Adapt this mapping to the fields of your PlaylistOutput DTO
-        // and to your Playlist entity getters
         $mood = method_exists($playlist, 'getMood') ? $playlist->getMood()?->value : null;
         $activity = method_exists($playlist, 'getActivity') ? $playlist->getActivity()?->value : null;
-        $tracks = method_exists($playlist, 'getTracks') ? $playlist->getTracks() : null;
-        $trackCount = $tracks instanceof Collection ? $tracks->count() : (is_countable($tracks) ? count($tracks) : 0);
+
+
+        $tracksCollection = method_exists($playlist, 'getTracks') ? $playlist->getTracks() : null;
+        $tracksArray = [];
+        if ($tracksCollection instanceof Collection || is_iterable($tracksCollection)) {
+            foreach ($tracksCollection as $t) {
+                if ($t instanceof TrackEntity) {
+                    $tracksArray[] = $this->mapTrackToDto($t);
+                }
+            }
+        }
 
         return new PlaylistOutput(
             id: (int) $playlist->getId(),
@@ -109,8 +120,26 @@ final readonly class PlaylistProvider implements ProviderInterface
             description: method_exists($playlist, 'getDescription') ? ($playlist->getDescription() ?? null) : null,
             mood: $mood,
             activity: $activity,
-            trackCount: $trackCount,
+            trackCount: count($tracksArray),
+            tracks: $tracksArray,
             createdAt: method_exists($playlist, 'getCreatedAt') ? $playlist->getCreatedAt() : null,
+        );
+    }
+
+    /**
+     * Maps a Track entity to a TrackOutput DTO.
+     */
+    private function mapTrackToDto(Track $track): TrackOutput
+    {
+        return new TrackOutput(
+            id: $track->getId(),
+            title: $track->getTitle(),
+            artists: $track->getArtist(),
+            album: $track->getAlbum(),
+            duration: $track->getDuration(),
+            spotifyId: $track->getSpotifyId(),
+            coverUrl: $track->getCoverUrl(),
+            previewUrl: method_exists($track, 'getPreviewUrl') ? $track->getPreviewUrl() : null,
         );
     }
 }

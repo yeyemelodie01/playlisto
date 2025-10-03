@@ -3,6 +3,7 @@
 namespace App\Repository;
 
 use App\Entity\Playlist;
+use App\Entity\User;
 use App\Repository\Traits\RemoveTrait;
 use App\Repository\Traits\SaveTrait;
 use DateTimeInterface;
@@ -111,5 +112,15 @@ class PlaylistRepository extends ServiceEntityRepository
             ->setParameter('endDate', $end)
             ->getQuery()
             ->getArrayResult();
+    }
+
+    public function findOneForUserWithTracks(int $playlistId, User $user): ?Playlist
+    {
+        return $this->createQueryBuilder('p')
+           ->leftJoin('p.tracks', 't')->addSelect('t')
+           ->andWhere('p.id = :pid')->setParameter('pid', $playlistId)
+           ->andWhere('p.user = :user')->setParameter('user', $user)
+           ->getQuery()
+           ->getOneOrNullResult();
     }
 }

@@ -8,6 +8,8 @@ use Doctrine\Bundle\FixturesBundle\Fixture;
 use Doctrine\Persistence\ObjectManager;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
+use function in_array;
+
 /**
  * Loads default administrator accounts into the database.
  */
@@ -48,7 +50,7 @@ final class AdminFixtures extends Fixture
             $email = mb_strtolower(trim($adminData['email']));
             if (null === $this->administratorRepository->findOneBy(['email' => $email])) {
                 $admin = new Administrator();
-                if (!\in_array('ROLE_ADMIN', $adminData['roles'], true)) {
+                if (!in_array('ROLE_ADMIN', $adminData['roles'], true)) {
                     $adminData['roles'][] = 'ROLE_ADMIN';
                 }
                 $admin->setFirstName($adminData['firstName']);
