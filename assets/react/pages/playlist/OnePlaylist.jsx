@@ -29,9 +29,11 @@ export default function OnePlaylist() {
       setLoading(true);
       setError(null);
       try {
-        // Example: GET /api/me/playlists/:id (baseURL is set in apiService)
-        const url = `/api/me/playlists/${id}`;
-        console.log("[OnePlaylist] GET", url);
+        // Compute correct API prefix based on configured base URL
+        const API_URL = process.env.REACT_APP_API_URL || '';
+        const prefix = API_URL.endsWith('/api') ? '' : '/api';
+        const url = `${prefix}/me/playlists/${id}`;
+        console.log("[OnePlaylist] API_URL =", API_URL, "→ url =", url);
         const { data } = await apiService.get(url);
         if (!isMounted) return;
         console.log("[OnePlaylist] raw response", data);

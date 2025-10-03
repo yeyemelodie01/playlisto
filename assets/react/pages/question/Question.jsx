@@ -235,7 +235,8 @@ export default function Questions() {
 
             if (!playlistId) {
                 // If backend returns the full playlist object, navigate directly with state
-                return navigate("/playlist", { state: { generated: genData } });
+                return navigate("/playlist" +
+                    "", { state: { generated: genData } });
             }
 
             navigate(`/playlist/${playlistId}`);

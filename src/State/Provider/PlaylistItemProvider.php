@@ -5,9 +5,10 @@ namespace App\State\Provider;
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProviderInterface;
 use App\ApiResource\PlaylistOutput;
-use App\Entity\Playlist;
-use Doctrine\Common\Collections\Collection;
-use Doctrine\ORM\EntityManagerInterface;
+use App\ApiResource\TrackOutput;
+use App\Repository\PlaylistRepository;
+use App\Entity\User;
+use Override;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
@@ -16,13 +17,13 @@ final readonly class PlaylistItemProvider implements ProviderInterface
     /**
      * Constructor for PlaylistItemProvider.
      *
-     * @param EntityManagerInterface $entityManager the Doctrine entity manager
-     * @param Security               $security      the security component used to fetch the current authenticated user
+     * @param PlaylistRepository $playlists the playlist repository
+     * @param Security           $security  the security component used to fetch the current authenticated user
      *
      * @psalm-suppress PossiblyUnusedMethod
      */
     public function __construct(
-        private EntityManagerInterface $entityManager,
+        private PlaylistRepository $playlists,
         private Security $security
     ) {
     }
@@ -38,37 +39,69 @@ final readonly class PlaylistItemProvider implements ProviderInterface
      *
      * @throws AccessDeniedHttpException if the playlist does not belong to the authenticated user
      */
-    #[\Override]
+    #[Override]
     public function provide(Operation $operation, array $uriVariables = [], array $context = []): ?PlaylistOutput
     {
         $user = $this->security->getUser();
         if (null === $user) {
             return null; // No authenticated user
         }
+        if (!$user instanceof User) {
+            throw new AccessDeniedHttpException('Authenticated user is not a valid application user.');
+        }
 
-        $playlistId = $uriVariables['id'] ?? 0;
-        $playlist = $this->entityManager->getRepository(Playlist::class)->findOneBy([
-            'id' => $playlistId,
-            'user' => $user,
-        ]);
+        $playlistId = (int) ($uriVariables['id'] ?? 0);
+        if ($playlistId <= 0) {
+            return null;
+        }
+
+        // Fetch playlist with its tracks already loaded for the current user
+        $playlist = $this->playlists->findOneForUserWithTracks($playlistId, $user);
         if (!$playlist) {
-            return null; // Playlist not found or does not belong to the user
+            return null;
         }
 
-        if (method_exists($playlist, 'getUser') && $playlist->getUser() !== $user) {
-            throw new AccessDeniedHttpException('You do not have access to this playlist.');
-        }
+        $tracksDto = [];
+        if (method_exists($playlist, 'getTracks')) {
+            foreach ($playlist->getTracks() as $t) {
+                // Derive artists as array if stored as a single string
+                $artists = method_exists($t, 'getArtist') ? $t->getArtist() : null;
+                if (is_string($artists)) {
+                    $artists = array_values(array_filter(array_map('trim', preg_split('/,|;|\\|/u', $artists))));
+                } elseif (is_array($artists)) {
+                    // already an array
+                } else {
+                    $artists = [];
+                }
 
-        $tracks = method_exists($playlist, 'getTracks') ? $playlist->getTracks() : null;
-        $trackCount = $tracks instanceof Collection ? $tracks->count() : (is_countable($tracks) ? count($tracks) : 0);
+                // Duration: convert seconds (entity) to milliseconds for DTO if needed
+                $durationMs = null;
+                if (method_exists($t, 'getDuration')) {
+                    $sec = $t->getDuration();
+                    $durationMs = $sec > 0 ? $sec * 1000 : null;
+                }
+
+                $tracksDto[] = new TrackOutput(
+                    id: $t->getId() ?? 0,
+                    title: $t->getTitle() ?? '',
+                    artists: $artists,
+                    album: method_exists($t, 'getAlbum') ? $t->getAlbum() : null,
+                    duration: $durationMs,
+                    spotifyId: method_exists($t, 'getSpotifyId') ? $t->getSpotifyId() : null,
+                    coverUrl: method_exists($t, 'getCoverUrl') ? $t->getCoverUrl() : null,
+                    previewUrl: method_exists($t, 'getPreviewUrl') ? $t->getPreviewUrl() : null,
+                );
+            }
+        }
 
         return new PlaylistOutput(
             id: (int)$playlist->getId(),
-            title: (string) $playlist->getTitle(),
+            title: $playlist->getTitle(),
             description: method_exists($playlist, 'getDescription') ? $playlist->getDescription() : null,
             mood: method_exists($playlist, 'getMood') ? $playlist->getMood()?->value : null,
             activity: method_exists($playlist, 'getActivity') ? $playlist->getActivity()?->value : null,
-            trackCount: $trackCount,
+            trackCount: count($tracksDto),
+            tracks: $tracksDto,
             createdAt: method_exists($playlist, 'getCreatedAt') ? $playlist->getCreatedAt() : null
         );
     }

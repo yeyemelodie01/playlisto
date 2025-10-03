@@ -44,6 +44,13 @@ final class AdminQuestionGenerateController
     {
         $payload = json_decode($request->getContent() ?: '{}', true, 512, JSON_THROW_ON_ERROR);
         $count = (int)($payload['count'] ?? 6);
+        // Clamp for safety
+        if ($count < 5) {
+            $count = 5;
+        }
+        if ($count > 50) {
+            $count = 50;
+        }
 
         try {
             $items = $this->openAIService->generateQuestions($count);
@@ -53,16 +60,29 @@ final class AdminQuestionGenerateController
                 $rawTitle = isset($i['title']) ? trim((string) $i['title']) : '';
                 $rawOpts  = isset($i['options']) && is_array($i['options']) ? array_values($i['options']) : [];
 
+                // normalize type from AI output (default to 'single')
                 $typeStr = isset($i['type']) ? strtolower((string) $i['type']) : 'single';
                 $typeStr = in_array($typeStr, ['single','multiple'], true) ? $typeStr : 'single';
-                if ($rawTitle === '') {
+
+                // normalize title and ensure succinct punctuation for yes/no items
+                $title = $rawTitle;
+                if ($typeStr === 'single' && !str_ends_with($title, '?') && $rawOpts === ['oui','non']) {
+                    $title .= ' ?';
+                    $title = preg_replace('/\s+\?$/u', ' ?', $title);
+                }
+
+                if ($title === '') {
                     continue;
                 }
 
-
                 $q = new Question();
-                $q->setLabel($rawTitle);
-                $q->setType(QuestionType::from($typeStr));
+                $q->setLabel($title);
+                // explicit enum mapping (avoid dynamic static calls like QuestionType::single())
+                $typeEnum = match ($typeStr) {
+                    'multiple' => QuestionType::MULTIPLE,
+                    default    => QuestionType::SINGLE,
+                };
+                $q->setType($typeEnum);
 
 
                 foreach ($rawOpts as $opt) {
@@ -93,7 +113,7 @@ final class AdminQuestionGenerateController
 
                 $created[] = [
                     'id'      => method_exists($q, 'getId') ? $q->getId() : null,
-                    'label'   => $q->getLabel(),
+                    'label'   => method_exists($q, 'getLabel') ? $q->getLabel() : $title,
                     'type'    => method_exists($q, 'getType') ? $q->getType()->value : $typeStr,
                     'options' => $answersOut,
                 ];

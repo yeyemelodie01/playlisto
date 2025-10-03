@@ -6,15 +6,14 @@ use App\Entity\Traits\IdTrait;
 use App\Repository\AnswerRepository;
 use Doctrine\ORM\Mapping as ORM;
 
-/**
- * Represents an answer to a question in the application.
+/** * Represents an answer to a question in the application.
  *
- * This entity is used to store possible responses linked to a specific question.
+ * This entity is used to store individual answers linked to a specific question.
  * Each answer includes:
  * - Label (`label`): The text content of the answer.
  * - Question (`question`): The related question to which this answer belongs.
  *
- * Used in quiz or form-based modules where questions can have multiple answers.
+ * Used in modules where users respond to questions, such as surveys or quizzes.
  */
 #[ORM\Entity(repositoryClass: AnswerRepository::class)]
 #[ORM\Table(name: 'answer')]
@@ -29,9 +28,6 @@ class Answer
     private ?string $label;
     #[ORM\ManyToOne(inversedBy: 'answers')]
     private ?Question $question = null;
-
-    #[ORM\ManyToOne(inversedBy: 'answers')]
-    private ?User $user = null;
 
     /**
      * @return string
@@ -59,25 +55,5 @@ class Answer
     public function setQuestion(?Question $question): void
     {
         $this->question = $question;
-    }
-
-    /**
-     * @return User|null
-     */
-    public function getUser(): ?User
-    {
-        return $this->user;
-    }
-
-    /**
-     * @param User|null $user
-     *
-     * @return $this
-     */
-    public function setUser(?User $user): static
-    {
-        $this->user = $user;
-
-        return $this;
     }
 }

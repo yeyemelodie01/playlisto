@@ -23,7 +23,6 @@ use Doctrine\ORM\Mapping as ORM;
  *
  * Relationships:
  * - One-to-many with `Playlist`: a user can create multiple playlists.
- * - One-to-many with `Answer`: a user can provide multiple answers.
  * - One-to-many with `Recommendation`: a user can receive multiple recommendations.
  *
  * This entity implements `UserInterface` and `PasswordAuthenticatedUserInterface`
@@ -51,23 +50,12 @@ class User extends BaseUser
     #[ORM\OneToMany(targetEntity: Playlist::class, mappedBy: 'user')]
     private Collection $playlists;
 
-    /**
-     * @var Collection<int, Answer>
-     */
-    #[ORM\OneToMany(targetEntity: Answer::class, mappedBy: 'user')]
-    private Collection $answers;
-
-    #[ORM\OneToMany(targetEntity: Recommendation::class, mappedBy: 'user')]
-    private Collection $recommendations;
-
     #[ORM\OneToMany(targetEntity: SurveySubmission::class, mappedBy: 'user')]
     private Collection $surveySubmissions;
 
     public function __construct()
     {
         $this->playlists = new ArrayCollection();
-        $this->answers = new ArrayCollection();
-        $this->recommendations = new ArrayCollection();
         $this->surveySubmissions = new ArrayCollection();
     }
 
@@ -170,100 +158,16 @@ class User extends BaseUser
     }
 
     /**
-     * @return Collection<int, Answer>
+     * @return Collection<int, SurveySubmission>
      */
-    public function getAnswers(): Collection
-    {
-        return $this->answers;
-    }
-
-    /**
-     * @param Collection<int, Answer> $answers
-     *
-     * @return void
-     */
-    public function setAnswers(Collection $answers): void
-    {
-        $this->answers = $answers;
-    }
-
-    /**
-     * @param Answer $answer
-     *
-     * @return $this
-     */
-    public function addAnswer(Answer $answer): static
-    {
-        if (!$this->answers->contains($answer)) {
-            $this->answers->add($answer);
-            $answer->setUser($this);
-        }
-
-        return $this;
-    }
-
-    /**
-     * @param Answer $answer
-     *
-     * @return $this
-     */
-    public function removeAnswer(Answer $answer): static
-    {
-        if ($this->answers->removeElement($answer)) {
-            // set the owning side to null (unless already changed)
-            if ($answer->getUser() === $this) {
-                $answer->setUser(null);
-            }
-        }
-
-        return $this;
-    }
-
-    /**
-     * @return Collection<int, Recommendation>
-     */
-    public function getRecommendations(): Collection
-    {
-        return $this->recommendations;
-    }
-
-    /**
-     * @param Collection<int, Recommendation> $recommendations
-     *
-     * @return void
-     */
-    public function setRecommendations(Collection $recommendations): void
-    {
-        $this->recommendations = $recommendations;
-    }
-
-    public function addRecommendation(Recommendation $recommendation): static
-    {
-        if (!$this->recommendations->contains($recommendation)) {
-            $this->recommendations->add($recommendation);
-            $recommendation->setUser($this);
-        }
-
-        return $this;
-    }
-
-    public function removeRecommendation(Recommendation $recommendation): static
-    {
-        if ($this->recommendations->removeElement($recommendation)) {
-            // set the owning side to null (unless already changed)
-            if ($recommendation->getUser() === $this) {
-                $recommendation->setUser(null);
-            }
-        }
-
-        return $this;
-    }
-
     public function getSurveySubmissions(): Collection
     {
         return $this->surveySubmissions;
     }
 
+    /**
+     * @param Collection $surveySubmissions
+     */
     public function setSurveySubmissions(Collection $surveySubmissions): void
     {
         $this->surveySubmissions = $surveySubmissions;

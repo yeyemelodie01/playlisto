@@ -33,7 +33,7 @@ class Track
     private string $title;
 
     #[ORM\Column(length: 255)]
-    private string $artist;
+    private array $artists;
 
     #[ORM\Column(length: 255)]
     private string $album;
@@ -49,6 +49,9 @@ class Track
 
     #[ORM\Column(length: 255)]
     private string $coverUrl;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    private string $previewUrl;
 
     /**
      * @var Collection<int, Playlist>
@@ -80,21 +83,21 @@ class Track
     }
 
     /**
-     * @return string
+     * @return array
      */
-    public function getArtist(): string
+    public function getArtists(): array
     {
-        return $this->artist;
+        return $this->artists;
     }
 
     /**
-     * @param string $artist
+     * @param array $artists
      *
      * @return void
      */
-    public function setArtist(string $artist): void
+    public function setArtists(array $artists): void
     {
-        $this->artist = $artist;
+        $this->artists = $artists;
     }
 
     /**
@@ -185,6 +188,16 @@ class Track
     public function setCoverUrl(string $coverUrl): void
     {
         $this->coverUrl = $coverUrl;
+    }
+
+    public function getPreviewUrl(): string
+    {
+        return $this->previewUrl;
+    }
+
+    public function setPreviewUrl(string $previewUrl): void
+    {
+        $this->previewUrl = $previewUrl;
     }
 
     /**

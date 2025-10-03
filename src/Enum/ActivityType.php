@@ -14,4 +14,5 @@ enum ActivityType: string
     case RELAX = 'relax';
     case STUDY = 'study';
     case COOKING = 'cooking';
+    case NONE = 'none';
 }

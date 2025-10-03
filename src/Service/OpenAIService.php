@@ -2,6 +2,7 @@
 
 namespace App\Service;
 
+use App\Enum\SpotifyGenre;
 use RuntimeException;
 use Symfony\Contracts\HttpClient\Exception\ClientExceptionInterface;
 use Symfony\Contracts\HttpClient\Exception\RedirectionExceptionInterface;
@@ -29,7 +30,7 @@ final readonly class OpenAIService
         private readonly HttpClientInterface $httpClient,
         private readonly string $apiKey,
         private readonly string $model = 'gpt-4o-mini',
-        private readonly int $timeout = 15
+        private readonly int $timeout = 30
     ) {
     }
 
@@ -43,42 +44,63 @@ final readonly class OpenAIService
      * @throws ClientExceptionInterface
      * @throws RedirectionExceptionInterface
      * @throws ServerExceptionInterface
-     * @throws TransportExceptionInterface
+     * @throws TransportExceptionInterface|\Random\RandomException
      */
-    public function generateQuestions(int $count = 10): array
+    public function generateQuestions(int $total = 16): array
     {
-        // Clamp requested count between 1 and 20 (safety bound)
-        $count = max(1, min(20, $count));
+        // keep a strict total of $total (default 16), reserving 2 for activity + genres
+        $total = max(5, min(50, $total)); // safety headroom
+        $reservedTail = 2;
+        $maxBehaviour = max(1, $total - $reservedTail); // mood Qs budget
+        $minBehaviour = min(4, $maxBehaviour);          // at least 4 if possible
 
-        // System prompt: generate behaviour-only questions to infer MOOD (not activity/genres).
+        // Build seeds from enum (no hard-coded list)
+        $spotifySeeds = array_map(static fn(SpotifyGenre $g) => $g->value, SpotifyGenre::cases());
+
+        // Limit of “Avez-vous” starters (⅓ of behaviour questions, rounded up)
+        $maxAvezVous = (int)ceil($maxBehaviour / 3);
+        $nonce = bin2hex(random_bytes(4));
+
         $system = <<<SYS
-        You are an assistant generating SHORT questionnaire items for a music playlist personalization app (Playlisto).
+You are an assistant generating SHORT questionnaire items for a music playlist personalization app (Playlisto).
 
-        Goal:
-        - Ask 10 BEHAVIOUR-BASED questions whose answers will LET THE SYSTEM INFER the user's MOOD.
-        - Do NOT ask directly "how do you feel" or any question that reveals mood explicitly.
-        - After those mood-diagnostic questions, the UI will ask ACTIVITY and GENRES separately (added by backend).
+Goal:
+- Generate French yes/no questions that help deduce the user's MOOD.
+- Let K be the number of mood-diagnostic questions you choose.
+- Constraints on K: {$minBehaviour} ≤ K ≤ {$maxBehaviour}.
+- Do NOT include any questions about activity or genres; ONLY behaviour questions here.
 
-        Output JSON ONLY matching the schema below. No prose.
-        Schema:
-        {
-        "questions": [{
-          "title": "string (FR, concise ≤ 90 chars)",
-          "type": "single|multiple",
-          "options": ["string", "..."]
-        }]
-        Constraints for mood-diagnostic questions (the only ones you generate):
-        - Language: French.
-        - Count: exactly 10 questions.
-        - Type: "single" ONLY (binary).
-        - For type = "single": options MUST be exactly ["oui", "non"].
-        - Wording: behaviour/situation or recent action (ex: "Avez-vous eu envie de bouger aujourd'hui ?").
-        - Avoid naming mood words (happy/sad/chill/etc.). Focus on cues: énergie, motivation, sommeil, concentration, envie de socialiser, irritabilité, stress perçu, patience, etc.
-        - Always include the "options" array.
-        SYS;
+Stylistic constraints:
+- All questions are yes/no with options exactly ["oui","non"].
+- Vary openings: "Est-ce que…", "Aujourd'hui…", "Ces derniers jours…", "Vous est-il arrivé de…", "Votre journée s'est-elle…", "A-t-il été…", and limited "Avez-vous".
+- At most {$maxAvezVous} items may start with "Avez-vous".
+- Keep neutral wording (no explicit emotion words), everyday contexts (travail, sport, maison, étude, trajets, repos).
+- No parentheses. <= 90 chars per title.
 
-        // User hint to the model (kept short — we control details in the system message)
-        $user = sprintf('Generate %d behaviour questions for everyday life contexts (travail, sport, détente, étude, trajets, maison).', $count);
+Schema (STRICT JSON, no prose):
+{
+  "questions": [
+    {
+      "title": "string (FR, <= 90 chars)",
+      "type": "single",
+      "options": ["oui","non"],
+      "moodTag": "happy|sad|energetic|stressed|calm"
+    }
+  ]
+}
+
+Hard constraints:
+- Language: French.
+- Count: exactly K items you choose within bounds.
+- type MUST be "single".
+- options MUST be exactly ["oui","non"].
+- moodTag MUST be one of: happy, sad, energetic, stressed, calm.
+
+Return ONLY the JSON object above. Do not include explanations or extra text.
+Nonce: {$nonce}
+SYS;
+
+        $user = 'Produce the behaviour questions only (no activity, no genres).';
 
         $payload = [
             'model' => $this->model,
@@ -86,63 +108,82 @@ final readonly class OpenAIService
                 ['role' => 'system', 'content' => $system],
                 ['role' => 'user',   'content' => $user],
             ],
-            'temperature' => 0.4,
+            'temperature' => 0.6,
+            'presence_penalty' => 0.6,
+            'frequency_penalty' => 0.5,
             'response_format' => ['type' => 'json_object'],
         ];
 
         $raw = $this->request($payload);
-
         $json = json_decode($raw, true);
-        $questions = $json['questions'] ?? [];
+        $questions = is_array($json['questions'] ?? null) ? $json['questions'] : [];
 
-        $out = [];
+        // Post-filter + dedup, enforce bounds (in case model over-produced)
+        $seen = [];
+        $behaviourOut = [];
         foreach ($questions as $q) {
-            if (!isset($q['title'], $q['type'])) {
-                continue;
-            }
-            $type = in_array($q['type'], ['single','multiple'], true) ? $q['type'] : 'single';
-            $item = [
-                'title' => trim((string)$q['title']),
-                'type'  => $type,
-            ];
-            if ($type === 'single') {
-                $item['options'] = ['oui', 'non'];
-            } elseif ($type === 'multiple') {
-                $opts = array_values(array_filter(array_map('strval', $q['options'] ?? [])));
-                // Ensure between 4 and 6 options for multiple; fallback if missing
-                if (count($opts) < 4) {
-                    $opts = ['travail', 'sport', 'détente', "étude"];
-                }
-                $item['options'] = array_slice($opts, 0, 6);
-            }
-            $out[] = $item;
-            if (count($out) >= $count) {
+            if (count($behaviourOut) >= $maxBehaviour) {
                 break;
             }
+            $title = isset($q['title']) ? trim((string)$q['title']) : '';
+            if ($title === '') {
+                continue;
+            }
+            $key = mb_strtolower($title);
+            if (isset($seen[$key])) {
+                continue;
+            }
+            $seen[$key] = true;
+
+            $tag = isset($q['moodTag']) ? strtolower((string)$q['moodTag']) : null;
+            if (!in_array($tag, ['happy','sad','energetic','stressed','calm'], true)) {
+                continue;
+            }
+
+            $behaviourOut[] = [
+                'title'   => $title,
+                'type'    => 'single',
+                'options' => ['oui','non'],
+                'moodTag' => $tag,
+            ];
         }
 
-        // Full official Spotify seed genres list (kept in PHP for backend-driven select).
-        // Source: Spotify "available-genre-seeds" (flattened and curated; update if Spotify adds more).
-        $spotifySeeds = [
-            'acoustic','afrobeat','alt-rock','alternative','ambient','black-metal','bluegrass','blues','bossa-nova','brazil','breakbeat','britpop','chicago-house','children','chill','classical','club','comedy','country','dance','dancehall','deep-house','disco','drum-and-bass','dub','dubstep','edm','electro','electronic','emo','folk','forro','funk','garage','german','gospel','goth','grindcore','groove','grunge','guitar','happy','hard-rock','hardcore','hardstyle','heavy-metal','hip-hop','house','idm','indian','indie','indie-pop','industrial','jazz','k-pop','latin','lo-fi','metal','minimal-techno','mpb','new-age','opera','pagode','party','piano','pop','progressive-house','punk','r-n-b','reggae','reggaeton','rock','rock-n-roll','romance','salsa','samba','sertanejo','show-tunes','singer-songwriter','ska','sleep','songwriter','soul','soundtracks','spanish','study','swedish','synthpop','tango','techno','trance','trap','trip-hop','turkish','work-out','world-music'
+        // Ensure at least minBehaviour by truncating if model returned fewer than min (fallback to slice of itself)
+        if (count($behaviourOut) < $minBehaviour && count($behaviourOut) > 0) {
+            // nothing more to add safely—keep what we have
+        }
+
+        // Append the 2 fixed tail questions
+        $out = $behaviourOut;
+
+        $out[] = [
+            'title'   => 'Quelle activité faites-vous ou allez-vous faire',
+            'type'    => 'single',
+            'options' => ['sport', 'travail', 'détente', 'étude', 'cuisine', 'aucune'],
         ];
 
-        // Append structured questions handled by the backend:
-        // Full official Spotify seed genres list (kept in PHP for backend-driven select).
-        // Source: Spotify "available-genre-seeds" (flattened and curated; update if Spotify adds more).
-        // Append structured questions handled by the backend (kept here to guide front):
         $out[] = [
-            'title' => 'Quelle activité faites-vous (ou allez-vous faire) ?',
-            'type'  => 'single',
-            'options' => ['sport', 'travail', 'détente', 'étude', 'cuisine']
+            'title'   => 'Quels genres musicaux préférez-vous',
+            'type'    => 'multiple',
+            'options' => $spotifySeeds, // from enum
         ];
 
-        // For genres, present the entire Spotify seed list (plus a few mapped extras).
-        $out[] = [
-            'title' => 'Quels genres musicaux préférez-vous ?',
-            'type'  => 'multiple',
-            'options' => $spotifySeeds,
-        ];
+        // Keep the grand total to $total (hard cap)
+        if (count($out) > $total) {
+            // Prefer trimming behaviour part (never drop the 2 tail)
+            $keepBehaviour = max(0, $total - 2);
+            $out = array_slice($behaviourOut, 0, $keepBehaviour);
+            $out[] = [
+                'title'   => 'Quelle activité faites-vous ou allez-vous faire',
+                'type'    => 'single',
+                'options' => ['sport', 'travail', 'détente', 'étude', 'cuisine', 'aucune'],
+            ];
+            $out[] = [
+                'title'   => 'Quels genres musicaux préférez-vous',
+                'type'    => 'multiple',
+                'options' => $spotifySeeds,
+            ];
+        }
 
         return $out;
     }
@@ -169,30 +210,68 @@ final readonly class OpenAIService
     public function analyzeAnswers(array $answers): array
     {
         $system = <<<SYS
-        You will infer ONLY the user's MOOD for a music app based on behaviour-style yes/no cues.
-        - Input is a list of short statements/questions with answers "oui"/"non".
-        - Do NOT ask or rely on direct mood words.
-        - Consider energy, motivation, sleep quality, focus, social desire, irritability.
-        - Output STRICT JSON only: {"mood":"happy|sad|energetic|stressed|calm"}
-        - No explanations.
-        SYS;
+You will infer ONLY the user's MOOD for a music app based on behaviour-style yes/no cues.
+- Input is a list of short statements/questions with answers "oui"/"non".
+- Do NOT ask or rely on direct mood words.
+- Consider energy, motivation, sleep quality, focus, social desire, irritability.
+- Output STRICT JSON only: {"mood":"happy|sad|energetic|stressed|calm"}
+- No explanations.
+SYS;
 
-        // Build a behaviour-only payload for OpenAI (exclude activity & genres prompts).
-        // We support two shapes:
-        //  1) { answers: [{questionId, optionValue|optionValues}, ...], activity: ..., genres: [...] }
-        //  2) a flat object with keys like 'behaviour' / 'behavior' / 'behaviour_answers'
+        // Normalize input shape
+        $rawAnswers = [];
         if (isset($answers['answers']) && is_array($answers['answers'])) {
-            // Filter out the last two UI questions (activity = Q7, genres = Q8)
-            $behaviourPayload = array_values(array_filter($answers['answers'], static function ($a) {
-                $qid = $a['questionId'] ?? null;
-                return $qid !== 7 && $qid !== 8;
-            }));
-        } else {
-            // Legacy / flat shape
-            $behaviourPayload = $answers['behaviour'] ?? $answers['behavior'] ?? $answers['behaviour_answers'] ?? $answers;
-            if (is_array($behaviourPayload)) {
-                unset($behaviourPayload['activity'], $behaviourPayload['genres']);
+            $rawAnswers = $answers['answers'];
+        } elseif (isset($answers['behaviour']) && is_array($answers['behaviour'])) {
+            $rawAnswers = $answers['behaviour'];
+        } elseif (isset($answers['behavior']) && is_array($answers['behavior'])) {
+            $rawAnswers = $answers['behavior'];
+        } elseif (isset($answers['behaviour_answers']) && is_array($answers['behaviour_answers'])) {
+            $rawAnswers = $answers['behaviour_answers'];
+        } elseif (is_array($answers)) {
+            $rawAnswers = $answers;
+        }
+
+        // Known activity choices (FR) — used to filter out activity
+        $activityChoices = ['sport','travail','détente','étude','cuisine','aucune'];
+
+        // Filter: remove activity & genres answers dynamically
+        $behaviourPayload = [];
+        foreach ($rawAnswers as $a) {
+            if (!is_array($a)) {
+                continue;
             }
+
+            // If explicitly flagged
+            if (!empty($a['isActivity']) || !empty($a['isGenres'])) {
+                continue;
+            }
+
+            // Multiple-choice ⇒ likely genres
+            if (isset($a['optionValues']) && is_array($a['optionValues'])) {
+                // treat as 'genres' → skip
+                continue;
+            }
+
+            // Single value but is an activity keyword
+            $val = isset($a['optionValue']) ? (string)$a['optionValue'] : null;
+            if ($val !== null && in_array(mb_strtolower($val), $activityChoices, true)) {
+                continue;
+            }
+
+            // Keep only yes/no type answers
+            if ($val !== null) {
+                $lv = mb_strtolower($val);
+                if ($lv === 'oui' || $lv === 'non') {
+                    $behaviourPayload[] = $a;
+                }
+            }
+        }
+
+        // Fallback: if we filtered nothing (e.g., client didn’t include activity/genres markers),
+        // and we still have at least 2 answers total, drop the last two as a heuristic (they are appended last).
+        if (empty($behaviourPayload) && count($rawAnswers) >= 2) {
+            $behaviourPayload = array_slice($rawAnswers, 0, -2);
         }
 
         $user = "Behaviour Q/A (JSON):\n" . json_encode($behaviourPayload, JSON_UNESCAPED_UNICODE);
