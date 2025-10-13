@@ -26,13 +26,13 @@
                         </a>
                     </li>
                     <li>
-                        {% import 'back/answer/menu.html.twig' as menuAnswer %}
+                        {% import 'back/answer-option/menu.html.twig' as menuAnswer %}
                         {% set active = menuAnswer.activeMenu()%}
                         <a href="{{ path('back_answer_index')}}" class="{{ linkClass }} {{ active  ? activeClass : '' }}">
                             <span class="inline-flex justify-center items-center ml-4">
                                 {{ ux_icon('fa6-solid:file-pen', {width: '18px', height: '18px'}) }}
                             </span>
-                            <span class="ml-2 text-sm tracking-wide truncate">{{ 'answer'|trans({}, 'Menu') }}</span>
+                            <span class="ml-2 text-sm tracking-wide truncate">{{ 'answer-option'|trans({}, 'Menu') }}</span>
                         </a>
                     </li>
                     <li>

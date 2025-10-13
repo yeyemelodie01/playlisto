@@ -11,8 +11,8 @@ use App\Enum\ActivityType;
 use App\Enum\MoodType;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\SecurityBundle\Security;
-use App\ApiResource\AnswerInput;
-use App\ApiResource\AnswerResultOutput;
+use App\ApiResource\AnswerOptionInput;
+use App\ApiResource\AnswerOptionResultOutput;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 
@@ -22,12 +22,12 @@ use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
  * This class processes the input from the 'me/answers' endpoint, validates it, and applies simple rules to deduce
  * the user's mood, activity, and recommendation seeds based on their answers.
  *
- * @implements ProcessorInterface<AnswerInput, AnswerResultOutput>
+ * @implements ProcessorInterface<AnswerOptionInput, AnswerOptionResultOutput>
  */
-final readonly class AnswerProcessor implements ProcessorInterface
+final readonly class AnswerOptionProcessor implements ProcessorInterface
 {
     /**
-     * Constructor for AnswerProcessor.
+     * Constructor for AnswerOptionProcessor.
      *
      * @param Security $security the security component used to fetch the current authenticated user
      *
@@ -40,12 +40,12 @@ final readonly class AnswerProcessor implements ProcessorInterface
     /**
      * Processes the submitted answers and deduces mood, activity, and recommendation seeds.
      *
-     * @param mixed                $data         The input data, expected to be an instance of AnswerInput.
+     * @param mixed                $data         The input data, expected to be an instance of AnswerOptionInput.
      * @param Operation            $operation    The operation being performed (POST, etc.).
      * @param array<string, mixed> $uriVariables an array of URI variables (unused here)
      * @param array<string, mixed> $context      additional context passed by API Platform
      *
-     * @return AnswerResultOutput the result containing deduced mood, activity, and recommendation seeds
+     * @return AnswerOptionResultOutput the result containing deduced mood, activity, and recommendation seeds
      *
      * @throws AccessDeniedHttpException if the user is not authenticated
      * @throws BadRequestHttpException   if the input data is invalid
@@ -58,7 +58,7 @@ final readonly class AnswerProcessor implements ProcessorInterface
         }
 
         // Validate payload type
-        if (!$data instanceof AnswerInput) {
+        if (!$data instanceof AnswerOptionInput) {
             throw new BadRequestHttpException('Invalid payload.');
         }
 
@@ -143,7 +143,7 @@ final readonly class AnswerProcessor implements ProcessorInterface
         $this->entityManager->persist($submission);
 
         foreach ($data->answers as $item) {
-            $questionId = (int)($item['questionId'] ?? 0);
+            $question = ($item['questionId'] ?? 0);
             $optionIds = $item['optionIds'] ?? [];
             if (!\is_array($optionIds)) {
                 continue;
@@ -151,15 +151,15 @@ final readonly class AnswerProcessor implements ProcessorInterface
             foreach ($optionIds as $oid) {
                 $answer = new SurveyAnswer();
                 $answer->setSubmission($submission);
-                $answer->setQuestionId($questionId);
-                $answer->setOptionId((int)$oid);
+                $answer->setQuestion($question);
+                $answer->setOptionValue($oid);
                 $this->entityManager->persist($answer);
             }
         }
 
         $this->entityManager->flush();
 
-        return new AnswerResultOutput(
+        return new AnswerOptionResultOutput(
             surveyId: (int)$data->surveyId,
             deducedMood: $deducedMood,
             deducedActivity: $deducedActivity,

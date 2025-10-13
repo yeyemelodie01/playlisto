@@ -4,13 +4,13 @@ namespace App\ApiResource;
 
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Post;
-use App\State\Processor\AnswerProcessor;
+use App\State\Processor\AnswerOptionProcessor;
 use Symfony\Component\Serializer\Annotation\Groups;
 
 /**
  * API Resource for submitting question answers and receiving a deduced mood and activity profile.
  *
- * This class serves as the output structure for the 'me/answers' endpoint, processed by AnswerProcessor.
+ * This class serves as the output structure for the 'me/answers' endpoint, processed by AnswerOptionProcessor.
  *
  * @psalm-suppress PossiblyUnusedProperty
  */
@@ -20,26 +20,26 @@ use Symfony\Component\Serializer\Annotation\Groups;
             uriTemplate: '/me/answers',
             description: 'Submit question answers and get a deduced mood and activity profile.',
             security: "is_granted('ROLE_USER')",
-            input: AnswerInput::class,
-            output: AnswerResultOutput::class,
+            input: AnswerOptionInput::class,
+            output: AnswerOptionResultOutput::class,
             name: 'SubmitAnswers',
-            processor: AnswerProcessor::class
+            processor: AnswerOptionProcessor::class
         )
     ],
-    normalizationContext: ['groups' => ['answer:result:read']],
+    normalizationContext: ['groups' => ['answer-option:result:read']],
 )]
-final class AnswerResultOutput
+final class AnswerOptionResultOutput
 {
-    #[Groups(['answer:result:read'])]
+    #[Groups(['answer-option:result:read'])]
     public int $surveyId;
 
-    #[Groups(['answer:result:read'])]
+    #[Groups(['answer-option:result:read'])]
     public string $deducedMood;
 
-    #[Groups(['answer:result:read'])]
+    #[Groups(['answer-option:result:read'])]
     public string $deducedActivity;
 
-    #[Groups(['answer:result:read'])]
+    #[Groups(['answer-option:result:read'])]
     public ?array $recommendationSeeds = null;
 
     /**

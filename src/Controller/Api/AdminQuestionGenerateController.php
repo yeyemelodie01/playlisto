@@ -2,16 +2,18 @@
 
 namespace App\Controller\Api;
 
+use App\Entity\AnswerOption;
 use App\Repository\QuestionRepository;
-use App\Entity\Answer;
 use App\Service\OpenAIService;
 use App\Entity\Question;
 use App\Enum\QuestionType;
+use JsonException;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
+use Throwable;
 
 /**
  * Class AdminQuestionGenerateController.
@@ -36,20 +38,61 @@ final class AdminQuestionGenerateController
      * @param Request $request The HTTP request object
      *
      * @return JsonResponse A JSON response containing the created questions or an error message
-     * @throws \JsonException
+     * @throws JsonException
      */
     #[Route('/api/admin/questions/generate', name: 'api_admin_questions_generate', methods: ['POST'])]
     #[IsGranted('ROLE_ADMIN')]
     public function __invoke(Request $request): JsonResponse
     {
-        $payload = json_decode($request->getContent() ?: '{}', true, 512, JSON_THROW_ON_ERROR);
+        // 1) Parse body JSON (robuste) + fallback brut
+        try {
+            $payload = $request->toArray(); // nécessite Content-Type: application/json
+        } catch (\Throwable) {
+            $raw = $request->getContent() ?: '{}';
+            $payload = json_decode($raw, true) ?: [];
+        }
+
+        // 2) Extraire surveyId depuis plusieurs sources (payload, query, form, header)
+        $surveyId = 0;
+
+        $fromPayload = $payload['surveyId'] ?? null;
+        if ($fromPayload !== null && is_numeric($fromPayload)) {
+            $surveyId = (int) $fromPayload;
+        }
+
+        if ($surveyId <= 0 && $request->query->has('surveyId')) {
+            $surveyId = $request->query->getInt('surveyId');
+        }
+
+        if ($surveyId <= 0 && $request->request->has('surveyId')) { // form-data / x-www-form-urlencoded
+            $surveyId = (int) $request->request->get('surveyId');
+        }
+
+        if ($surveyId <= 0) {
+            $hdr = $request->headers->get('X-Survey-Id');
+            if ($hdr !== null && is_numeric($hdr)) {
+                $surveyId = (int) $hdr;
+            }
+        }
+
+        // 3) Count borné
         $count = (int)($payload['count'] ?? 6);
-        // Clamp for safety
         if ($count < 5) {
             $count = 5;
         }
         if ($count > 50) {
             $count = 50;
+        }
+
+        // 4) Stratégie hybride A+B : générer un surveyId serveur si absent
+        $generatedSurveyId = false;
+        if ($surveyId <= 0) {
+            // epoch secondes (simple, stable). Alternative: random_int(1_000_000, 9_999_999)
+            $surveyId = (int) floor(microtime(true));
+            if ($surveyId <= 0) {
+                $surveyId = random_int(1_000_000, 9_999_999);
+            }
+            $generatedSurveyId = true;
         }
 
         try {
@@ -60,67 +103,68 @@ final class AdminQuestionGenerateController
                 $rawTitle = isset($i['title']) ? trim((string) $i['title']) : '';
                 $rawOpts  = isset($i['options']) && is_array($i['options']) ? array_values($i['options']) : [];
 
-                // normalize type from AI output (default to 'single')
+                // normalise le type (fallback: single)
                 $typeStr = isset($i['type']) ? strtolower((string) $i['type']) : 'single';
                 $typeStr = in_array($typeStr, ['single','multiple'], true) ? $typeStr : 'single';
 
-                // normalize title and ensure succinct punctuation for yes/no items
+                // titre (ponctuation pour oui/non)
                 $title = $rawTitle;
-                if ($typeStr === 'single' && !str_ends_with($title, '?') && $rawOpts === ['oui','non']) {
+                if ($typeStr === 'single' && $rawOpts === ['oui','non'] && !str_ends_with($title, '?')) {
                     $title .= ' ?';
                     $title = preg_replace('/\s+\?$/u', ' ?', $title);
                 }
-
                 if ($title === '') {
-                    continue;
+                    continue; // on skippe les entrées vides
                 }
 
+                // Création Question
                 $q = new Question();
                 $q->setLabel($title);
-                // explicit enum mapping (avoid dynamic static calls like QuestionType::single())
+                $q->setSurveyId($surveyId); // ✅ satisfait NOT NULL
                 $typeEnum = match ($typeStr) {
                     'multiple' => QuestionType::MULTIPLE,
                     default    => QuestionType::SINGLE,
                 };
                 $q->setType($typeEnum);
 
-
+                // Ajout des options
                 foreach ($rawOpts as $opt) {
-                    $text = trim((string) $opt);
+                    $text = trim((string)$opt);
                     if ($text === '') {
                         continue;
                     }
 
-                    $a = new Answer();
-                    if (method_exists($a, 'setLabel')) {
-                        $a->setLabel($text);
-                    } elseif (method_exists($a, 'setContent')) {
-                        $a->setContent($text);
-                    } elseif (method_exists($a, 'setText')) {
-                        $a->setText($text);
-                    }
-                    $q->addAnswer($a);
+                    $a = new AnswerOption();
+                    $a->setLabel($text);
+                    $q->addAnswer($a); // owning side sur ManyToOne côté AnswerOption
                 }
 
-
+                // Persist
                 $this->questionRepository->save($q, true);
 
+                // Sortie
                 $answersOut = [];
                 foreach ($q->getAnswers() as $ans) {
-                    $answersOut[] = method_exists($ans, 'getLabel') ? $ans->getLabel() : (method_exists($ans, 'getContent') ? $ans->getContent() : null);
+                    $answersOut[] = $ans->getLabel();
                 }
-                $answersOut = array_values(array_filter($answersOut, static fn($v) => $v !== null && $v !== ''));
+                $answersOut = array_values(array_unique(array_filter($answersOut, static fn($v) => $v !== null && $v !== '')));
 
                 $created[] = [
-                    'id'      => method_exists($q, 'getId') ? $q->getId() : null,
-                    'label'   => method_exists($q, 'getLabel') ? $q->getLabel() : $title,
-                    'type'    => method_exists($q, 'getType') ? $q->getType()->value : $typeStr,
-                    'options' => $answersOut,
+                    'id'       => $q->getId(),
+                    'label'    => $q->getLabel(),
+                    'type'     => $q->getType()->value,
+                    'options'  => $answersOut,
+                    'surveyId' => $surveyId,
                 ];
             }
 
-            return new JsonResponse($created, Response::HTTP_CREATED);
-        } catch (\Throwable $e) {
+            // On renvoie le surveyId (et si c’est un fallback serveur)
+            return new JsonResponse([
+                'surveyId'        => $surveyId,
+                'generatedServer' => $generatedSurveyId,
+                'questions'       => $created,
+            ], Response::HTTP_CREATED);
+        } catch (Throwable $e) {
             return new JsonResponse([
                 'error' => 'openai_generation_failed',
                 'message' => $e->getMessage(),

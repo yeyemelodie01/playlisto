@@ -21,7 +21,7 @@ use Symfony\Component\Validator\Constraints as Assert;
  * - Answers (`answers`): A collection of possible answers linked to the question.
  *
  * The `answers` are managed through a one-to-many relationship,
- * allowing each question to be associated with several answer choices.
+ * allowing each question to be associated with several answer-option choices.
  */
 #[ORM\Entity(repositoryClass: QuestionRepository::class)]
 #[ORM\Table(name: 'question')]
@@ -29,25 +29,31 @@ class Question
 {
     use IdTrait;
 
-    /**
-     * @var string The textual content of the question.
-     */
+    #[ORM\Column(type: Types::INTEGER)]
+    private int $surveyId;
+
     #[ORM\Column(length: 255)]
     private string $label;
 
-    #[ORM\Column(type: Types::STRING, length: 16, options: ['default' => 'single'])]
-    #[Assert\Choice(choices: ['single','multiple'])]
-    private string $type = 'single';
+    #[ORM\Column(enumType: QuestionType::class)]
+    private QuestionType $type = QuestionType::SINGLE;
 
     /**
-     * @var Collection<int, Answer>
+     * @var ArrayCollection|Collection
      */
-    #[ORM\OneToMany(targetEntity: Answer::class, mappedBy: 'question', cascade: ['persist'], orphanRemoval: true)]
-    private Collection $answers;
+    #[ORM\OneToMany(targetEntity: AnswerOption::class, mappedBy: 'question', cascade: ['persist'], orphanRemoval: true)]
+    private Collection|ArrayCollection $answers;
+
+    /**
+     * @var ArrayCollection|Collection
+     */
+    #[ORM\OneToMany(targetEntity: SurveyAnswer::class, mappedBy: 'question')]
+    private Collection|ArrayCollection $surveyAnswers;
 
     public function __construct()
     {
         $this->answers = new ArrayCollection();
+        $this->surveyAnswers = new ArrayCollection();
     }
 
     /**
@@ -69,34 +75,42 @@ class Question
     }
 
     /**
-     * @return Collection<int, Answer>
+     * @return ArrayCollection|Collection
      */
-    public function getAnswers(): Collection
+    public function getAnswers(): ArrayCollection|Collection
     {
         return $this->answers;
     }
 
     /**
-     * @param Answer $answer
+     * @param ArrayCollection|Collection $answers
      *
-     * @return $this
+     * @return void
      */
-    public function addAnswer(Answer $answer): static
+    public function setAnswers(ArrayCollection|Collection $answers): void
+    {
+        $this->answers = $answers;
+    }
+
+    /**
+     * @param AnswerOption $answer
+     *
+     * @return void
+     */
+    public function addAnswer(AnswerOption $answer): void
     {
         if (!$this->answers->contains($answer)) {
             $this->answers->add($answer);
             $answer->setQuestion($this);
         }
-
-        return $this;
     }
 
     /**
-     * @param Answer $answer
+     * @param AnswerOption $answer
      *
-     * @return $this
+     * @return void
      */
-    public function removeAnswer(Answer $answer): static
+    public function removeAnswer(AnswerOption $answer): void
     {
         if ($this->answers->removeElement($answer)) {
             // set the owning side to null (unless already changed)
@@ -104,8 +118,24 @@ class Question
                 $answer->setQuestion(null);
             }
         }
+    }
 
-        return $this;
+    /**
+     * @return int
+     */
+    public function getSurveyId(): int
+    {
+        return $this->surveyId;
+    }
+
+    /**
+     * @param int $surveyId
+     *
+     * @return void
+     */
+    public function setSurveyId(int $surveyId): void
+    {
+        $this->surveyId = $surveyId;
     }
 
     /**
@@ -113,16 +143,62 @@ class Question
      */
     public function getType(): QuestionType
     {
-        return QuestionType::from($this->type);
+        return $this->type;
     }
 
     /**
-     * @param QuestionType|string $type
+     * @param QuestionType $type
      *
      * @return void
      */
-    public function setType(QuestionType|string $type): void
+    public function setType(QuestionType $type): void
     {
-        $this->type = $type instanceof QuestionType ? $type->value : (string)$type;
+        $this->type = $type;
+    }
+
+    /**
+     * @return ArrayCollection|Collection
+     */
+    public function getSurveyAnswers(): ArrayCollection|Collection
+    {
+        return $this->surveyAnswers;
+    }
+
+    /**
+     * @param ArrayCollection|Collection $surveyAnswers
+     *
+     * @return void
+     */
+    public function setSurveyAnswers(ArrayCollection|Collection $surveyAnswers): void
+    {
+        $this->surveyAnswers = $surveyAnswers;
+    }
+
+    /**
+     * @param SurveyAnswer $surveyAnswer
+     *
+     * @return void
+     */
+    public function addSurveyAnswer(SurveyAnswer $surveyAnswer): void
+    {
+        if (!$this->surveyAnswers->contains($surveyAnswer)) {
+            $this->surveyAnswers->add($surveyAnswer);
+            $surveyAnswer->setQuestion($this);
+        }
+    }
+
+    /**
+     * @param SurveyAnswer $surveyAnswer
+     *
+     * @return void
+     */
+    public function removeSurveyAnswer(SurveyAnswer $surveyAnswer): void
+    {
+        if ($this->surveyAnswers->removeElement($surveyAnswer)) {
+            // set the owning side to null (unless already changed)
+            if ($surveyAnswer->getQuestion() === $this) {
+                $surveyAnswer->setQuestion(null);
+            }
+        }
     }
 }

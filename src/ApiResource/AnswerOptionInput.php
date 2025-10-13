@@ -5,13 +5,13 @@ namespace App\ApiResource;
 use Symfony\Component\Validator\Constraints as Assert;
 
 /**
- * Data Transfer Object (DTO) for handling answer input.
+ * Data Transfer Object (DTO) for handling answer-option input.
  *
- * This class is used to encapsulate the input data required for answer operations.
+ * This class is used to encapsulate the input data required for answer-option operations.
  *
  * @psalm-suppress PossiblyUnusedProperty
  */
-final class AnswerInput
+final class AnswerOptionInput
 {
     /**
      * The ID of the survey this submission relates to.

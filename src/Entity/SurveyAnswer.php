@@ -7,66 +7,46 @@ use App\Repository\SurveyAnswerRepository;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
- * Represents an answer to a survey question in the application.
+ * Represents an answer-option to a survey question in the application.
  *
  * This entity is used to store individual answers linked to a specific survey submission.
- * Each survey answer includes:
- * - Question ID (`questionId`): The identifier of the question being answered.
- * - Option Value (`optionValue`): The selected answer or response text.
- * - Submission (`submission`): The related survey submission to which this answer belongs.
+ * Each survey answer-option includes:
+ * - Option (`option`): The selected answer option chosen by the user.
+ * - Question (`question`): The survey question to which this answer-option corresponds.
+ * - Submission (`submission`): The related survey submission to which this answer-option belongs.
  *
  * Used in survey modules where users provide responses to multiple questions.
  */
 #[ORM\Entity(repositoryClass: SurveyAnswerRepository::class)]
 #[ORM\Table(name: 'survey_answer')]
+#[ORM\UniqueConstraint(
+    name: 'uniq_submission_question_option',
+    columns: ['submission_id', 'question_id', 'option_id']
+)]
 class SurveyAnswer
 {
     use IdTrait;
 
-    #[ORM\Column]
-    private int $questionId;
-
-    #[ORM\Column(length: 255, nullable: true)]
-    private ?string $optionValue = null;
+    #[ORM\ManyToOne(targetEntity: AnswerOption::class)]
+    #[ORM\JoinColumn(name: 'option_id', nullable: true, onDelete: 'SET NULL')]
+    private ?AnswerOption $option = null;
 
     #[ORM\ManyToOne(inversedBy: 'surveyAnswers')]
-    #[ORM\JoinColumn(name: 'survey_id', nullable: false)]
+    #[ORM\JoinColumn(name: 'submission_id', nullable: false, onDelete: 'CASCADE')]
     private ?SurveySubmission $submission = null;
 
-    /**
-     * @return int
-     */
-    public function getQuestionId(): int
+    #[ORM\ManyToOne(targetEntity: Question::class, inversedBy: 'surveyAnswers')]
+    #[ORM\JoinColumn(name: 'question_id', nullable: false, onDelete: 'CASCADE')]
+    private ?Question $question = null;
+
+    public function getOption(): ?AnswerOption
     {
-        return $this->questionId;
+        return $this->option;
     }
 
-    /**
-     * @param int $questionId
-     *
-     * @return void
-     */
-    public function setQuestionId(int $questionId): void
+    public function setOption(?AnswerOption $option): void
     {
-        $this->questionId = $questionId;
-    }
-
-    /**
-     * @return string|null
-     */
-    public function getOptionValue(): ?string
-    {
-        return $this->optionValue;
-    }
-
-    /**
-     * @param string|null $optionValue
-     *
-     * @return void
-     */
-    public function setOptionValue(?string $optionValue): void
-    {
-        $this->optionValue = $optionValue;
+        $this->option = $option;
     }
 
     /**
@@ -85,5 +65,15 @@ class SurveyAnswer
     public function setSubmission(SurveySubmission $submission): void
     {
         $this->submission = $submission;
+    }
+
+    public function getQuestion(): ?Question
+    {
+        return $this->question;
+    }
+
+    public function setQuestion(?Question $question): void
+    {
+        $this->question = $question;
     }
 }

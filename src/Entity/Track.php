@@ -32,8 +32,8 @@ class Track
     #[ORM\Column(length: 255)]
     private string $title;
 
-    #[ORM\Column(length: 255)]
-    private array $artists;
+    #[ORM\Column(type: 'json')]
+    private array $artists = [];
 
     #[ORM\Column(length: 255)]
     private string $album;
@@ -44,14 +44,14 @@ class Track
     #[ORM\Column(type: 'integer')]
     private int $duration;
 
-    #[ORM\Column(length: 64)]
+    #[ORM\Column(length: 64, unique: true)]
     private string $spotifyId;
 
     #[ORM\Column(length: 255)]
     private string $coverUrl;
 
     #[ORM\Column(length: 255, nullable: true)]
-    private string $previewUrl;
+    private ?string $previewUrl = null;
 
     /**
      * @var Collection<int, Playlist>
