@@ -22,4 +22,14 @@ trait SaveTrait
             $entityManager->flush();
         }
     }
+
+    /**
+     * Flushes all changes to the database.
+     *
+     * @return void
+     */
+    public function flush(): void
+    {
+        $this->getEntityManager()->flush();
+    }
 }

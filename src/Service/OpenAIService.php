@@ -3,6 +3,7 @@
 namespace App\Service;
 
 use App\Enum\SpotifyGenre;
+use Random\RandomException;
 use RuntimeException;
 use Symfony\Contracts\HttpClient\Exception\ClientExceptionInterface;
 use Symfony\Contracts\HttpClient\Exception\RedirectionExceptionInterface;
@@ -37,14 +38,15 @@ final readonly class OpenAIService
     /**
      * Generate a list of questions for user profiling.
      *
-     * @param int $count Number of questions to generate (1-20)
+     * @param int $total
      *
      * @return array Generated questions
      *
      * @throws ClientExceptionInterface
      * @throws RedirectionExceptionInterface
      * @throws ServerExceptionInterface
-     * @throws TransportExceptionInterface|\Random\RandomException
+     * @throws TransportExceptionInterface
+     * @throws RandomException
      */
     public function generateQuestions(int $total = 16): array
     {
@@ -62,43 +64,43 @@ final readonly class OpenAIService
         $nonce = bin2hex(random_bytes(4));
 
         $system = <<<SYS
-You are an assistant generating SHORT questionnaire items for a music playlist personalization app (Playlisto).
-
-Goal:
-- Generate French yes/no questions that help deduce the user's MOOD.
-- Let K be the number of mood-diagnostic questions you choose.
-- Constraints on K: {$minBehaviour} ≤ K ≤ {$maxBehaviour}.
-- Do NOT include any questions about activity or genres; ONLY behaviour questions here.
-
-Stylistic constraints:
-- All questions are yes/no with options exactly ["oui","non"].
-- Vary openings: "Est-ce que…", "Aujourd'hui…", "Ces derniers jours…", "Vous est-il arrivé de…", "Votre journée s'est-elle…", "A-t-il été…", and limited "Avez-vous".
-- At most {$maxAvezVous} items may start with "Avez-vous".
-- Keep neutral wording (no explicit emotion words), everyday contexts (travail, sport, maison, étude, trajets, repos).
-- No parentheses. <= 90 chars per title.
-
-Schema (STRICT JSON, no prose):
-{
-  "questions": [
-    {
-      "title": "string (FR, <= 90 chars)",
-      "type": "single",
-      "options": ["oui","non"],
-      "moodTag": "happy|sad|energetic|stressed|calm"
-    }
-  ]
-}
-
-Hard constraints:
-- Language: French.
-- Count: exactly K items you choose within bounds.
-- type MUST be "single".
-- options MUST be exactly ["oui","non"].
-- moodTag MUST be one of: happy, sad, energetic, stressed, calm.
-
-Return ONLY the JSON object above. Do not include explanations or extra text.
-Nonce: {$nonce}
-SYS;
+        You are an assistant generating SHORT questionnaire items for a music playlist personalization app (Playlisto).
+        
+        Goal:
+        - Generate French yes/no questions that help deduce the user's MOOD.
+        - Let K be the number of mood-diagnostic questions you choose.
+        - Constraints on K: {$minBehaviour} ≤ K ≤ {$maxBehaviour}.
+        - Do NOT include any questions about activity or genres; ONLY behaviour questions here.
+        
+        Stylistic constraints:
+        - All questions are yes/no with options exactly ["oui","non"].
+        - Vary openings: "Est-ce que…", "Aujourd'hui…", "Ces derniers jours…", "Vous est-il arrivé de…", "Votre journée s'est-elle…", "A-t-il été…", and limited "Avez-vous".
+        - At most {$maxAvezVous} items may start with "Avez-vous".
+        - Keep neutral wording (no explicit emotion words), everyday contexts (travail, sport, maison, étude, trajets, repos).
+        - No parentheses. <= 90 chars per title.
+        
+        Schema (STRICT JSON, no prose):
+        {
+          "questions": [
+            {
+              "title": "string (FR, <= 90 chars)",
+              "type": "single",
+              "options": ["oui","non"],
+              "moodTag": "happy|sad|energetic|stressed|calm"
+            }
+          ]
+        }
+        
+        Hard constraints:
+        - Language: French.
+        - Count: exactly K items you choose within bounds.
+        - type MUST be "single".
+        - options MUST be exactly ["oui","non"].
+        - moodTag MUST be one of: happy, sad, energetic, stressed, calm.
+        
+        Return ONLY the JSON object above. Do not include explanations or extra text.
+        Nonce: {$nonce}
+        SYS;
 
         $user = 'Produce the behaviour questions only (no activity, no genres).';
 
@@ -108,10 +110,11 @@ SYS;
                 ['role' => 'system', 'content' => $system],
                 ['role' => 'user',   'content' => $user],
             ],
-            'temperature' => 0.6,
-            'presence_penalty' => 0.6,
-            'frequency_penalty' => 0.5,
+            'temperature' => 0.4,
+            'presence_penalty' => 0.4,
+            'frequency_penalty' => 0.2,
             'response_format' => ['type' => 'json_object'],
+            'max_tokens' => 800,
         ];
 
         $raw = $this->request($payload);
@@ -148,12 +151,10 @@ SYS;
             ];
         }
 
-        // Ensure at least minBehaviour by truncating if model returned fewer than min (fallback to slice of itself)
+
         if (count($behaviourOut) < $minBehaviour && count($behaviourOut) > 0) {
-            // nothing more to add safely—keep what we have
         }
 
-        // Append the 2 fixed tail questions
         $out = $behaviourOut;
 
         $out[] = [
@@ -174,12 +175,12 @@ SYS;
             $keepBehaviour = max(0, $total - 2);
             $out = array_slice($behaviourOut, 0, $keepBehaviour);
             $out[] = [
-                'title'   => 'Quelle activité faites-vous ou allez-vous faire',
+                'title'   => 'Quelle activité faites-vous ou allez-vous faire ?',
                 'type'    => 'single',
                 'options' => ['sport', 'travail', 'détente', 'étude', 'cuisine', 'aucune'],
             ];
             $out[] = [
-                'title'   => 'Quels genres musicaux préférez-vous',
+                'title'   => 'Quels genres musicaux préférez-vous ?',
                 'type'    => 'multiple',
                 'options' => $spotifySeeds,
             ];
@@ -210,13 +211,13 @@ SYS;
     public function analyzeAnswers(array $answers): array
     {
         $system = <<<SYS
-You will infer ONLY the user's MOOD for a music app based on behaviour-style yes/no cues.
-- Input is a list of short statements/questions with answers "oui"/"non".
-- Do NOT ask or rely on direct mood words.
-- Consider energy, motivation, sleep quality, focus, social desire, irritability.
-- Output STRICT JSON only: {"mood":"happy|sad|energetic|stressed|calm"}
-- No explanations.
-SYS;
+        You will infer ONLY the user's MOOD for a music app based on behaviour-style yes/no cues.
+        - Input is a list of short statements/questions with answers "oui"/"non".
+        - Do NOT ask or rely on direct mood words.
+        - Consider energy, motivation, sleep quality, focus, social desire, irritability.
+        - Output STRICT JSON only: {"mood":"happy|sad|energetic|stressed|calm"}
+        - No explanations.
+        SYS;
 
         // Normalize input shape
         $rawAnswers = [];
@@ -318,11 +319,16 @@ SYS;
                 'Authorization' => 'Bearer ' . $this->apiKey,
                 'Content-Type'  => 'application/json',
             ],
-            'timeout' => $this->timeout,
+            'timeout' => max(60, $this->timeout),
+            'max_duration' => 180,
             'json' => $payload,
         ]);
 
-        $status = $resp->getStatusCode();
+        try {
+            $status = $resp->getStatusCode();
+        } catch (TransportExceptionInterface $e) {
+            throw new RuntimeException('OpenAI request transport error: ' . $e->getMessage(), 0, $e);
+        }
         $raw    = $resp->getContent(false);
         $data   = json_decode($raw, true);
 

@@ -2,11 +2,16 @@
 
 namespace App\Controller\Api;
 
+use App\Entity\AnswerOption;
 use App\Entity\User;
+use App\Enum\ActivityType;
+use App\Enum\MoodType;
+use App\Enum\SpotifyGenre;
+use App\Repository\AnswerOptionRepository;
+use App\Repository\QuestionRepository;
 use App\Repository\SurveyAnswerRepository;
 use App\Repository\SurveySubmissionRepository;
 use App\Service\OpenAIService;
-use DateTime;
 use JsonException;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -20,15 +25,24 @@ use Throwable;
 
 final class AnalyzeAnswersController
 {
-    private const ACTIVITY_QID = 161;
-    private const GENRES_QID   = 162;
-    // If you want to enforce required mood-deduction questions, list them here:
-    private const REQUIRED_QIDS = [155,156,157,158,159,160, self::ACTIVITY_QID, self::GENRES_QID];
+    private const ACTIVITY_QID = 12;
+    private const GENRES_QID   = 13;
+    private const REQUIRED_QIDS = [1,2,3,4,5,6,7,8,9,10,11];
 
+    /**
+     * @param OpenAIService              $openAI
+     * @param SurveySubmissionRepository $submissionRepo
+     * @param SurveyAnswerRepository     $answerRepo
+     * @param QuestionRepository         $questionRepo
+     * @param AnswerOptionRepository     $optionRepo
+     * @param Security                   $security
+     */
     public function __construct(
         private readonly OpenAIService $openAI,
-        private readonly SurveySubmissionRepository $surveySubmissionRepository,
-        private readonly SurveyAnswerRepository $surveyAnswerRepository,
+        private readonly SurveySubmissionRepository $submissionRepo,
+        private readonly SurveyAnswerRepository $answerRepo,
+        private readonly QuestionRepository $questionRepo,
+        private readonly AnswerOptionRepository $optionRepo,
         private readonly Security $security,
     ) {
     }
@@ -37,8 +51,9 @@ final class AnalyzeAnswersController
     #[IsGranted('ROLE_USER')]
     public function __invoke(Request $request): JsonResponse
     {
+        // -------- Parse / validate input --------
         try {
-            $data = json_decode($request->getContent(), true, 512, JSON_THROW_ON_ERROR);
+            $data = json_decode($request->getContent() ?: '{}', true, 512, JSON_THROW_ON_ERROR);
         } catch (JsonException) {
             return new JsonResponse([
                 'error' => 'invalid_json',
@@ -46,7 +61,16 @@ final class AnalyzeAnswersController
             ], Response::HTTP_BAD_REQUEST);
         }
 
-        $answers = $data['answers'] ?? null;
+        $surveyId = (int)($data['surveyId'] ?? 0);
+        $answers  = $data['answers']   ?? null;
+
+        if ($surveyId <= 0) {
+            return new JsonResponse([
+                'error' => 'invalid_payload',
+                'message' => 'Field "surveyId" is required and must be a positive integer.',
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
         if (!is_array($answers) || $answers === []) {
             return new JsonResponse([
                 'error' => 'invalid_payload',
@@ -54,7 +78,7 @@ final class AnalyzeAnswersController
             ], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
-        // Ensure all required question IDs are present
+        // Vérifie la présence des questions minimales (hors activity/genres)
         $receivedQids = [];
         foreach ($answers as $a) {
             if (isset($a['questionId'])) {
@@ -70,63 +94,196 @@ final class AnalyzeAnswersController
             ], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
-        // 🔹 1) Créer une nouvelle soumission
+        // -------- Authenticated user --------
         $user = $this->security->getUser();
-
         if (!$user instanceof User) {
-            // ça ne devrait pas arriver avec #[IsGranted('ROLE_USER')],
-            // mais on gère proprement le cas
             return new JsonResponse([
                 'error' => 'unauthenticated',
                 'message' => 'Authenticated User entity not found.',
             ], Response::HTTP_UNAUTHORIZED);
         }
 
+        // -------- Create submission (FLUSH pour obtenir l’ID) --------
         $submission = new SurveySubmission();
         $submission->setUser($user);
-        $submission->setCreatedAt(new DateTime());
-        $this->surveySubmissionRepository->save($submission);
+        $submission->setSurveyId($surveyId);
 
-        // 🔹 2) Enregistrer chaque réponse
-        $normalized = [];
+        $this->submissionRepo->save($submission, true);
+
+        $payloadForAI = [];
+
         foreach ($answers as $a) {
-            $qid = $a['questionId'] ?? null;
-            $val = $a['value'] ?? null;
-            if ($qid === null || $val === null) {
+            $qid = (int)($a['questionId'] ?? 0);
+            if ($qid <= 0) {
+                return new JsonResponse(['error' => 'invalid_question_id'], 422);
+            }
+
+            $question = $this->questionRepo->find($qid);
+            if (!$question) {
+                return new JsonResponse(['error' => "unknown_question_$qid"], 422);
+            }
+            if ((int)$question->getSurveyId() !== (int)$submission->getSurveyId()) {
+                return new JsonResponse(['error' => "survey_mismatch_q$qid"], 422);
+            }
+
+            $isActivity = ($qid === self::ACTIVITY_QID);
+            $isGenres   = ($qid === self::GENRES_QID);
+
+            // ---- MULTIPLE (optionIds: array<int>) ----
+            if (isset($a['optionIds']) && is_array($a['optionIds'])) {
+                $labels = [];
+
+                foreach ($a['optionIds'] as $oid) {
+                    if (!is_numeric($oid)) {
+                        continue;
+                    }
+
+                    /** @var AnswerOption|null $opt */
+                    $opt = $this->optionRepo->find((int)$oid);
+                    if (!$opt instanceof AnswerOption) {
+                        return new JsonResponse(['error' => "unknown_option_$oid"], 422);
+                    }
+                    if ($opt->getQuestion()?->getId() !== $qid) {
+                        return new JsonResponse(['error' => "option_not_of_question_q{$qid}"], 422);
+                    }
+
+                    $ans = new SurveyAnswer();
+                    $ans->setSubmission($submission);
+                    $ans->setQuestion($question);
+                    $ans->setOption($opt); // ✅ type sûr
+                    $this->answerRepo->save($ans, false);
+
+                    $labels[] = trim($opt->getLabel());
+                }
+
+                if ($labels) {
+                    $payloadForAI[] = [
+                        'questionId'   => $qid,
+                        'optionValues' => array_values(array_unique($labels)),
+                        'isActivity'   => $isActivity ?: null,
+                        'isGenres'     => $isGenres   ?: null,
+                    ];
+                }
                 continue;
             }
 
-            // Support single and multiple answers. Value MUST contain numeric option id(s).
-            $optionIds = is_array($val) ? $val : [$val];
-
-            // Validate that all optionIds are numeric
-            foreach ($optionIds as $opt) {
-                if (!is_numeric($opt)) {
-                    return new JsonResponse([
-                        'error' => 'invalid_option_value',
-                        'message' => sprintf('Question %d expects numeric option id(s). Got: %s', (int)$qid, json_encode($val)),
-                    ], Response::HTTP_UNPROCESSABLE_ENTITY);
+// ---- SINGLE (optionId: int) ----
+            if (isset($a['optionId']) && is_numeric($a['optionId'])) {
+                /** @var AnswerOption|null $opt */
+                $opt = $this->optionRepo->find((int)$a['optionId']);
+                if (!$opt instanceof AnswerOption) {
+                    return new JsonResponse(['error' => "unknown_option_{$a['optionId']}"], 422);
                 }
+                if ($opt->getQuestion()?->getId() !== $qid) {
+                    return new JsonResponse(['error' => "option_not_of_question_q{$qid}"], 422);
+                }
+
+                $ans = new SurveyAnswer();
+                $ans->setSubmission($submission);
+                $ans->setQuestion($question);
+                $ans->setOption($opt);
+                $this->answerRepo->save($ans, false);
+
+                $payloadForAI[] = [
+                    'questionId'  => $qid,
+                    'optionValue' => trim($opt->getLabel()),
+                    'isActivity'  => $isActivity ?: null,
+                    'isGenres'    => $isGenres   ?: null,
+                ];
+                continue;
             }
 
-            foreach ($optionIds as $opt) {
-                $surveyAnswer = new SurveyAnswer();
-                $surveyAnswer->setSubmission($submission);
-                $surveyAnswer->setQuestionId((int)$qid);
-                $surveyAnswer->setOptionId((int)$opt);
-                $this->surveyAnswerRepository->save($surveyAnswer);
+            // ---- SINGLE via label ----
+            if (isset($a['optionValue']) && is_string($a['optionValue']) && trim($a['optionValue']) !== '') {
+                $label = trim($a['optionValue']);
+
+                /** @var AnswerOption|null $opt */
+                $opt = $this->optionRepo->findOneBy(['question' => $question, 'label' => $label])
+                    ?? $this->optionRepo->findOneBy(['question' => $question, 'label' => mb_strtolower($label)]);
+
+                if (!$opt instanceof AnswerOption) {
+                    return new JsonResponse([
+                        'error' => "unknown_option_label_for_q{$qid}",
+                        'label' => $label,
+                    ], 422);
+                }
+
+                $ans = new SurveyAnswer();
+                $ans->setSubmission($submission);
+                $ans->setQuestion($question);
+                $ans->setOption($opt);
+                $this->answerRepo->save($ans, false);
+
+                $payloadForAI[] = [
+                    'questionId'  => $qid,
+                    'optionValue' => $label,
+                    'isActivity'  => $isActivity ?: null,
+                    'isGenres'    => $isGenres   ?: null,
+                ];
+                continue;
             }
 
-            // Keep the raw value for OpenAI (ids or array of ids)
-            $normalized[] = [
-                'questionId' => (int)$qid,
-                'value' => $val,
-            ];
+            // ---- MULTIPLE via labels ----
+            if (isset($a['optionValues']) && is_array($a['optionValues']) && $a['optionValues'] !== []) {
+                $labels = array_values(array_unique(array_filter(
+                    array_map(static fn($v) => trim((string)$v), $a['optionValues']),
+                    static fn($v) => $v !== ''
+                )));
+
+                $found   = [];
+                $missing = [];
+
+                foreach ($labels as $label) {
+                    /** @var AnswerOption|null $opt */
+                    $opt = $this->optionRepo->findOneBy(['question' => $question, 'label' => $label])
+                        ?? $this->optionRepo->findOneBy(['question' => $question, 'label' => mb_strtolower($label)]);
+
+                    if (!$opt instanceof AnswerOption) {
+                        $missing[] = $label;
+                        continue;
+                    }
+                    if ($opt->getQuestion()?->getId() !== $qid) {
+                        return new JsonResponse(['error' => "option_not_of_question_q{$qid}"], 422);
+                    }
+                    $found[] = $opt;
+                }
+
+                if ($missing) {
+                    return new JsonResponse([
+                        'error'  => "unknown_option_labels_for_q{$qid}",
+                        'labels' => $missing,
+                    ], 422);
+                }
+
+                foreach ($found as $opt) {
+                    $ans = new SurveyAnswer();
+                    $ans->setSubmission($submission);
+                    $ans->setQuestion($question);
+                    $ans->setOption($opt);
+                    $this->answerRepo->save($ans, false);
+                }
+
+                $payloadForAI[] = [
+                    'questionId'   => $qid,
+                    'optionValues' => $labels,
+                    'isActivity'   => $isActivity ?: null,
+                    'isGenres'     => $isGenres   ?: null,
+                ];
+                continue;
+            }
+
+            // ---- sinon -> 422 (message explicite)
+            return new JsonResponse([
+                'error' => "question_{$qid}_requires_optionId(s)_or_optionValue(s)",
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
-        // 🔹 3) Analyse via OpenAI
+        // Flush final des answers
+        $this->answerRepo->flush();
+
+        // -------- Appel OpenAI (mood) --------
         try {
-            $result = $this->openAI->analyzeAnswers($normalized);
+            $result = $this->openAI->analyzeAnswers(['answers' => $payloadForAI]);
         } catch (Throwable $e) {
             return new JsonResponse([
                 'error' => 'openai_analyze_failed',
@@ -134,12 +291,81 @@ final class AnalyzeAnswersController
             ], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
 
-        // 🔹 4) Réponse finale
+        // 1) Mapper et persister le MOOD vers l'enum MoodType
+        $moodStr = strtolower($result['mood'] ?? 'calm');
+        $moodMap = [
+            'happy'     => MoodType::HAPPY,
+            'sad'       => MoodType::SAD,
+            'energetic' => MoodType::ENERGETIC,
+            'stressed'  => MoodType::STRESSED,
+            'calm'      => MoodType::CALM,
+        ];
+        $submission->setDeducedMood($moodMap[$moodStr] ?? MoodType::CALM);
+
+        // 2) Extraire activité & genres depuis $payloadForAI
+        $activity = null;
+        $genres   = [];
+
+        foreach ($payloadForAI as $entry) {
+            if (!empty($entry['isActivity'])) {
+                $val = isset($entry['optionValue']) ? mb_strtolower(trim((string)$entry['optionValue'])) : null;
+                if ($val !== null && $val !== '') {
+                    $activity = $val; // ex: "sport", "travail", "détente", ...
+                }
+                break;
+            }
+        }
+        foreach ($payloadForAI as $entry) {
+            if (!empty($entry['isGenres']) && !empty($entry['optionValues']) && is_array($entry['optionValues'])) {
+                $genres = array_values(array_unique(array_map(
+                    static fn($g) => mb_strtolower(trim((string)$g)),
+                    $entry['optionValues']
+                )));
+                break;
+            }
+        }
+
+        // 3) Mapper l'activité (label FR) vers l'enum ActivityType
+        if ($activity !== null) {
+            // normalisation simple des accents
+            $norm = strtr($activity, ['é' => 'e','è' => 'e','ê' => 'e','à' => 'a','â' => 'a','î' => 'i','ï' => 'i','ô' => 'o','û' => 'u','ü' => 'u']);
+            $norm = preg_replace('/\s+/', ' ', $norm);
+            $norm = mb_strtolower($norm);
+
+
+            $actMap = [
+                'sport'   => ActivityType::SPORT,
+                'travail' => ActivityType::WORK,
+                'detente' => ActivityType::RELAX,
+                'etude'   => ActivityType::STUDY,
+                'cuisine' => ActivityType::COOKING,
+                'aucune'  => ActivityType::NONE,
+            ];
+            if (isset($actMap[$norm])) {
+                $submission->setDeducedActivity($actMap[$norm]);
+            }
+        }
+
+        // 4) Normaliser/filtrer les genres via SpotifyGenre (garde uniquement les valeurs valides)
+        if (!empty($genres)) {
+            $lower = array_map(static fn ($g) => mb_strtolower(trim((string)$g)), $genres);
+
+            $normalized = SpotifyGenre::normalize($lower);
+
+            if (!empty($normalized)) {
+                $submission->setPreferredGenres($normalized);
+            }
+        }
+
+        //dd($submission);
+        // 5) Persist des 3 champs
+        $this->submissionRepo->save($submission, true);
+
         return new JsonResponse([
-            'submissionId' => $submission->getId(),
-            'mood' => $result['mood'] ?? null,
-            'activity' => $result['activity'] ?? null,
-            'genres' => $result['genres'] ?? [],
+            'submissionId'    => $submission->getId(),
+            'deducedMood'     => $submission->getDeducedMood()->value,
+            'deducedActivity' => $submission->getDeducedActivity()?->value,
+            'preferredGenres' => $submission->getPreferredGenres() ?? [],
         ], Response::HTTP_OK);
     }
 }

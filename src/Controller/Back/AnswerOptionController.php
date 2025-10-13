@@ -2,8 +2,8 @@
 
 namespace App\Controller\Back;
 
-use App\Entity\Answer;
-use App\Repository\AnswerRepository;
+use App\Entity\AnswerOption;
+use App\Repository\AnswerOptionRepository;
 use App\Repository\QuestionRepository;
 use App\Repository\UserRepository;
 use Knp\Component\Pager\PaginatorInterface;
@@ -16,24 +16,24 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
- * AnswerController manages answer-related operations in the back office.
+ * AnswerOptionController manages answer-option-related operations in the back office.
  *
  * This controller provides functionality to view and manage answers.
  */
-#[Route(path: ['en' => '/answers', 'fr' => '/reponses'], name: 'answer_')]
-final class AnswerController extends AbstractController
+#[Route(path: ['en' => '/answer_options', 'fr' => '/option_reponses'], name: 'answer_option_')]
+final class AnswerOptionController extends AbstractController
 {
-    protected const TEMPLATE_DIR = 'back/answer';
+    protected const TEMPLATE_DIR = 'back/answer-option-option';
 
     /**
-     * @param AnswerRepository    $answerRepository
+     * @param AnswerOptionRepository    $answerRepository
      * @param QuestionRepository  $questionRepository
      * @param UserRepository      $userRepository
      * @param LoggerInterface     $logger
      * @param TranslatorInterface $translator
      */
     public function __construct(
-        private readonly AnswerRepository $answerRepository,
+        private readonly AnswerOptionRepository $answerOptionRepository,
         private readonly QuestionRepository $questionRepository,
         private readonly UserRepository $userRepository,
         private readonly LoggerInterface $logger,
@@ -51,7 +51,7 @@ final class AnswerController extends AbstractController
     #[Route(name: 'index')]
     public function index(Request $request, PaginatorInterface $paginator, #[Autowire('%back_paginate_max_per_page%')] int $backPaginateMaxPerPage): Response
     {
-        $queryBuilder = $this->answerRepository->getAll();
+        $queryBuilder = $this->answerOptionRepository->getAll();
         $pagination = $paginator->paginate(
             $queryBuilder,
             $request->query->getInt('page', 1),
@@ -97,15 +97,14 @@ final class AnswerController extends AbstractController
             }
 
             if (empty($errors)) {
-                $answer = new Answer();
+                $answer = new AnswerOption();
                 $answer->setQuestion($question);
-                $answer->setUser($user);
                 $answer->setLabel($label);
                 if (method_exists($answer, 'setAnsweredAt')) {
                     $answer->setAnsweredAt(new \DateTimeImmutable());
                 }
 
-                $this->answerRepository->save($answer, true);
+                $this->answerOptionRepository->save($answer, true);
                 $this->addFlash('success', $this->translator->trans('create.success', [], 'Crud'));
                 return $this->redirectToRoute('back_answer_index');
             }
@@ -119,13 +118,13 @@ final class AnswerController extends AbstractController
     }
 
     /**
-     * @param Request     $request
-     * @param Answer|null $answer
+     * @param Request           $request
+     * @param AnswerOption|null $answer
      *
      * @return Response
      */
     #[Route(path: ['en' => '/{id}/edit', 'fr' => '/{id}/editer'], name: 'edit', methods: ['GET','POST'], requirements: ['id' => "\\d+"])]
-    public function edit(Request $request, ?Answer $answer): Response
+    public function edit(Request $request, ?AnswerOption $answer): Response
     {
         if (null === $answer) {
             $this->addFlash('error', $this->translator->trans('no_element', [], 'Crud'));
@@ -160,9 +159,8 @@ final class AnswerController extends AbstractController
             if (empty($errors)) {
                 $answer->setLabel($label);
                 $answer->setQuestion($question);
-                $answer->setUser($user);
 
-                $this->answerRepository->save($answer, true);
+                $this->answerOptionRepository->save($answer, true);
                 $this->addFlash('success', $this->translator->trans('update.success', [], 'Crud'));
                 return $this->redirectToRoute('back_answer_index');
             }
@@ -173,17 +171,17 @@ final class AnswerController extends AbstractController
         }
 
         return $this->render(self::TEMPLATE_DIR . DIRECTORY_SEPARATOR . 'edit.html.twig', [
-            'answer' => $answer,
+            'answer-option' => $answer,
         ]);
     }
 
     /**
-     * @param Answer|null $answer
+     * @param AnswerOption|null $answer
      *
      * @return Response
      */
     #[Route(path: ['en' => '/{id}/delete', 'fr' => '/{id}/supprimer'], name: 'delete', requirements: ['id' => "\d+"])]
-    public function delete(?Answer $answer): Response
+    public function delete(?AnswerOption $answer): Response
     {
         if (null === $answer) {
             $this->addFlash('error', $this->translator->trans('no_element', [], 'Crud'));
@@ -192,7 +190,7 @@ final class AnswerController extends AbstractController
 
         $type = 'error';
         try {
-            $this->answerRepository->remove($answer, true);
+            $this->answerOptionRepository->remove($answer, true);
             $type = 'success';
         } catch (\Exception $exception) {
             $this->logger->error($exception->getMessage(), $exception->getTrace());

@@ -176,6 +176,11 @@ class SurveySubmission
      */
     public function addSurveyAnswer(SurveyAnswer $answer): void
     {
+        $q = $answer->getQuestion();
+        if ($q && $q->getSurveyId() !== $this->surveyId) {
+            throw new \DomainException('Answer question does not belong to submission survey.');
+        }
+
         if (!$this->surveyAnswers->contains($answer)) {
             $this->surveyAnswers->add($answer);
             $answer->setSubmission($this);
@@ -189,11 +194,8 @@ class SurveySubmission
      */
     public function removeSurveyAnswer(SurveyAnswer $answer): void
     {
-        if ($this->surveyAnswers->removeElement($answer)) {
-            // set the owning side to null (unless already changed)
-            if ($answer->getSubmission() === $this) {
-                $answer->setSubmission($this);
-            }
+        if ($this->surveyAnswers->removeElement($answer) && $answer->getSubmission() === $this) {
+            $answer->setSubmission($this);
         }
     }
 }
