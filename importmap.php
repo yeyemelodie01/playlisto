@@ -26,7 +26,7 @@ return [
         'version' => '7.3.0',
     ],
     'react' => [
-        'version' => '19.1.1',
+        'version' => '18.3.1',
     ],
     'react-dom/client' => [
         'version' => '18.3.1',

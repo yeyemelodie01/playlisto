@@ -158,13 +158,13 @@ final readonly class OpenAIService
         $out = $behaviourOut;
 
         $out[] = [
-            'title'   => 'Quelle activité faites-vous ou allez-vous faire',
+            'title'   => 'Quelle activité faites-vous ou allez-vous faire ?',
             'type'    => 'single',
             'options' => ['sport', 'travail', 'détente', 'étude', 'cuisine', 'aucune'],
         ];
 
         $out[] = [
-            'title'   => 'Quels genres musicaux préférez-vous',
+            'title'   => 'Quels genres musicaux préférez-vous ?',
             'type'    => 'multiple',
             'options' => $spotifySeeds, // from enum
         ];
