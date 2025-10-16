@@ -17,6 +17,14 @@ VENDOR_BIN     = $(EXEC_PHP) ./vendor/bin/
 PHP_CS_FIXER   = $(VENDOR_BIN)php-cs-fixer
 NPX            = npx
 NPM            = npm
+DB_SERVICE	   = db
+DB_TEST_NAME   = playlisto_test
+DB_TEST_USER   = root
+DB_TEST_PASS   = root
+
+# --- PHPUnit ---
+PHPUNIT_FLAGS        ?= -v --colors=always --testdox
+PHPUNIT_COVERAGE_OPTS?= --coverage-text --colors=always
 
 # On récupère tous les arguments après la première cible
 Arguments := $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
@@ -194,7 +202,7 @@ mq-show-failed: vendor ## Affiche les messages échoués
 	$(SYMFONY) messenger:failed:show
 
 ###############################################################################
-## Quality / Lint / Tests
+## Quality / Lint
 ###############################################################################
 lint-css: .stylelint.json ## Lint CSS
 	$(NPX) stylelint --config ./.stylelint.json "**/*.css" --allow-empty-input
@@ -225,8 +233,43 @@ lint: lint-php lint-twig lint-css lint-js ## Lint global
 stan: .phpstan.neon ## PHPStan
 	$(VENDOR_BIN)phpstan analyse -c .phpstan.neon --memory-limit 1G
 
-phpunit: vendor ## Tests PHPUnit
-	$(VENDOR_BIN)phpunit
+###############################################################################
+## Tests PHPUnit avec couverture
+###############################################################################
+test-db-create: ## Create test DB (MariaDB) + GRANTs
+	$(DOCKER_COMPOSE) exec -T $(DB_SERVICE) sh -lc 'mariadb -uroot -p"$$MYSQL_ROOT_PASSWORD" -e "\
+	  CREATE DATABASE IF NOT EXISTS $(DB_TEST_NAME) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci; \
+	  GRANT ALL PRIVILEGES ON $(DB_TEST_NAME).* TO '\''$(DB_TEST_USER)'\''@'\''%'\'' IDENTIFIED BY '\''$(DB_TEST_PASS)'\''; \
+	  FLUSH PRIVILEGES;"'
+
+test-migrate: ## Run doctrine migrations on test env
+	$(EXEC_PHP) bin/console --env=test doctrine:migrations:migrate --no-interaction
+
+## Prépare l'env test (DB + migrations)
+test-setup: test-db-create test-migrate ## Prepare test environment (DB + schema)
+
+## PHPUnit (env test) – lisible et verbeux
+phpunit: vendor ## Run PHPUnit in APP_ENV=test with TestDox
+	$(EXEC_PHP) sh -lc 'APP_ENV=test APP_DEBUG=0 ./vendor/bin/phpunit $(PHPUNIT_FLAGS)'
+
+## PHPUnit simple (résumé basique)
+phpunit-simple: vendor ## Run PHPUnit inside Docker (minimal output)
+	$(EXEC_PHP) ./vendor/bin/phpunit
+
+## PHPUnit + couverture (affiche les fichiers/classes couverts)
+phpunit-cover: vendor ## Run PHPUnit with text coverage (files/classes)
+	$(EXEC_PHP) sh -lc 'APP_ENV=test APP_DEBUG=0 XDEBUG_MODE=coverage ./vendor/bin/phpunit $(PHPUNIT_FLAGS) $(PHPUNIT_COVERAGE_OPTS)'
+
+## Suites dédiées si "Unit" et "Functional" défini dans phpunit.xml.dist
+phpunit-unit: vendor
+	$(EXEC_PHP) sh -lc 'APP_ENV=test APP_DEBUG=0 ./vendor/bin/phpunit --testsuite Unit $(PHPUNIT_FLAGS)'
+
+phpunit-functional: vendor
+	$(EXEC_PHP) sh -lc 'APP_ENV=test APP_DEBUG=0 ./vendor/bin/phpunit --testsuite Functional $(PHPUNIT_FLAGS)'
+
+## Enchaînement complet
+test: test-setup phpunit ## Create test DB, migrate, then run tests
+test-cover: test-setup phpunit-cover ## Same with coverage output
 
 ###############################################################################
 ## Secrets
