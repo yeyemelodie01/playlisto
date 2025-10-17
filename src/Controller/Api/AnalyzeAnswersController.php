@@ -25,9 +25,8 @@ use Throwable;
 
 final class AnalyzeAnswersController
 {
-    private const ACTIVITY_QID = 12;
-    private const GENRES_QID   = 13;
-    private const REQUIRED_QIDS = [1,2,3,4,5,6,7,8,9,10,11];
+    private const ACTIVITY_QID = 11;
+    private const GENRES_QID   = 12;
 
     /**
      * @param OpenAIService              $openAI
@@ -51,7 +50,6 @@ final class AnalyzeAnswersController
     #[IsGranted('ROLE_USER')]
     public function __invoke(Request $request): JsonResponse
     {
-        // -------- Parse / validate input --------
         try {
             $data = json_decode($request->getContent() ?: '{}', true, 512, JSON_THROW_ON_ERROR);
         } catch (JsonException) {
@@ -62,7 +60,7 @@ final class AnalyzeAnswersController
         }
 
         $surveyId = (int)($data['surveyId'] ?? 0);
-        $answers  = $data['answers']   ?? null;
+        $answers  = $data['answers'] ?? null;
 
         if ($surveyId <= 0) {
             return new JsonResponse([
@@ -78,14 +76,18 @@ final class AnalyzeAnswersController
             ], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
-        // Vérifie la présence des questions minimales (hors activity/genres)
+        // ✅ REQUIRED dynamiques pour ce batch: mood 1..10 (hors activité/genres)
+        $requiredQids = range(1, 10);
+
+        // QIDs effectivement reçus
         $receivedQids = [];
         foreach ($answers as $a) {
             if (isset($a['questionId'])) {
                 $receivedQids[] = (int) $a['questionId'];
             }
         }
-        $missing = array_values(array_diff(self::REQUIRED_QIDS, $receivedQids));
+
+        $missing = array_values(array_diff($requiredQids, $receivedQids));
         if ($missing) {
             return new JsonResponse([
                 'error'   => 'missing_required_questions',
@@ -122,7 +124,7 @@ final class AnalyzeAnswersController
             if (!$question) {
                 return new JsonResponse(['error' => "unknown_question_$qid"], 422);
             }
-            if ((int)$question->getSurveyId() !== (int)$submission->getSurveyId()) {
+            if ($question->getSurveyId() !== $submission->getSurveyId()) {
                 return new JsonResponse(['error' => "survey_mismatch_q$qid"], 422);
             }
 
