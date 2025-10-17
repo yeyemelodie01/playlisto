@@ -14,8 +14,10 @@ use Symfony\Contracts\HttpClient\Exception\TransportExceptionInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 use Throwable;
 
-final readonly class SpotifyService
+final class SpotifyService
 {
+    private array $lastQuery;
+
     /**
      * @param HttpClientInterface $http
      * @param CacheInterface      $cache
@@ -30,6 +32,14 @@ final readonly class SpotifyService
         private string $clientSecret,
         private string $baseUrl,
     ) {
+        $this->lastQuery = [];
+    }
+
+
+
+    public function lastQuery(): array
+    {
+        return $this->lastQuery;
     }
 
     /**
@@ -70,86 +80,36 @@ final readonly class SpotifyService
         return $data[$type . 's']['items'] ?? [];
     }
 
-    /**
-     * Get tracks for a given mood and activity, optionally filtered by genres.
-     *
-     * @param string $mood
-     * @param string $activity
-     * @param array  $genres
-     * @param int    $limit
-     * @param array  $targets
-     *
-     * @return array
-     *
-     * @throws ClientExceptionInterface
-     * @throws DecodingExceptionInterface
-     * @throws RedirectionExceptionInterface
-     * @throws ServerExceptionInterface
-     * @throws TransportExceptionInterface
-     */
-    public function tracksForMoodActivity(string $mood, string $activity, array $genres = [], int $limit = 25, array $targets = []): array
-    {
-        $mood     = strtolower(trim($mood));
-        $activity = strtolower(trim($activity));
-        $limit    = max(1, min($limit, 50));
-
-        $userSeeds = $this->normalizeGenres($genres);
-
-        [$_baseSeeds, $baseTargets] = $this->seedsForMoodActivity($mood, $activity);
-        $finalTargets = array_replace($baseTargets, $targets);
-
-        $artistSeeds = $this->genreAnchors($userSeeds);
-        $seedGenres  = $userSeeds;
-        $seedArtists = array_slice($artistSeeds, 0, 5);
-
-        $jittered = $this->jitterTargets($finalTargets);
-
-        if (!empty($reco = $this->recommendations($seedGenres, $seedArtists, [], $jittered, 50, null))) {
-            return array_slice($reco, 0, $limit);
-        }
-
-        if (!empty($reco = $this->recommendations($seedGenres, $seedArtists, [], $finalTargets, 50, null))) {
-            return array_slice($reco, 0, $limit);
-        }
-
-        return [];
-    }
 
     /**
      * Get track recommendations from Spotify API based on seed genres and target attributes.
      *
      * @param array       $seedGenres List of seed genres (max 5).
      * @param array       $seedArtists List of seed artist IDs (max 5).
-     * @param array       $seedTracks List of seed track IDs (max 5).
      * @param array       $targets Associative array of target audio features (e.g. target_valence, target_energy).
-     * @param int         $limit Number of tracks to return (max 100).
+     * @param int         $limit Number of tracks to return (max 50).
      * @param string|null $market Market code (e.g. 'FR').
      *
      * @return array List of recommended tracks.
      *
      * @throws ClientExceptionInterface
-     * @throws DecodingExceptionInterface
      * @throws RedirectionExceptionInterface
      * @throws ServerExceptionInterface
      * @throws TransportExceptionInterface
      */
-    private function recommendations(array $seedGenres = [], array $seedArtists = [], array $seedTracks = [], array $targets = [], int $limit = 20, ?string $market = null): array
+    private function recommendations(array $seedGenres = [], array $seedArtists = [], array $targets = [], int $limit = 20, ?string $market = null): array
     {
-        $seedGenres  = array_slice(array_values(array_unique(array_map('strval', $seedGenres))), 0, 5);
-        $seedArtists = array_slice(array_values(array_unique(array_map('strval', $seedArtists))), 0, 5);
-        $seedTracks  = array_slice(array_values(array_unique(array_map('strval', $seedTracks))), 0, 5);
+        $seedGenres  = array_values(array_unique(array_map('strval', $seedGenres)));
+        $seedArtists = array_values(array_unique(array_map('strval', $seedArtists)));
 
-        $total = count($seedGenres) + count($seedArtists) + count($seedTracks);
-        if ($total > 5) {
-            $over = $total - 5;
-            while ($over > 0 && !empty($seedTracks)) {
-                array_pop($seedTracks);
-                $over--;
-            }
-            while ($over > 0 && !empty($seedGenres)) {
-                array_pop($seedGenres);
-                $over--;
-            }
+        $keepGenres  = min(max(count($seedGenres), 1), 3);
+        $seedGenres  = array_slice($seedGenres, 0, $keepGenres);
+
+        $slotsLeft   = 5 - count($seedGenres);
+        $seedArtists = array_slice($seedArtists, 0, max(0, $slotsLeft));
+
+        if (count($seedGenres) === 0) {
+            throw new \InvalidArgumentException('At least one valid seed genre is required.');
         }
 
         $query = [
@@ -164,20 +124,30 @@ final readonly class SpotifyService
         if ($seedArtists) {
             $query['seed_artists'] = implode(',', $seedArtists);
         }
-        if ($seedTracks) {
-            $query['seed_tracks']  = implode(',', $seedTracks);
-        }
+
+        $allowed = [
+            'target_acousticness','target_danceability','target_energy','target_instrumentalness',
+            'target_liveness','target_speechiness','target_valence',
+            'min_acousticness','max_acousticness','min_danceability','max_danceability',
+            'min_energy','max_energy','min_instrumentalness','max_instrumentalness',
+            'min_liveness','max_liveness','min_speechiness','max_speechiness',
+            'min_valence','max_valence',
+            'min_tempo','max_tempo','target_tempo',
+            'min_popularity','max_popularity',
+        ];
 
         foreach ($targets as $k => $v) {
             if ($v === null) {
                 continue;
             }
+            if (!in_array($k, $allowed, true)) {
+                continue;
+            }
             $query[$k] = $v;
         }
 
-
         $token = $this->token();
-        $url = $this->apiBase() . '/recommendations';
+        $url   = $this->apiBase() . '/recommendations';
 
         if (
             empty($query['seed_genres'])
@@ -186,17 +156,6 @@ final readonly class SpotifyService
         ) {
             throw new InvalidArgumentException('Spotify recommendations require at least one seed (genres/artists/tracks).');
         }
-
-        $doRequest = function (array $q) use ($url, $token) {
-            $response = $this->http->request('GET', $url, [
-                'headers' => [
-                    'Authorization' => 'Bearer ' . $token,
-                    'Accept'        => 'application/json',
-                ],
-                'query' => $q,
-            ]);
-            return [$response->getStatusCode(), $response->getContent(false)];
-        };
 
         $parse = function (int $status, ?string $raw, array $q) use ($url): array {
             if ($raw === '' || $raw === null) {
@@ -218,61 +177,38 @@ final readonly class SpotifyService
             return is_array($tracks) ? $tracks : [];
         };
 
-        $markets = array_values(array_unique([$market, null, 'US', 'GB', 'DE', 'BR', 'JP', 'FR'], SORT_REGULAR));
-
-        $profiles = [
-            fn(array $base) => $base,
-
-            function (array $base): array {
-                $q = $base;
-                unset($q['seed_artists']);
-                return $q;
-            },
-
-            function (array $base): array {
-                $q = [
-                    'limit'       => $base['limit'],
-                    'seed_genres' => $base['seed_genres'] ?? '',
-                    'min_popularity' => 25,
-                ];
-                if (isset($base['market'])) {
-                    $q['market'] = $base['market'];
-                }
-                return $q;
-            },
-
-            function (array $base): array {
-                return [
-                        'limit'       => $base['limit'],
-                        'seed_genres' => $base['seed_genres'] ?? '',
-                    ] + (isset($base['market']) ? ['market' => $base['market']] : []);
-            },
-        ];
+        $markets = [$market, 'US', 'GB', 'DE', 'FR', 'BR', 'JP', 'CA', 'AU', 'NL', 'SE', 'ES', 'IT', 'MX'];
+        $markets = array_values(array_unique(array_filter($markets, fn($m) => $m === null || is_string($m))));
 
         foreach ($markets as $mkt) {
-            foreach ($profiles as $make) {
-                $q = $make($query);
+            $q = $query;
+            if ($mkt !== null) {
+                $q['market'] = $mkt;
+            } else {
+                unset($q['market']);
+            }
 
-                if ($mkt === null) {
-                    unset($q['market']);
-                } else {
-                    $q['market'] = $mkt;
-                }
+            $this->lastQuery = $q;
 
-                if (empty($q['seed_genres'] ?? '') && empty($q['seed_artists'] ?? '') && empty($q['seed_tracks'] ?? '')) {
-                    continue;
-                }
+            try {
+                $resp = $this->http->request('GET', $url, [
+                    'headers' => [
+                        'Authorization' => 'Bearer ' . $token,
+                        'Accept'        => 'application/json',
+                    ],
+                    'query'   => $q,
+                    'timeout' => 15,
+                ]);
 
-                [$status, $raw] = $doRequest($q);
-
-                if ($status === 404 || $raw === '' || $raw === null) {
-                    continue;
-                }
-
+                $status = $resp->getStatusCode();
+                $raw    = $resp->getContent(false);
                 $tracks = $parse($status, $raw, $q);
+
                 if (!empty($tracks)) {
                     return $tracks;
                 }
+            } catch (\Throwable) {
+                continue;
             }
         }
 
@@ -287,7 +223,6 @@ final readonly class SpotifyService
      * @throws TransportExceptionInterface
      * @throws ServerExceptionInterface
      * @throws RedirectionExceptionInterface
-     * @throws DecodingExceptionInterface
      * @throws ClientExceptionInterface
      */
     private function token(): string
@@ -300,57 +235,45 @@ final readonly class SpotifyService
 
         $auth = base64_encode($clientId . ':' . $clientSecret);
 
-        $res = $this->http->request('POST', 'https://accounts.spotify.com/api/token', [
+        $resp = $this->http->request('POST', 'https://accounts.spotify.com/api/token', [
             'headers' => [
                 'Authorization' => 'Basic ' . $auth,
                 'Content-Type'  => 'application/x-www-form-urlencoded',
+                'Accept'        => 'application/json',
             ],
-            'body'    => 'grant_type=client_credentials',
-            'timeout' => 10,
-        ])->toArray(false);
+            'body'    => ['grant_type' => 'client_credentials'],
+            'timeout' => 15,
+        ]);
 
-        if (empty($res['access_token'])) {
-            throw new RuntimeException('Spotify token error: ' . json_encode($res, JSON_UNESCAPED_SLASHES));
+        $status = $resp->getStatusCode();
+        $raw = $resp->getContent(false);
+        $data = json_decode($raw, true);
+
+        if ($status >= 400) {
+            $snippet = is_string($raw) ? mb_substr($raw, 0, 300) : '';
+            throw new RuntimeException(sprintf(
+                'Spotify token HTTP %d. Body: %s',
+                $status,
+                $snippet !== '' ? $snippet : '<empty>'
+            ));
         }
 
-        return (string) $res['access_token'];
-    }
-
-    /**
-     * Retourne une liste d'IDs d'artistes “canoniques” pour chaque genre fourni.
-     * Utilise l’API Search: q=genre:"<genre>" type=artist
-     *
-     * @param list<string> $genres
-     *
-     * @return list<string> artist IDs
-     */
-    private function genreAnchors(array $genres, ?string $market = null, int $perGenre = 3): array
-    {
-        $ids = [];
-
-        $markets = array_unique([$market, null, 'US', 'GB', 'DE', 'BR', 'JP', 'FR'], SORT_REGULAR);
-
-        foreach (array_values(array_unique(array_map('strval', $genres))) as $g) {
-            $q = 'genre:"' . $g . '"';
-
-            foreach ($markets as $mkt) {
-                try {
-                    $artists = $this->search($q, 'artist', $perGenre, $mkt);
-                    foreach ((array)$artists as $a) {
-                        $id = $a['id'] ?? null;
-                        if (is_string($id) && $id !== '') {
-                            $ids[] = $id;
-                        }
-                    }
-
-                    if (!empty($ids)) {
-                        break;
-                    }
-                } catch (Throwable $e) {
-                }
-            }
+        if (!is_array($data)) {
+            $snippet = is_string($raw) ? mb_substr($raw, 0, 300) : '';
+            throw new RuntimeException('Spotify token: invalid JSON response. Body: ' . $snippet);
         }
-        return array_values(array_unique($ids));
+
+        if (isset($data['error'])) {
+            $desc = $data['error_description'] ?? (is_string($data['error']) ? $data['error'] : 'unknown error');
+            throw new RuntimeException('Spotify token error: ' . $desc);
+        }
+
+        $token = $data['access_token'] ?? null;
+        if (!is_string($token) || $token === '') {
+            throw new RuntimeException('Spotify token missing in response: ' . json_encode($data, JSON_UNESCAPED_SLASHES));
+        }
+
+        return $token;
     }
 
     /**
@@ -393,95 +316,72 @@ final readonly class SpotifyService
     }
 
     /**
-     * @param string $mood
-     * @param string $activity
+     * @param array $genres
+     * @param int   $limit
      *
      * @return array
+     *
+     * @throws ClientExceptionInterface
+     * @throws RedirectionExceptionInterface
+     * @throws ServerExceptionInterface
+     * @throws TransportExceptionInterface
      */
-    private function seedsForMoodActivity(string $mood): array
+    public function tracksByGenres(array $genres, int $limit = 25): array
     {
-        $mood = strtolower(trim($mood));
+        $limit = max(1, min($limit, 50));
 
-        $seedGenres = [];
+        // 1) Normalisation + borne Spotify (max 5), puis on combinera ensuite
+        $seedGenres = $this->normalizeGenres($genres);
+        if (empty($seedGenres)) {
+            throw new \InvalidArgumentException('No valid genres provided.');
+        }
+        // On garde 3 genres max pour les essais "multi"
+        $seed3 = array_slice($seedGenres, 0, 3);
 
-        $targets = match ($mood) {
-            'energetic' => [
-                'target_energy'       => 0.90,
-                'target_danceability' => 0.70,
-                'target_valence'      => 0.65,
-                'min_tempo'           => 110,
-                'max_tempo'           => 165,
-            ],
-            'happy' => [
-                'target_energy'       => 0.70,
-                'target_danceability' => 0.70,
-                'target_valence'      => 0.85,
-                'min_tempo'           => 100,
-                'max_tempo'           => 150,
-            ],
-            'stressed' => [
-                'target_energy'       => 0.45,
-                'target_danceability' => 0.35,
-                'target_valence'      => 0.40,
-                'min_tempo'           => 60,
-                'max_tempo'           => 110,
-            ],
-            'sad' => [
-                'target_energy'       => 0.35,
-                'target_danceability' => 0.30,
-                'target_valence'      => 0.30,
-                'min_tempo'           => 60,
-                'max_tempo'           => 100,
-            ],
-            'calm' => [
-                'target_energy'       => 0.40,
-                'target_danceability' => 0.45,
-                'target_valence'      => 0.55,
-                'min_tempo'           => 70,
-                'max_tempo'           => 120,
-            ],
+        // Helper local pour factoriser les appels (toujours limit 100 côté API, puis slice local)
+        $try = function (array $seeds, array $targets = []) use ($limit): array {
+            if (!empty($reco = $this->recommendations($seeds, [], $targets, 100, null))) {
+                return array_slice($reco, 0, $limit);
+            }
+            return [];
         };
 
-        $clamp = static fn(float $x) => max(0.0, min(1.0, $x));
-        foreach (['target_energy','target_danceability','target_valence'] as $k) {
-            if (isset($targets[$k])) {
-                $targets[$k] = $clamp((float)$targets[$k]);
+        // --- 2) Essais à 3 seeds (strict genres) ---
+        if ($res = $try($seed3, [])) {
+            return $res;
+        }
+        if ($res = $try($seed3, ['min_popularity' => 0])) {
+            return $res;
+        }
+
+        // --- 3) Essais à 2 seeds (toutes les combinaisons) ---
+        // Génère toutes les paires uniques issues de $seed3
+        $pairs = [];
+        for ($i = 0; $i < count($seed3); $i++) {
+            for ($j = $i + 1; $j < count($seed3); $j++) {
+                $pairs[] = [$seed3[$i], $seed3[$j]];
             }
         }
-        if (isset($targets['min_tempo'], $targets['max_tempo']) && $targets['min_tempo'] > $targets['max_tempo']) {
-            [$targets['min_tempo'], $targets['max_tempo']] = [$targets['max_tempo'], $targets['min_tempo']];
-        }
-
-        return [$seedGenres, $targets];
-    }
-
-    /**
-     * Apply slight randomness to recommendation target params so repeated calls vary.
-     *
-     * @param array $t
-     *
-     * @return array
-     */
-    private function jitterTargets(array $t): array
-    {
-        $out = $t;
-
-        $j = static fn(float $v, float $delta) => max(0.0, min(1.0, $v + (mt_rand(-100, 100) / 100.0) * $delta));
-
-        foreach (['target_energy','target_valence','target_danceability'] as $k) {
-            if (isset($out[$k])) {
-                $out[$k] = $j((float)$out[$k], 0.07);
+        foreach ($pairs as $p) {
+            if ($res = $try($p, [])) {
+                return $res;
+            }
+            if ($res = $try($p, ['min_popularity' => 0])) {
+                return $res;
             }
         }
 
-        if (isset($out['min_tempo'])) {
-            $out['min_tempo'] = max(90, (int)$out['min_tempo'] + mt_rand(-6, 6));
-        }
-        if (isset($out['max_tempo'])) {
-            $out['max_tempo'] = min(145, (int)$out['max_tempo'] + mt_rand(-6, 6));
+        // --- 4) Essais à 1 seed (chacun des genres) ---
+        foreach ($seed3 as $g) {
+            if ($res = $try([$g], [])) {
+                return $res;
+            }
+            if ($res = $try([$g], ['min_popularity' => 0])) {
+                return $res;
+            }
         }
 
-        return $out;
+        return [];
     }
 
     /**
