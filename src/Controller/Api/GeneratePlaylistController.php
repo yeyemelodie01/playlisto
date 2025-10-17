@@ -14,9 +14,11 @@ use App\Repository\PlaylistRepository;
 use App\Repository\TrackRepository;
 use App\Repository\SurveySubmissionRepository;
 use InvalidArgumentException;
+use JsonException;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Throwable;
@@ -64,260 +66,134 @@ final class GeneratePlaylistController
      * @param Request $request
      *
      * @return JsonResponse
+     * @throws \JsonException
      */
     #[Route('/api/me/generate-playlist', name: 'me_generate_playlist', methods: ['POST'])]
     #[IsGranted('ROLE_USER')]
     public function __invoke(Request $request): JsonResponse
     {
-        $body         = json_decode($request->getContent(), true) ?? [];
-        $submissionId = (int)($body['submission_id'] ?? 0);
-        $limit        = max(1, min((int)($body['limit'] ?? 20), 50));
-
-        $owner = $this->security->getUser();
-        if (!$owner instanceof User) {
-            return new JsonResponse(['status' => 'error', 'message' => 'Authenticated user not found or invalid.'], 401);
+        try {
+            $payload = json_decode($request->getContent() ?: '{}', true, 512, JSON_THROW_ON_ERROR);
+        } catch (JsonException) {
+            return new JsonResponse(['status' => 'error','message' => 'Invalid JSON'], Response::HTTP_BAD_REQUEST);
         }
+
+        $submissionId = (int)($payload['submission_id'] ?? 0);
+        $limit        = max(1, min((int)($payload['limit'] ?? 20), 50));
 
         if ($submissionId <= 0) {
-            return new JsonResponse(['status' => 'error', 'message' => 'Missing submission_id'], 400);
+            return new JsonResponse(['status' => 'error','message' => 'Missing submission_id'], Response::HTTP_BAD_REQUEST);
         }
 
-        /** @var SurveySubmission|null $submission */
         $submission = $this->submissionRepository->find($submissionId);
-        if (!$submission || $submission->getUser()?->getId() !== $owner->getId()) {
-            return new JsonResponse(['status' => 'error', 'message' => 'Submission not found'], 404);
+        if (!$submission) {
+            return new JsonResponse(['status' => 'error','message' => 'Submission not found'], Response::HTTP_NOT_FOUND);
         }
 
-        $moodEnum     = $submission->getDeducedMood();
-        $activityEnum = $submission->getDeducedActivity();
-        $rawGenres    = $submission->getPreferredGenres() ?? [];
+        $mood     = $submission->getDeducedMood();
+        $activity = $submission->getDeducedActivity();
+        $genres   = $submission->getPreferredGenres() ?? [];
 
-        $mood     = $moodEnum?->value ?? (is_string($moodEnum) ? $moodEnum : '');
-        $activity = $activityEnum?->value ?? (is_string($activityEnum) ? $activityEnum : '');
-
-        $userGenres = class_exists(SpotifyGenre::class) && method_exists(SpotifyGenre::class, 'normalize')
-            ? SpotifyGenre::normalize(is_array($rawGenres) ? $rawGenres : [])
-            : array_slice(array_values(array_unique(array_map('strval', $rawGenres))), 0, 5);
-
-        $seedGenres = $userGenres;
-
-        $targets = $this->targetsFromContext($moodEnum, $activityEnum);
-
-        if (empty($seedGenres)) {
+        if (empty($genres)) {
             return new JsonResponse([
                 'status'  => 'error',
-                'message' => 'No preferred genres found for this submission. Please answer the genres question.',
-            ], 422);
+                'message' => 'No preferred genres on submission',
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
-        unset($targets['target_energy'], $targets['target_valence'], $targets['target_danceability'], $targets['max_speechiness'], $targets['min_instrumentalness'], $targets['max_acousticness'], $targets['min_tempo'], $targets['max_tempo']);
-        //dd($mood, $activity, $seedGenres, $limit, $targets);
+
+        $title = $this->makeTitle($mood, $activity, $genres);
+        $desc = $this->makeDescription($submissionId, $mood, $activity, $genres);
+
+        $playlist = new Playlist();
+        $playlist->setTitle($title);
+        $playlist->setDescription($desc);
+
+        if ($mood instanceof MoodType) {
+            $playlist->setMood($mood);
+        }
+        if ($activity instanceof ActivityType) {
+            $playlist->setActivity($activity);
+        }
+
+        $user = $this->security->getUser();
+        if ($user instanceof User && method_exists($playlist, 'setUser')) {
+            $playlist->setUser($user);
+        }
+
+        $this->playlistRepository->save($playlist, true);
+
         try {
-            $tracks = $this->spotify->tracksForMoodActivity($mood, $activity, $seedGenres, $limit, $targets);
-
-            $playlist = new Playlist();
-            $playlist->setTitle($this->makeTitle($moodEnum, $activityEnum, $userGenres));
-            $playlist->setDescription($this->makeDescription($submissionId, $moodEnum, $activityEnum, $userGenres));
-            $playlist->setMood($moodEnum);
-            $playlist->setActivity($activityEnum);
-            $playlist->setUser($owner);
-            $this->playlistRepository->save($playlist, false);
-
-            foreach ($tracks as $t) {
-                $spotifyId = (string)($t['id'] ?? '');
-                if ($spotifyId === '') {
-                    continue;
-                }
-
-                $track = $this->trackRepository->findOneBy(['spotifyId' => $spotifyId]);
-                if (!$track) {
-                    $track = new Track();
-                    $track->setSpotifyId($spotifyId);
-                    $track->setTitle((string)($t['name'] ?? ''));
-
-                    $artists = $t['artists'] ?? [];
-                    if (!is_array($artists)) {
-                        $artists = $artists ? [ (string)$artists ] : [];
-                    }
-                    $track->setArtists(array_values(array_map('strval', $artists)));
-
-                    $track->setAlbum((string)($t['album'] ?? ''));
-                    $track->setGenre(!empty($seedGenres) ? implode(', ', $seedGenres) : '');
-                    $track->setCoverUrl((string)($t['image_url'] ?? ''));
-                    if (isset($t['preview_url'])) {
-                        $track->setPreviewUrl((string)$t['preview_url']);
-                    }
-                    $durationMs = (int)($t['duration_ms'] ?? 0);
-                    $track->setDuration((int)ceil($durationMs / 1000));
-                    $this->trackRepository->save($track, false);
-                }
-
-                $track->addPlaylist($playlist);
-            }
-
-            // 5) Flush final
-            $this->playlistRepository->save($playlist, true);
-
-            return new JsonResponse([
-                'status'      => 'ok',
-                'submission'  => $submissionId,
-                'query'       => [
-                    'mood'     => $mood,
-                    'activity' => $activity,
-                    'genres'   => $userGenres,
-                    'seedGenres' => $seedGenres,
-                    'limit'    => $limit,
-                ],
-                'playlist_id' => $playlist->getId(),
-                'count'       => count($tracks),
-                'tracks'      => $tracks,
-            ]);
-        } catch (Throwable $e) {
-            $status = $e instanceof InvalidArgumentException ? 400 : 502;
+            $items = $this->spotify->tracksByGenres($genres, $limit);
+        } catch (\Throwable $e) {
             return new JsonResponse([
                 'status'  => 'error',
                 'message' => 'Failed to generate playlist: ' . $e->getMessage(),
-                'debug'   => [
-                    'seeds'   => $seedGenres,
-                    'targets' => $targets,
-                ],
-            ], $status);
+            ], Response::HTTP_BAD_GATEWAY);
         }
-    }
 
-    /**
-     * @param MoodType|null     $mood
-     * @param ActivityType|null $activity
-     *
-     * @return array<string, int|float>
-     */
-    private function targetsFromContext(?MoodType $mood, ?ActivityType $activity): array
-    {
-        $energy = 0.5;
-        $valence = 0.5;
-        $dance = 0.5;
-        $minTempo = 80;
-        $maxTempo = 130;
-
-        if ($mood) {
-            switch ($mood->value) {
-                case 'energetic':
-                    $energy = 0.85;
-                    $valence = 0.70;
-                    $dance = 0.70;
-                    $minTempo = 110;
-                    $maxTempo = 165;
-                    break;
-                case 'happy':
-                    $energy = 0.70;
-                    $valence = 0.85;
-                    $dance = 0.70;
-                    $minTempo = 100;
-                    $maxTempo = 150;
-                    break;
-                case 'stressed':
-                    $energy = 0.45;
-                    $valence = 0.40;
-                    $dance = 0.35;
-                    $minTempo = 60;
-                    $maxTempo = 110;
-                    break;
-                case 'sad':
-                    $energy = 0.35;
-                    $valence = 0.30;
-                    $dance = 0.30;
-                    $minTempo = 60;
-                    $maxTempo = 100;
-                    break;
-                case 'calm':
-                default:
-                    $energy = 0.40;
-                    $valence = 0.55;
-                    $dance = 0.45;
-                    $minTempo = 70;
-                    $maxTempo = 120;
-                    break;
+        $added = [];
+        foreach ($items as $it) {
+            $spotifyId = $it['id'] ?? null;
+            $name      = $it['name'] ?? null;
+            if (!is_string($spotifyId) || $spotifyId === '' || !is_string($name) || $name === '') {
+                continue;
             }
-        }
 
-        $extra = [
-            'max_speechiness'      => 0.55,
-            'min_instrumentalness' => 0.10,
-            'max_acousticness'     => 0.70,
-        ];
-
-        if ($activity) {
-            switch ($activity->value) {
-                case 'sport':
-                    $energy   = max($energy, 0.58);
-                    $dance    = max($dance, 0.55);
-                    $valence  = max($valence, 0.52);
-                    $minTempo = max($minTempo, 95);
-                    $maxTempo = max($maxTempo, 138);
-
-                    $extra['max_speechiness']       = 0.60;
-                    $extra['min_instrumentalness']  = 0.08;
-                    $extra['max_acousticness']      = 0.75;
-
-                    $extra['min_popularity']        = 30;
-                    break;
-
-                case 'work':
-                    $energy = max(0.0, $energy - 0.05);
-                    $dance  = max(0.0, $dance - 0.10);
-                    $valence = 0.50;
-                    $minTempo = 70;
-                    $maxTempo = 115;
-                    $extra['max_speechiness']      = 0.50;
-                    $extra['min_instrumentalness'] = 0.10;
-                    break;
-
-                case 'study':
-                    $energy = 0.35;
-                    $dance = 0.25;
-                    $valence = 0.50;
-                    $minTempo = 60;
-                    $maxTempo = 90;
-                    $extra['max_speechiness']      = 0.40;
-                    $extra['min_instrumentalness'] = 0.30;
-                    break;
-
-                case 'relax':
-                    $energy = 0.35;
-                    $dance = 0.35;
-                    $valence = 0.60;
-                    $minTempo = 60;
-                    $maxTempo = 100;
-                    $extra['max_speechiness']      = 0.50;
-                    $extra['min_instrumentalness'] = 0.10;
-                    break;
-
-                case 'cooking':
-                    $energy = 0.55;
-                    $dance = 0.60;
-                    $valence = 0.65;
-                    $minTempo = 85;
-                    $maxTempo = 125;
-                    $extra['max_speechiness']      = 0.55;
-                    $extra['min_instrumentalness'] = 0.10;
-                    break;
+            $artists = [];
+            foreach (($it['artists'] ?? []) as $a) {
+                if (isset($a['name']) && is_string($a['name'])) {
+                    $artists[] = $a['name'];
+                }
             }
+            $albumName = $it['album']['name'] ?? '';
+            $duration  = (int)($it['duration_ms'] ?? 0);
+            $images    = $it['album']['images'] ?? [];
+            $coverUrl  = is_array($images) && isset($images[0]['url']) ? (string)$images[0]['url'] : '';
+            $preview   = isset($it['preview_url']) && is_string($it['preview_url']) ? $it['preview_url'] : null;
+
+            $genreStr = is_array($genres) && !empty($genres) ? (string)$genres[0] : 'unknown';
+
+            $track = $this->trackRepository->findOneBy(['spotifyId' => $spotifyId]);
+            if (!$track) {
+                $track = new Track();
+                $track->setSpotifyId($spotifyId);
+            }
+            $track->setTitle($name);
+            $track->setArtists($artists);
+            $track->setAlbum((string)$albumName);
+            $track->setGenre($genreStr);
+            $track->setDuration((int)round($duration / 1000));
+            if ($coverUrl) {
+                $track->setCoverUrl($coverUrl);
+            }
+            if ($preview) {
+                $track->setPreviewUrl($preview);
+            }
+
+            $this->trackRepository->save($track, true);
+
+            $playlist->addTrack($track);
+            $added[] = [
+                'id'           => $spotifyId,
+                'name'         => $name,
+                'artists'      => $artists,
+                'album'        => $albumName,
+                'image_url'    => $coverUrl,
+                'duration_ms'  => $duration,
+                'external_url' => $it['external_urls']['spotify'] ?? null,
+                'preview_url'  => $preview,
+            ];
         }
 
-        $clamp = static fn(float $x): float => max(0.0, min(1.0, $x));
+        $this->playlistRepository->save($playlist, true);
 
-        $extras = array_filter([
-            'max_speechiness'      => $extra['max_speechiness'],
-            'min_instrumentalness' => $extra['min_instrumentalness'],
-            'max_acousticness'     => $extra['max_acousticness'],
-        ], static fn($v) => $v !== null);
-
-        return array_merge([
-            'target_energy'       => $clamp($energy),
-            'target_valence'      => $clamp($valence),
-            'target_danceability' => $clamp($dance),
-            'min_tempo'           => (int) $minTempo,
-            'max_tempo'           => (int) $maxTempo,
-        ], $extras);
+        return new JsonResponse([
+            'status'      => 'ok',
+            'submission'  => $submissionId,
+            'playlist_id' => $playlist->getId(),
+            'count'       => count($added),
+            'tracks'      => $added,
+        ], Response::HTTP_OK);
     }
 
     private function makeTitle(?MoodType $mood, ?ActivityType $activity, array $genres): string
