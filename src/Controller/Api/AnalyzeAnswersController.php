@@ -344,7 +344,7 @@ final class AnalyzeAnswersController
                 'aucune'  => ActivityType::NONE,
             ];
             if (isset($actMap[$norm])) {
-                $submission->setDeducedActivity($actMap[$norm]);
+                $submission->setSelectedActivity($actMap[$norm]);
             }
         }
 
@@ -366,7 +366,7 @@ final class AnalyzeAnswersController
         return new JsonResponse([
             'submissionId'    => $submission->getId(),
             'deducedMood'     => $submission->getDeducedMood()->value,
-            'deducedActivity' => $submission->getDeducedActivity()?->value,
+            'deducedActivity' => $submission->getSelectedActivity()?->value,
             'preferredGenres' => $submission->getPreferredGenres() ?? [],
         ], Response::HTTP_OK);
     }

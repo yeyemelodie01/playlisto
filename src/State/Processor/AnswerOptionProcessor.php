@@ -139,7 +139,7 @@ final readonly class AnswerOptionProcessor implements ProcessorInterface
         $submission->setSurveyId((int)$data->surveyId);
         $submission->setUser($user);
         $submission->setDeducedMood(MoodType::from($deducedMood));
-        $submission->setDeducedActivity(ActivityType::from($deducedActivity));
+        $submission->setSelectedActivity(ActivityType::from($deducedActivity));
         $this->entityManager->persist($submission);
 
         foreach ($data->answers as $item) {

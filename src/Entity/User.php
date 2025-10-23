@@ -6,7 +6,9 @@ use App\Repository\UserRepository;
 use DateTimeImmutable;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
+use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Validator\Constraints as Assert;
 
 /**
  * Represents a user of the application.
@@ -29,24 +31,21 @@ use Doctrine\ORM\Mapping as ORM;
  * for compatibility with Symfony's security system.
  */
 #[ORM\Entity(repositoryClass: UserRepository::class)]
-#[ORM\Table(name: 'user')]
+#[ORM\Table(name: 'users')]
 class User extends BaseUser
 {
-    /**
-     * @var string The username or display name of the user
-     */
-    #[ORM\Column(length: 255)]
-    private string $username;
+    #[ORM\Column(type: Types::STRING, length: 255, nullable: false)]
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 255)]
+    private string $username = '';
 
-    #[ORM\Column(length: 255, unique: true, nullable: true)]
+    #[ORM\Column(type: Types::STRING, length: 64, unique: true, nullable: true)]
+    #[Assert\Length(max: 64)]
     private ?string $spotifyId = null;
 
-    #[ORM\Column(type: 'datetime_immutable', nullable: true)]
-    private ?DateTimeImmutable $lastLoginAt;
+    #[ORM\Column(type: Types::DATE_IMMUTABLE, nullable: true)]
+    private ?DateTimeImmutable $lastLoginAt = null;
 
-    /**
-     * @var Collection<int, Playlist>
-     */
     #[ORM\OneToMany(targetEntity: Playlist::class, mappedBy: 'user')]
     private Collection $playlists;
 
@@ -58,7 +57,6 @@ class User extends BaseUser
         $this->playlists = new ArrayCollection();
         $this->surveySubmissions = new ArrayCollection();
     }
-
 
     /**
      * @return string
@@ -148,7 +146,6 @@ class User extends BaseUser
     public function removePlaylist(Playlist $playlist): static
     {
         if ($this->playlists->removeElement($playlist)) {
-            // set the owning side to null (unless already changed)
             if ($playlist->getUser() === $this) {
                 $playlist->setUser(null);
             }

@@ -2,6 +2,7 @@
 
 namespace App\Entity\Traits;
 
+use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
@@ -9,7 +10,7 @@ use Doctrine\ORM\Mapping as ORM;
  */
 trait ActiveTrait
 {
-    #[ORM\Column]
+    #[ORM\Column(type: Types::BOOLEAN, options: ['default' => true])]
     protected bool $active = true;
 
     /**

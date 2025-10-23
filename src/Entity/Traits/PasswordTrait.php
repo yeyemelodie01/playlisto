@@ -2,7 +2,9 @@
 
 namespace App\Entity\Traits;
 
+use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Attribute\Ignore;
 
 /**
  * Trait PasswordTrait.
@@ -12,7 +14,8 @@ trait PasswordTrait
     /**
      * @var string|null
      */
-    #[ORM\Column(type: 'string')]
+    #[Ignore]
+    #[ORM\Column(type: Types::STRING, length: 255, unique: false)]
     protected ?string $password = null;
 
     /**

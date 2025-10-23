@@ -268,8 +268,8 @@ final class SurveySubmissionController extends AbstractController
                     implode(', ', array_map(fn($c) => $c->value, ActivityType::cases()))
                 ));
             }
-            if (method_exists($submission, 'setDeducedActivity')) {
-                $submission->setDeducedActivity($activityEnum);
+            if (method_exists($submission, 'setSelectedActivity')) {
+                $submission->setSelectedActivity($activityEnum);
             }
             $analysis['activity'] = $activityEnum->value;
         }

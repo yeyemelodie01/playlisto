@@ -3,6 +3,7 @@
 namespace App\Entity;
 
 use App\Repository\AdministratorRepository;
+use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
 
@@ -16,7 +17,7 @@ class Administrator extends BaseUser
     /**
      * @var string
      */
-    #[ORM\Column(length: 255)]
+    #[ORM\Column(type: Types::STRING, length: 255, nullable: false)]
     #[Assert\Length(max: 255)]
     #[Assert\NotBlank]
     private string $firstName = '';
@@ -24,7 +25,7 @@ class Administrator extends BaseUser
     /**
      * @var string
      */
-    #[ORM\Column(length: 255)]
+    #[ORM\Column(type: Types::STRING, length: 255, nullable: false)]
     #[Assert\Length(max: 255)]
     #[Assert\NotBlank]
     private string $lastName = '';
@@ -32,7 +33,7 @@ class Administrator extends BaseUser
     /**
      * @var bool
      */
-    #[ORM\Column(type: 'boolean')]
+    #[ORM\Column(type: Types::BOOLEAN, nullable: false, options: ['default' => false])]
     private bool $superAdministrator = false;
 
     /**
