@@ -8,6 +8,8 @@ use App\Entity\User;
 use App\Enum\ActivityType;
 use App\Enum\MoodType;
 use App\Enum\SpotifyGenre;
+use App\Repository\AnswerOptionRepository;
+use App\Repository\QuestionRepository;
 use App\Repository\SurveyAnswerRepository;
 use App\Repository\SurveySubmissionRepository;
 use App\Service\OpenAIService;
@@ -28,14 +30,24 @@ use ValueError;
 
 final class SurveySubmissionController extends AbstractController
 {
-    private const ACTIVITY_QID = 11;
-    private const GENRES_QID   = 12;
+    private const ACTIVITY_QID = 14;
+    private const GENRES_QID   = 15;
 
+    /**
+     * @param Security                   $security
+     * @param SurveySubmissionRepository $surveySubmissionRepo
+     * @param SurveyAnswerRepository     $surveyAnswerRepo
+     * @param OpenAIService              $openAIService
+     * @param QuestionRepository         $questionRepo
+     * @param AnswerOptionRepository     $answerOptionRepo
+     */
     public function __construct(
         private readonly Security $security,
         private readonly SurveySubmissionRepository $surveySubmissionRepo,
         private readonly SurveyAnswerRepository $surveyAnswerRepo,
         private readonly OpenAIService $openAIService,
+        private readonly QuestionRepository $questionRepo,
+        private readonly AnswerOptionRepository $answerOptionRepo,
     ) {
     }
 
@@ -67,14 +79,12 @@ final class SurveySubmissionController extends AbstractController
             throw new InvalidArgumentException('`answers` must be a non-empty array.');
         }
 
-        // Pre-extract explicit activity (Q11) and genres (Q12) from user answers (values must be valid enum strings).
-        $activityFromAnswers = null;   // string|null (enum value lowercase)
-        $genresFromAnswers   = [];     // array<string>
+        $activityFromAnswers = null;
+        $genresFromAnswers = [];
 
         foreach ($items as $row) {
             $qid = (int) (($row['questionId'] ?? 0));
             if ($qid === self::ACTIVITY_QID) {
-                // activity is single choice: optionId or optionValue
                 if (array_key_exists('optionValue', $row) && is_string($row['optionValue'])) {
                     $activityFromAnswers = strtolower(trim($row['optionValue']));
                 } elseif (array_key_exists('optionId', $row) && is_string($row['optionId'])) {
@@ -82,7 +92,6 @@ final class SurveySubmissionController extends AbstractController
                 }
             }
             if ($qid === self::GENRES_QID) {
-                // genres is multiple choice: optionValues or optionIds
                 if (array_key_exists('optionValues', $row) && is_array($row['optionValues'])) {
                     foreach ($row['optionValues'] as $g) {
                         $g = strtolower(trim((string)$g));
@@ -105,7 +114,7 @@ final class SurveySubmissionController extends AbstractController
                 }
             }
         }
-        // de-duplicate and validate genres against SpotifyGenre enum
+
         if (!empty($genresFromAnswers)) {
             $genresFromAnswers = array_values(array_unique($genresFromAnswers));
 
@@ -115,7 +124,6 @@ final class SurveySubmissionController extends AbstractController
             foreach ($genresFromAnswers as $g) {
                 $enum = SpotifyGenre::tryFrom($g);
                 if ($enum !== null) {
-                    // normalize to enum value (already lowercase)
                     $validatedGenres[] = $enum->value;
                 } else {
                     $invalidGenres[] = $g;
@@ -134,47 +142,63 @@ final class SurveySubmissionController extends AbstractController
             $genresFromAnswers = $validatedGenres;
         }
 
-        // 1) Création de la soumission (avec survey_id !)
         $submission = new SurveySubmission();
-        // si ton entité possède setSurveyId(int $id)
         $submission->setSurveyId($surveyId);
-        // si au contraire tu as une relation Survey, fais:
-        // $submission->setSurvey($surveyEntity);
-
         $submission->setUser($user);
         $submission->setCreatedAt(new DateTime());
 
-        // on ne flush pas encore -> on flush à la fin
         $this->surveySubmissionRepo->save($submission, false);
 
-        // 2) Sauvegarde des réponses
         foreach ($items as $row) {
             $qId = $row['questionId'] ?? null;
             if ($qId === null || $qId === '') {
                 throw new InvalidArgumentException('Each answer-option must contain `questionId`.');
             }
-            $qId = (int) $qId;
 
-            // Helper to persist one SurveyAnswer safely (never NULL option_value)
             $persistAnswer = function (?int $optionId, ?string $optionValue) use ($submission, $qId) {
-                $ans = new SurveyAnswer();
-                $ans->setSubmission($submission);
-                $ans->setQuestionId($qId);
-                if (method_exists($ans, 'setOptionId') && $optionId !== null) {
-                    $ans->setOptionId($optionId);
+                $question = $this->questionRepo->find($qId);
+                if (!$question) {
+                    throw new InvalidArgumentException(sprintf('Unknown question id %d.', $qId));
                 }
-                // Ensure non-null value for NOT NULL column if your schema requires it
-                if (method_exists($ans, 'setOptionValue')) {
-                    $val = $optionValue;
-                    if (is_string($val)) {
-                        $val = trim($val);
+
+                if ($optionId !== null) {
+                    $opt = $this->answerOptionRepo->find($optionId);
+                    if (!$opt) {
+                        throw new InvalidArgumentException(sprintf('Unknown option id %d for question %d.', $optionId, $qId));
                     }
-                    $ans->setOptionValue($val ?? '');
+
+                    if ($opt->getQuestion()?->getId() !== $qId) {
+                        throw new InvalidArgumentException(sprintf('Option %d does not belong to question %d.', $optionId, $qId));
+                    }
+                    $ans = new SurveyAnswer();
+                    $ans->setSubmission($submission);
+                    $ans->setQuestion($question);
+                    $ans->setAnswerOption($opt);
+                    $this->surveyAnswerRepo->save($ans, false);
+
+                    return;
                 }
-                $this->surveyAnswerRepo->save($ans, false);
+
+                if ($optionValue !== null && trim($optionValue) !== '') {
+                    $label = trim($optionValue);
+                    $opt = $this->answerOptionRepo->findOneBy(['question' => $question, 'label' => $label]) ?? $this->answerOptionRepo->findOneBy(['question' => $question, 'label' => mb_strtolower($label)]);
+
+                    if (!$opt) {
+                        throw new InvalidArgumentException(sprintf('Unknown option label "%s" for question %d.', $label, $qId));
+                    }
+
+                    $ans = new SurveyAnswer();
+                    $ans->setSubmission($submission);
+                    $ans->setQuestion($question);
+                    $ans->setAnswerOption($opt);
+                    $this->surveyAnswerRepo->save($ans, false);
+
+                    return;
+                }
+
+                throw new InvalidArgumentException(sprintf('Missing optionId/optionValue for question %d.', $qId));
             };
 
-            // Accept either optionId/optionIds (ids) or optionValue/optionValues (labels)
             if (array_key_exists('optionId', $row)) {
                 $id = is_numeric($row['optionId']) ? (int)$row['optionId'] : null;
                 $persistAnswer($id, null);
@@ -209,14 +233,12 @@ final class SurveySubmissionController extends AbstractController
             );
         }
 
-        // flush global
         $this->surveySubmissionRepo->save($submission, true);
 
-        // 3) Prépare les données pour OpenAI
         $answersForAI = [];
         foreach ($items as $row) {
             $qId = (int) ($row['questionId'] ?? 0);
-            // Do NOT send activity (Q11) or genres (Q12) to OpenAI: we only want mood inference
+
             if ($qId === self::ACTIVITY_QID || $qId === self::GENRES_QID) {
                 continue;
             }
@@ -244,7 +266,6 @@ final class SurveySubmissionController extends AbstractController
             $answersForAI[$qId] = [];
         }
 
-        // 4) Appel OpenAI (cherche la bonne méthode dispo)
         if (method_exists($this->openAIService, 'analyzeSurvey')) {
             $analysis = $this->openAIService->analyzeSurvey($answersForAI);
         } elseif (method_exists($this->openAIService, 'analyzeAnswers')) {
@@ -257,7 +278,6 @@ final class SurveySubmissionController extends AbstractController
             throw new RuntimeException('openAIService has no suitable analyze*() method.');
         }
 
-        // Enforce explicit activity (Q11) and genres (Q12) from user answers
         if (!empty($activityFromAnswers)) {
             try {
                 $activityEnum = ActivityType::from($activityFromAnswers);
@@ -268,8 +288,8 @@ final class SurveySubmissionController extends AbstractController
                     implode(', ', array_map(fn($c) => $c->value, ActivityType::cases()))
                 ));
             }
-            if (method_exists($submission, 'setDeducedActivity')) {
-                $submission->setDeducedActivity($activityEnum);
+            if (method_exists($submission, 'setSelectedActivity')) {
+                $submission->setSelectedActivity($activityEnum);
             }
             $analysis['activity'] = $activityEnum->value;
         }
@@ -281,7 +301,6 @@ final class SurveySubmissionController extends AbstractController
             $analysis['genres'] = $genresFromAnswers;
         }
 
-        // If mood present in analysis and entity has setter, try to persist mood
         if (!empty($analysis['mood']) && method_exists($submission, 'setDeducedMood')) {
             $moodRaw = (string)$analysis['mood'];
             try {

@@ -24,31 +24,38 @@ use Symfony\Component\Validator\Constraints as Assert;
  * allowing each question to be associated with several answer-option choices.
  */
 #[ORM\Entity(repositoryClass: QuestionRepository::class)]
-#[ORM\Table(name: 'question')]
+#[ORM\Table(
+    name: 'question',
+    indexes: [
+        new ORM\Index(name: 'idx_question_survey', columns: ['survey_id'])
+    ],
+    uniqueConstraints: [
+        new ORM\UniqueConstraint(name: 'uniq_survey_label', columns: ['survey_id', 'label'])
+    ]
+)]
 class Question
 {
     use IdTrait;
 
-    #[ORM\Column(type: Types::INTEGER)]
+    #[ORM\Column(name: 'survey_id', type: Types::INTEGER, nullable: false)]
+    #[Assert\NotNull]
+    #[Assert\Positive(message: 'surveyId must be greater than 0')]
     private int $surveyId;
 
-    #[ORM\Column(length: 255)]
-    private string $label;
+    #[ORM\Column(type: Types::STRING, length: 255, nullable: false)]
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 255)]
+    private string $label = '';
 
-    #[ORM\Column(enumType: QuestionType::class)]
+    #[ORM\Column(type: Types::STRING, length: 20, enumType: QuestionType::class)]
     private QuestionType $type = QuestionType::SINGLE;
 
-    /**
-     * @var ArrayCollection|Collection
-     */
     #[ORM\OneToMany(targetEntity: AnswerOption::class, mappedBy: 'question', cascade: ['persist'], orphanRemoval: true)]
-    private Collection|ArrayCollection $answers;
+    #[ORM\OrderBy(['label' => 'ASC'])]
+    private Collection $answers;
 
-    /**
-     * @var ArrayCollection|Collection
-     */
     #[ORM\OneToMany(targetEntity: SurveyAnswer::class, mappedBy: 'question')]
-    private Collection|ArrayCollection $surveyAnswers;
+    private Collection $surveyAnswers;
 
     public function __construct()
     {

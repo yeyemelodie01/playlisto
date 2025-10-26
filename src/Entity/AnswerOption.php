@@ -4,7 +4,10 @@ namespace App\Entity;
 
 use App\Entity\Traits\IdTrait;
 use App\Repository\AnswerOptionRepository;
+use Doctrine\Common\Collections\Collection;
+use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Validator\Constraints as Assert;
 
 /** * Represents an answer-option to a question in the application.
  *
@@ -16,19 +19,33 @@ use Doctrine\ORM\Mapping as ORM;
  * Used in modules where users respond to questions, such as surveys or quizzes.
  */
 #[ORM\Entity(repositoryClass: AnswerOptionRepository::class)]
-#[ORM\Table(name: 'answer_option')]
+#[ORM\Table(
+    name: 'answer_option',
+    indexes: [
+        new ORM\Index(name: 'idx_answeroption_question', columns: ['question_id'])
+    ],
+    uniqueConstraints: [
+        new ORM\UniqueConstraint(
+            name: 'uniq_question_label',
+            columns: ['question_id', 'label']
+        )
+    ]
+)]
 class AnswerOption
 {
     use IdTrait;
 
-    /**
-     * @var string | null The text content of the answer-option.
-     */
-    #[ORM\Column(length: 255)]
+    #[ORM\Column(type: Types::STRING, length: 255, nullable: false)]
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 255)]
     private ?string $label;
-    #[ORM\ManyToOne(inversedBy: 'answers')]
+
+    #[ORM\ManyToOne(targetEntity: Question::class, inversedBy: 'answerOption')]
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     private ?Question $question = null;
+
+    #[ORM\OneToMany(targetEntity: SurveyAnswer::class, mappedBy: 'answerOption')]
+    private Collection $surveyAnswers;
 
     /**
      * @return string
@@ -48,11 +65,19 @@ class AnswerOption
         $this->label = $label;
     }
 
+    /**
+     * @return Question|null
+     */
     public function getQuestion(): ?Question
     {
         return $this->question;
     }
 
+    /**
+     * @param Question|null $question
+     *
+     * @return void
+     */
     public function setQuestion(?Question $question): void
     {
         $this->question = $question;

@@ -41,10 +41,10 @@ final readonly class QuestionProvider implements ProviderInterface
             return null;
         }
         $qb = $this->entityManager->createQueryBuilder()
-            ->select('q')           // point de départ
-            ->addSelect('a')        // <- on ajoute l’alias 'a' qu’on va joindre
+            ->select('q')
+            ->addSelect('a')
             ->from(Question::class, 'q')
-            ->leftJoin('q.answers', 'a')   // <- la bonne association d’après tes entités
+            ->leftJoin('q.answers', 'a')
             ->orderBy('q.id', 'ASC');
 
         $questions = $qb->getQuery()->getResult();
@@ -54,10 +54,8 @@ final readonly class QuestionProvider implements ProviderInterface
         foreach ($questions as $q) {
             $typeEnum = method_exists($q, 'getType') ? $q->getType() : null;
             if ($typeEnum instanceof UnitEnum) {
-                // Backed enum -> value, sinon -> name
                 $type = ($typeEnum instanceof BackedEnum) ? $typeEnum->value : $typeEnum->name;
             } else {
-                // si déjà une string ou null
                 $type = is_string($typeEnum) ? $typeEnum : 'single_choice';
             }
 

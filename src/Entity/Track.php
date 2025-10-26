@@ -6,7 +6,9 @@ use App\Entity\Traits\IdTrait;
 use App\Repository\TrackRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
+use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Validator\Constraints as Assert;
 
 /**
  * Represents a music track in the application.
@@ -24,38 +26,58 @@ use Doctrine\ORM\Mapping as ORM;
  * Tracks can belong to multiple playlists through a many-to-many relationship.
  */
 #[ORM\Entity(repositoryClass: TrackRepository::class)]
-#[ORM\Table(name: 'track')]
+#[ORM\Table(
+    name: 'track',
+    uniqueConstraints: [
+        new ORM\UniqueConstraint(name: 'uniq_track_spotify', columns: ['spotify_id']),
+    ]
+)]
 class Track
 {
     use IdTrait;
 
-    #[ORM\Column(length: 255)]
-    private string $title;
+    #[ORM\Column(type: Types::STRING, length: 255, nullable: false)]
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 255)]
+    private string $title = '';
 
-    #[ORM\Column(type: 'json')]
+    #[ORM\Column(type: Types::JSON)]
+    #[Assert\All([
+        new Assert\Type('string'),
+        new Assert\Length(max: 255)
+    ])]
     private array $artists = [];
 
-    #[ORM\Column(length: 255)]
-    private string $album;
+    #[ORM\Column(type: Types::STRING, length: 255, nullable: false)]
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 255)]
+    private string $album = '';
 
-    #[ORM\Column(length: 255)]
-    private string $genre;
+    #[ORM\Column(type: Types::STRING, length: 255, nullable: false)]
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 255)]
+    private string $genre = '';
 
-    #[ORM\Column(type: 'integer')]
-    private int $duration;
+    #[ORM\Column(type: Types::INTEGER, nullable: false)]
+    #[Assert\PositiveOrZero]
+    private int $duration = 0;
 
-    #[ORM\Column(length: 64, unique: true)]
-    private string $spotifyId;
+    #[ORM\Column(name: 'spotify_id', type: Types::STRING, length: 64, unique: true, nullable: false)]
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 64)]
+    private string $spotifyId = '';
 
-    #[ORM\Column(length: 255)]
-    private string $coverUrl;
+    #[ORM\Column(type: Types::STRING, length: 2048, nullable: false)]
+    #[Assert\NotBlank]
+    #[Assert\Url]
+    #[Assert\Length(max: 2048)]
+    private string $coverUrl = '';
 
-    #[ORM\Column(length: 255, nullable: true)]
+    #[ORM\Column(type: Types::STRING, length: 2048, nullable: true)]
+    #[Assert\Url]
+    #[Assert\Length(max: 2048)]
     private ?string $previewUrl = null;
 
-    /**
-     * @var Collection<int, Playlist>
-     */
     #[ORM\ManyToMany(targetEntity: Playlist::class, mappedBy: 'tracks')]
     private Collection $playlists;
 

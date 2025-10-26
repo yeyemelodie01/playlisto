@@ -8,6 +8,7 @@ use App\Enum\MoodType;
 use App\Repository\PlaylistRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
+use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Gedmo\Timestampable\Traits\TimestampableEntity;
 
@@ -29,31 +30,42 @@ use Gedmo\Timestampable\Traits\TimestampableEntity;
  * enabling mood- or activity-based music organization.
  */
 #[ORM\Entity(repositoryClass:  PlaylistRepository::class)]
-#[ORM\Table(name: 'playlist')]
+#[ORM\Table(
+    name: 'playlist',
+    indexes: [
+        new ORM\Index(name: 'idx_playlist_user', columns: ['user_id']),
+    ],
+    uniqueConstraints: [
+        new ORM\UniqueConstraint(name: 'uniq_user_title', columns: ['user_id', 'title']),
+    ]
+)]
 class Playlist
 {
     use IdTrait;
     use TimestampableEntity;
 
-    #[ORM\Column(length: 255)]
+    #[ORM\Column(type: Types::STRING, length: 255, nullable: false)]
     private string $title;
 
-    #[ORM\Column(length: 255)]
+    #[ORM\Column(type: Types::STRING, length: 255, nullable: false)]
     private string $description;
 
-    #[ORM\Column(type:'string', length: 50, enumType: MoodType::class)]
+    #[ORM\Column(type: Types::STRING, length: 50, nullable: true, enumType: MoodType::class)]
     private MoodType $mood;
 
-    #[ORM\Column(type:'string', length: 50, enumType: ActivityType::class)]
+    #[ORM\Column(type: Types::STRING, length: 50, nullable: true, enumType: ActivityType::class)]
     private ActivityType $activity;
 
-    #[ORM\ManyToOne(inversedBy: 'playlists')]
+    #[ORM\ManyToOne(targetEntity: User::class, inversedBy: 'playlists')]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
     private ?User $user = null;
 
     /**
      * @var Collection<int, Track>
      */
     #[ORM\ManyToMany(targetEntity: Track::class, inversedBy: 'playlists')]
+    #[ORM\JoinTable(name: 'playlist_track')]
+    #[ORM\OrderBy(['title' => 'ASC'])]
     private Collection $tracks;
 
     public function __construct()
@@ -170,6 +182,9 @@ class Playlist
     {
         if (!$this->tracks->contains($track)) {
             $this->tracks->add($track);
+            if (method_exists($track, 'addPlaylist')) {
+                $track->addPlaylist($this);
+            }
         }
 
         return $this;
@@ -182,7 +197,11 @@ class Playlist
      */
     public function removeTrack(Track $track): static
     {
-        $this->tracks->removeElement($track);
+        if ($this->tracks->removeElement($track)) {
+            if (method_exists($track, 'removePlaylist')) {
+                $track->removePlaylist($this);
+            }
+        }
 
         return $this;
     }

@@ -37,7 +37,7 @@ final class AnswerOptionResultOutput
     public string $deducedMood;
 
     #[Groups(['answer-option:result:read'])]
-    public string $deducedActivity;
+    public string $selectedActivity;
 
     #[Groups(['answer-option:result:read'])]
     public ?array $recommendationSeeds = null;
@@ -45,16 +45,16 @@ final class AnswerOptionResultOutput
     /**
      * Constructor to initialize all properties.
      *
-     * @param int         $surveyId            the survey ID
-     * @param string      $deducedMood         the deduced mood
-     * @param string      $deducedActivity     the deduced activity
+     * @param int           $surveyId the survey ID
+     * @param string        $deducedMood the deduced mood
+     * @param string        $selectedActivity the activity choice
      * @param string[]|null $recommendationSeeds optional array of recommendation seeds
      */
-    public function __construct(int $surveyId, string $deducedMood, string $deducedActivity, ?array $recommendationSeeds = null)
+    public function __construct(int $surveyId, string $deducedMood, string $selectedActivity, ?array $recommendationSeeds = null)
     {
         $this->surveyId = $surveyId;
         $this->deducedMood = $deducedMood;
-        $this->deducedActivity = $deducedActivity;
+        $this->selectedActivity = $selectedActivity;
         $this->recommendationSeeds = $recommendationSeeds;
     }
 }

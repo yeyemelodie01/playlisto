@@ -15,7 +15,6 @@ final class SurveyQuestionOutput
     #[Groups(['question:read'])]
     public string $label;
 
-    /** @var SurveyOptionOutput[] */
     #[Groups(['question:read'])]
     public array $options = [];
 

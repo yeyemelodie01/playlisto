@@ -50,17 +50,14 @@ final readonly class OpenAIService
      */
     public function generateQuestions(int $total = 16): array
     {
-        // keep a strict total of $total (default 16), reserving 2 for activity + genres
-        $total = max(5, min(50, $total)); // safety headroom
+        $total = max(5, min(50, $total));
         $reservedTail = 2;
-        $maxBehaviour = max(1, $total - $reservedTail); // mood Qs budget
-        $minBehaviour = min(4, $maxBehaviour);          // at least 4 if possible
+        $maxBehaviour = max(1, $total - $reservedTail);
+        $minBehaviour = min(4, $maxBehaviour);
 
-        // Build seeds from enum (no hard-coded list)
         $spotifySeeds = array_map(static fn(SpotifyGenre $g) => $g->value, SpotifyGenre::cases());
 
-        // Limit of “Avez-vous” starters (⅓ of behaviour questions, rounded up)
-        $maxAvezVous = (int)ceil($maxBehaviour / 3);
+        $maxHaveYou = (int)ceil($maxBehaviour / 3);
         $nonce = bin2hex(random_bytes(4));
 
         $system = <<<SYS
@@ -68,14 +65,14 @@ final readonly class OpenAIService
         
         Goal:
         - Generate French yes/no questions that help deduce the user's MOOD.
-        - Let K be the number of mood-diagnostic questions you choose.
+        - Let K be the number of mood-diagnostic questions.
         - Constraints on K: {$minBehaviour} ≤ K ≤ {$maxBehaviour}.
         - Do NOT include any questions about activity or genres; ONLY behaviour questions here.
         
         Stylistic constraints:
         - All questions are yes/no with options exactly ["oui","non"].
         - Vary openings: "Est-ce que…", "Aujourd'hui…", "Ces derniers jours…", "Vous est-il arrivé de…", "Votre journée s'est-elle…", "A-t-il été…", and limited "Avez-vous".
-        - At most {$maxAvezVous} items may start with "Avez-vous".
+        - At most {$maxHaveYou} items may start with "Avez-vous".
         - Keep neutral wording (no explicit emotion words), everyday contexts (travail, sport, maison, étude, trajets, repos).
         - No parentheses. <= 90 chars per title.
         
@@ -121,7 +118,6 @@ final readonly class OpenAIService
         $json = json_decode($raw, true);
         $questions = is_array($json['questions'] ?? null) ? $json['questions'] : [];
 
-        // Post-filter + dedup, enforce bounds (in case model over-produced)
         $seen = [];
         $behaviourOut = [];
         foreach ($questions as $q) {
@@ -151,10 +147,6 @@ final readonly class OpenAIService
             ];
         }
 
-
-        if (count($behaviourOut) < $minBehaviour && count($behaviourOut) > 0) {
-        }
-
         $out = $behaviourOut;
 
         $out[] = [
@@ -166,12 +158,10 @@ final readonly class OpenAIService
         $out[] = [
             'title'   => 'Quels genres musicaux préférez-vous ?',
             'type'    => 'multiple',
-            'options' => $spotifySeeds, // from enum
+            'options' => $spotifySeeds,
         ];
 
-        // Keep the grand total to $total (hard cap)
         if (count($out) > $total) {
-            // Prefer trimming behaviour part (never drop the 2 tail)
             $keepBehaviour = max(0, $total - 2);
             $out = array_slice($behaviourOut, 0, $keepBehaviour);
             $out[] = [
@@ -219,7 +209,6 @@ final readonly class OpenAIService
         - No explanations.
         SYS;
 
-        // Normalize input shape
         $rawAnswers = [];
         if (isset($answers['answers']) && is_array($answers['answers'])) {
             $rawAnswers = $answers['answers'];
@@ -233,34 +222,27 @@ final readonly class OpenAIService
             $rawAnswers = $answers;
         }
 
-        // Known activity choices (FR) — used to filter out activity
         $activityChoices = ['sport','travail','détente','étude','cuisine','aucune'];
 
-        // Filter: remove activity & genres answers dynamically
         $behaviourPayload = [];
         foreach ($rawAnswers as $a) {
             if (!is_array($a)) {
                 continue;
             }
 
-            // If explicitly flagged
             if (!empty($a['isActivity']) || !empty($a['isGenres'])) {
                 continue;
             }
 
-            // Multiple-choice ⇒ likely genres
             if (isset($a['optionValues']) && is_array($a['optionValues'])) {
-                // treat as 'genres' → skip
                 continue;
             }
 
-            // Single value but is an activity keyword
             $val = isset($a['optionValue']) ? (string)$a['optionValue'] : null;
             if ($val !== null && in_array(mb_strtolower($val), $activityChoices, true)) {
                 continue;
             }
 
-            // Keep only yes/no type answers
             if ($val !== null) {
                 $lv = mb_strtolower($val);
                 if ($lv === 'oui' || $lv === 'non') {
@@ -269,8 +251,6 @@ final readonly class OpenAIService
             }
         }
 
-        // Fallback: if we filtered nothing (e.g., client didn’t include activity/genres markers),
-        // and we still have at least 2 answers total, drop the last two as a heuristic (they are appended last).
         if (empty($behaviourPayload) && count($rawAnswers) >= 2) {
             $behaviourPayload = array_slice($rawAnswers, 0, -2);
         }

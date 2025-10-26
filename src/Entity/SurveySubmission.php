@@ -8,8 +8,10 @@ use App\Enum\MoodType;
 use App\Repository\SurveySubmissionRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
+use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Gedmo\Timestampable\Traits\TimestampableEntity;
+use Symfony\Component\Validator\Constraints as Assert;
 
 /**
  * Represents a survey submission in the application.
@@ -27,21 +29,31 @@ use Gedmo\Timestampable\Traits\TimestampableEntity;
  * enabling analysis of user preferences and behaviors.
  */
 #[ORM\Entity(repositoryClass: SurveySubmissionRepository::class)]
-#[ORM\Table(name: 'survey_submission')]
-#[ORM\Index(name: 'idx_survey_submission_survey', columns: ['survey_id'])]
-#[ORM\Index(name: 'idx_survey_submission_user', columns: ['user_id'])]
+#[ORM\Table(
+    name: 'survey_submission',
+    indexes: [
+        new ORM\Index(name: 'idx_survey_submission_survey', columns: ['survey_id']),
+        new ORM\Index(name: 'idx_survey_submission_user', columns: ['user_id'])
+    ],
+    uniqueConstraints: [
+        new ORM\UniqueConstraint(name: 'uniq_user_survey', columns: ['user_id', 'survey_id']),
+    ]
+)]
 class SurveySubmission
 {
     use IdTrait;
     use TimestampableEntity;
 
-    #[ORM\Column(name: 'survey_id')]
+    #[ORM\Column(name: 'survey_id', type: Types::INTEGER, nullable: false)]
+    #[Assert\NotNull]
+    #[Assert\Positive(message: 'surveyId must be greater than zero')]
     private int $surveyId;
-    #[ORM\Column(nullable: true, enumType: MoodType::class)]
+
+    #[ORM\Column(type: Types::STRING, length: 50, nullable: true, enumType: MoodType::class)]
     private ?MoodType $deducedMood = null;
 
-    #[ORM\Column(nullable: true, enumType: ActivityType::class)]
-    private ?ActivityType $deducedActivity = null;
+    #[ORM\Column(type: Types::STRING, length: 50, nullable: true, enumType: ActivityType::class)]
+    private ?ActivityType $selectedActivity = null;
 
     #[ORM\Column(type: 'json', nullable: true)]
     private ?array $preferredGenres = null;
@@ -102,19 +114,19 @@ class SurveySubmission
     /**
      * @return ActivityType|null
      */
-    public function getDeducedActivity(): ?ActivityType
+    public function getSelectedActivity(): ?ActivityType
     {
-        return $this->deducedActivity;
+        return $this->selectedActivity;
     }
 
     /**
-     * @param ActivityType|null $deducedActivity
+     * @param ActivityType|null $selectedActivity
      *
      * @return void
      */
-    public function setDeducedActivity(?ActivityType $deducedActivity): void
+    public function setSelectedActivity(?ActivityType $selectedActivity): void
     {
-        $this->deducedActivity = $deducedActivity;
+        $this->selectedActivity = $selectedActivity;
     }
 
     /**

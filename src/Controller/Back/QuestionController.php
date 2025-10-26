@@ -8,6 +8,7 @@ use App\Service\OpenAIService;
 use Doctrine\ORM\EntityManagerInterface;
 use Knp\Component\Pager\PaginatorInterface;
 use Psr\Log\LoggerInterface;
+use Random\RandomException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\Request;
@@ -222,22 +223,18 @@ final class QuestionController extends AbstractController
      * @throws ClientExceptionInterface
      * @throws RedirectionExceptionInterface
      * @throws ServerExceptionInterface
-     * @throws TransportExceptionInterface
+     * @throws TransportExceptionInterface|RandomException
      */
     #[Route(path: ['en' => '/generate', 'fr' => '/generer'], name: 'generate')]
-    public function generate(OpenAIService $openAI, EntityManagerInterface $em): Response
+    public function generate(OpenAIService $openAI): Response
     {
         $items = $openAI->generateQuestions(6);
         foreach ($items as $i) {
             $q = new Question();
             $q->setLabel($i['title']);
             $q->setType($i['type']);
-            if (isset($i['options'])) {
-                $q->setOptions($i['options']); // array JSON dans l’entité (json type)
-            }
-            $em->persist($q);
         }
-        $em->flush();
+        $this->questionRepository->save((object)$items);
 
         $this->addFlash('success', 'Questions générées');
         return $this->redirectToRoute('back_question_index');

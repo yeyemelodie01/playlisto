@@ -5,6 +5,7 @@ namespace App\Entity;
 use App\Entity\Traits\ActiveTrait;
 use App\Entity\Traits\IdTrait;
 use App\Entity\Traits\PasswordTrait;
+use Doctrine\DBAL\Types\Types;
 use Gedmo\Timestampable\Traits\TimestampableEntity;
 use Doctrine\ORM\Mapping as ORM;
 use Override;
@@ -35,7 +36,7 @@ abstract class BaseUser implements UserInterface, PasswordAuthenticatedUserInter
     /**
      * @var string|null The email of the user
      */
-    #[ORM\Column(length: 180, unique: true)]
+    #[ORM\Column(type: Types::STRING, length: 180, unique: true, nullable: false)]
     #[Assert\NotBlank(message: 'Email cannot be empty.')]
     #[Assert\Email(message: 'Invalid email format.')]
     #[Assert\Length(max: 180, maxMessage: 'Email cannot exceed 180 characters.')]
@@ -45,14 +46,22 @@ abstract class BaseUser implements UserInterface, PasswordAuthenticatedUserInter
     /**
      * @var list<string> The user roles
      */
-    #[ORM\Column(type: 'json')]
+    #[ORM\Column(type: Types::JSON)]
     protected array $roles = [];
 
+    /**
+     * @return string|null
+     */
     public function getEmail(): ?string
     {
         return $this->email;
     }
 
+    /**
+     * @param string|null $email
+     *
+     * @return void
+     */
     public function setEmail(?string $email): void
     {
         $this->email = $email;
@@ -65,7 +74,6 @@ abstract class BaseUser implements UserInterface, PasswordAuthenticatedUserInter
     public function getRoles(): array
     {
         $roles = $this->roles;
-        // garantir que chaque utilisateur possède au moins ROLE_USER
         $roles[] = 'ROLE_USER';
 
         return array_values(array_unique($roles));

@@ -5,6 +5,7 @@ namespace App\Entity;
 use App\Entity\Traits\IdTrait;
 use App\Repository\SurveyAnswerRepository;
 use Doctrine\ORM\Mapping as ORM;
+use Gedmo\Timestampable\Traits\TimestampableEntity;
 
 /**
  * Represents an answer-option to a survey question in the application.
@@ -18,20 +19,27 @@ use Doctrine\ORM\Mapping as ORM;
  * Used in survey modules where users provide responses to multiple questions.
  */
 #[ORM\Entity(repositoryClass: SurveyAnswerRepository::class)]
-#[ORM\Table(name: 'survey_answer')]
-#[ORM\UniqueConstraint(
-    name: 'uniq_submission_question_option',
-    columns: ['submission_id', 'question_id', 'option_id']
+#[ORM\Table(
+    name: 'survey_answer',
+    indexes: [
+        new ORM\Index(name: 'idx_sa_submission', columns: ['submission_id']),
+        new ORM\Index(name: 'idx_sa_question', columns: ['question_id']),
+        new ORM\Index(name: 'idx_sa_option', columns: ['answer_option_id']),
+    ],
+    uniqueConstraints: [
+        new ORM\UniqueConstraint(name: 'uniq_submission_question_option', columns: ['submission_id', 'question_id', 'answer_option_id']),
+    ]
 )]
 class SurveyAnswer
 {
     use IdTrait;
+    use TimestampableEntity;
 
-    #[ORM\ManyToOne(targetEntity: AnswerOption::class)]
-    #[ORM\JoinColumn(name: 'option_id', nullable: true, onDelete: 'SET NULL')]
-    private ?AnswerOption $option = null;
+    #[ORM\ManyToOne(targetEntity: AnswerOption::class, inversedBy: 'surveyAnswer')]
+    #[ORM\JoinColumn(name: 'answer_option_id', nullable: true, onDelete: 'SET NULL')]
+    private ?AnswerOption $answerOption = null;
 
-    #[ORM\ManyToOne(inversedBy: 'surveyAnswers')]
+    #[ORM\ManyToOne(targetEntity: SurveySubmission::class, inversedBy: 'surveyAnswer')]
     #[ORM\JoinColumn(name: 'submission_id', nullable: false, onDelete: 'CASCADE')]
     private ?SurveySubmission $submission = null;
 
@@ -39,14 +47,22 @@ class SurveyAnswer
     #[ORM\JoinColumn(name: 'question_id', nullable: false, onDelete: 'CASCADE')]
     private ?Question $question = null;
 
-    public function getOption(): ?AnswerOption
+    /**
+     * @return AnswerOption|null
+     */
+    public function getAnswerOption(): ?AnswerOption
     {
-        return $this->option;
+        return $this->answerOption;
     }
 
-    public function setOption(?AnswerOption $option): void
+    /**
+     * @param AnswerOption|null $answerOption
+     *
+     * @return void
+     */
+    public function setAnswerOption(?AnswerOption $answerOption): void
     {
-        $this->option = $option;
+        $this->answerOption = $answerOption;
     }
 
     /**
