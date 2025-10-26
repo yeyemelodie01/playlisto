@@ -4,6 +4,7 @@ namespace App\Entity;
 
 use App\Entity\Traits\IdTrait;
 use App\Repository\AnswerOptionRepository;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
@@ -39,9 +40,12 @@ class AnswerOption
     #[Assert\Length(max: 255)]
     private ?string $label;
 
-    #[ORM\ManyToOne(targetEntity: Question::class, inversedBy: 'answerOptions')]
+    #[ORM\ManyToOne(targetEntity: Question::class, inversedBy: 'answerOption')]
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     private ?Question $question = null;
+
+    #[ORM\OneToMany(targetEntity: SurveyAnswer::class, mappedBy: 'answerOption')]
+    private Collection $surveyAnswers;
 
     /**
      * @return string

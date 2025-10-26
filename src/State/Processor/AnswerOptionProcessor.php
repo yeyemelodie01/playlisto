@@ -52,17 +52,14 @@ final readonly class AnswerOptionProcessor implements ProcessorInterface
      */
     public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = []): mixed
     {
-        // Ensure the user is authenticated
         if (null === $this->security->getUser()) {
             throw new AccessDeniedHttpException('Authentication required.');
         }
 
-        // Validate payload type
         if (!$data instanceof AnswerOptionInput) {
             throw new BadRequestHttpException('Invalid payload.');
         }
 
-        // Basic validation
         if (!isset($data->surveyId) || $data->surveyId <= 0) {
             throw new BadRequestHttpException('Invalid surveyId.');
         }
@@ -70,7 +67,6 @@ final readonly class AnswerOptionProcessor implements ProcessorInterface
             throw new BadRequestHttpException('answers must be a non-empty array.');
         }
 
-        // Simple deduction rules (adapt to your enums / database as needed)
         $moodMap = [
             1 => 'happy',
             2 => 'calm',
@@ -91,7 +87,7 @@ final readonly class AnswerOptionProcessor implements ProcessorInterface
         ];
 
         $deducedMood = 'calm';
-        $deducedActivity = 'relax';
+        $selectedActivity = 'relax';
         $seeds = [];
 
         foreach ($data->answers as $item) {
@@ -106,7 +102,7 @@ final readonly class AnswerOptionProcessor implements ProcessorInterface
             }
 
             if ($questionId === 102 && isset($optionIds[0]) && isset($activityMap[(int)$optionIds[0]])) {
-                $deducedActivity = $activityMap[(int)$optionIds[0]];
+                $selectedActivity = $activityMap[(int)$optionIds[0]];
             }
 
             if ($questionId === 103) {
@@ -139,7 +135,7 @@ final readonly class AnswerOptionProcessor implements ProcessorInterface
         $submission->setSurveyId((int)$data->surveyId);
         $submission->setUser($user);
         $submission->setDeducedMood(MoodType::from($deducedMood));
-        $submission->setSelectedActivity(ActivityType::from($deducedActivity));
+        $submission->setSelectedActivity(ActivityType::from($selectedActivity));
         $this->entityManager->persist($submission);
 
         foreach ($data->answers as $item) {
@@ -152,7 +148,7 @@ final readonly class AnswerOptionProcessor implements ProcessorInterface
                 $answer = new SurveyAnswer();
                 $answer->setSubmission($submission);
                 $answer->setQuestion($question);
-                $answer->setOptionValue($oid);
+                $answer->setAnswerOption($oid);
                 $this->entityManager->persist($answer);
             }
         }
@@ -162,7 +158,7 @@ final readonly class AnswerOptionProcessor implements ProcessorInterface
         return new AnswerOptionResultOutput(
             surveyId: (int)$data->surveyId,
             deducedMood: $deducedMood,
-            deducedActivity: $deducedActivity,
+            selectedActivity: $selectedActivity,
             recommendationSeeds: $seeds ?: null
         );
     }

@@ -46,7 +46,7 @@ final readonly class AdminStatsService
         );
 
         return $this->cache->get($key, function (ItemInterface $item) use ($from, $to) {
-            $item->expiresAfter(60); // Cache for 60 seconds
+            $item->expiresAfter(60);
 
             $countUsers = $this->userRepository->count([]);
             $countLastConnectedUsers = $this->userRepository->lastTenUserConnected();

@@ -169,4 +169,35 @@ class User extends BaseUser
     {
         $this->surveySubmissions = $surveySubmissions;
     }
+
+    /**
+     * @param SurveySubmission $surveySubmission
+     *
+     * @return $this
+     */
+    public function addSurveySubmission(SurveySubmission $surveySubmission): static
+    {
+        if (!$this->surveySubmissions->contains($surveySubmission)) {
+            $this->surveySubmissions->add($surveySubmission);
+            $surveySubmission->setUser($this);
+        }
+
+        return $this;
+    }
+
+    /**
+     * @param SurveySubmission $surveySubmission
+     *
+     * @return $this
+     */
+    public function removeSurveySubmission(SurveySubmission $surveySubmission): static
+    {
+        if ($this->surveySubmissions->removeElement($surveySubmission)) {
+            if ($surveySubmission->getUser() === $this) {
+                $surveySubmission->setUser(null);
+            }
+        }
+
+        return $this;
+    }
 }

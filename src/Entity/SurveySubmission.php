@@ -39,7 +39,6 @@ use Symfony\Component\Validator\Constraints as Assert;
         new ORM\UniqueConstraint(name: 'uniq_user_survey', columns: ['user_id', 'survey_id']),
     ]
 )]
-
 class SurveySubmission
 {
     use IdTrait;

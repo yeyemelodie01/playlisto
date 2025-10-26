@@ -35,11 +35,11 @@ class SurveyAnswer
     use IdTrait;
     use TimestampableEntity;
 
-    #[ORM\ManyToOne(targetEntity: AnswerOption::class)]
+    #[ORM\ManyToOne(targetEntity: AnswerOption::class, inversedBy: 'surveyAnswer')]
     #[ORM\JoinColumn(name: 'answer_option_id', nullable: true, onDelete: 'SET NULL')]
     private ?AnswerOption $answerOption = null;
 
-    #[ORM\ManyToOne(targetEntity: SurveySubmission::class, inversedBy: 'answers')]
+    #[ORM\ManyToOne(targetEntity: SurveySubmission::class, inversedBy: 'surveyAnswer')]
     #[ORM\JoinColumn(name: 'submission_id', nullable: false, onDelete: 'CASCADE')]
     private ?SurveySubmission $submission = null;
 

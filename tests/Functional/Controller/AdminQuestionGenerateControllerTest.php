@@ -5,13 +5,8 @@ namespace App\Tests\Functional\Controller;
 use App\Entity\Administrator;
 use App\Repository\AdministratorRepository;
 use App\Repository\QuestionRepository;
-use App\Service\OpenAIService;
-use JsonException;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
-use Symfony\Component\HttpClient\MockHttpClient;
-use Symfony\Component\HttpClient\Response\MockResponse;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
-use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 final class AdminQuestionGenerateControllerTest extends WebTestCase
 {
@@ -42,7 +37,7 @@ final class AdminQuestionGenerateControllerTest extends WebTestCase
         $client->request('POST', $url, server: [
             'CONTENT_TYPE' => 'application/json',
         ], content: json_encode([
-            'count' => 12,
+            'count' => 16,
             'surveyId' => $surveyId,
         ], JSON_THROW_ON_ERROR));
 
@@ -53,12 +48,12 @@ final class AdminQuestionGenerateControllerTest extends WebTestCase
         $items = [];
         if (isset($payload['questions']) && is_array($payload['questions'])) {
             $items = $payload['questions'];
-        } elseif (is_array($payload) && array_keys($payload) === range(0, count($payload)-1)) {
+        } elseif (is_array($payload) && array_keys($payload) === range(0, count($payload))) {
             $items = $payload;
         }
 
         self::assertGreaterThanOrEqual(3, count($items), 'Réponse doit contenir au moins mood + activité + genres');
-        self::assertLessThanOrEqual(12, count($items), 'Ne doit pas dépasser le count demandé');
+        self::assertLessThanOrEqual(16, count($items), 'Ne doit pas dépasser le count demandé');
 
         $qRepo = static::getContainer()->get(QuestionRepository::class);
 
@@ -83,6 +78,11 @@ final class AdminQuestionGenerateControllerTest extends WebTestCase
         self::assertTrue($hasYesNo, 'Aucune question yes/no détectée dans la génération.');
     }
 
+    /**
+     * @param string $email
+     *
+     * @return Administrator
+     */
     private function getOrCreateAdmin(string $email): Administrator
     {
         $repo = static::getContainer()->get(AdministratorRepository::class);

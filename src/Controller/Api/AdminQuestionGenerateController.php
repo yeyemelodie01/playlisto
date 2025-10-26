@@ -8,6 +8,7 @@ use App\Service\OpenAIService;
 use App\Entity\Question;
 use App\Enum\QuestionType;
 use JsonException;
+use Random\RandomException;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -38,21 +39,19 @@ final class AdminQuestionGenerateController
      * @param Request $request The HTTP request object
      *
      * @return JsonResponse A JSON response containing the created questions or an error message
-     * @throws JsonException
+     * @throws JsonException|RandomException
      */
     #[Route('/api/admin/questions/generate', name: 'api_admin_questions_generate', methods: ['POST'])]
     #[IsGranted('ROLE_ADMIN')]
     public function __invoke(Request $request): JsonResponse
     {
-        // 1) Parse body JSON (robuste) + fallback brut
         try {
-            $payload = $request->toArray(); // nécessite Content-Type: application/json
+            $payload = $request->toArray();
         } catch (\Throwable) {
             $raw = $request->getContent() ?: '{}';
             $payload = json_decode($raw, true) ?: [];
         }
 
-        // 2) Extraire surveyId depuis plusieurs sources (payload, query, form, header)
         $surveyId = 0;
 
         $fromPayload = $payload['surveyId'] ?? null;
@@ -64,7 +63,7 @@ final class AdminQuestionGenerateController
             $surveyId = $request->query->getInt('surveyId');
         }
 
-        if ($surveyId <= 0 && $request->request->has('surveyId')) { // form-data / x-www-form-urlencoded
+        if ($surveyId <= 0 && $request->request->has('surveyId')) {
             $surveyId = (int) $request->request->get('surveyId');
         }
 
@@ -75,7 +74,6 @@ final class AdminQuestionGenerateController
             }
         }
 
-        // 3) Count borné
         $count = (int)($payload['count'] ?? 6);
         if ($count < 5) {
             $count = 5;
@@ -84,10 +82,8 @@ final class AdminQuestionGenerateController
             $count = 50;
         }
 
-        // 4) Stratégie hybride A+B : générer un surveyId serveur si absent
         $generatedSurveyId = false;
         if ($surveyId <= 0) {
-            // epoch secondes (simple, stable). Alternative: random_int(1_000_000, 9_999_999)
             $surveyId = (int) floor(microtime(true));
             if ($surveyId <= 0) {
                 $surveyId = random_int(1_000_000, 9_999_999);
@@ -103,31 +99,27 @@ final class AdminQuestionGenerateController
                 $rawTitle = isset($i['title']) ? trim((string) $i['title']) : '';
                 $rawOpts  = isset($i['options']) && is_array($i['options']) ? array_values($i['options']) : [];
 
-                // normalise le type (fallback: single)
                 $typeStr = isset($i['type']) ? strtolower((string) $i['type']) : 'single';
                 $typeStr = in_array($typeStr, ['single','multiple'], true) ? $typeStr : 'single';
 
-                // titre (ponctuation pour oui/non)
                 $title = $rawTitle;
                 if ($typeStr === 'single' && $rawOpts === ['oui','non'] && !str_ends_with($title, '?')) {
                     $title .= ' ?';
                     $title = preg_replace('/\s+\?$/u', ' ?', $title);
                 }
                 if ($title === '') {
-                    continue; // on skippe les entrées vides
+                    continue;
                 }
 
-                // Création Question
                 $q = new Question();
                 $q->setLabel($title);
-                $q->setSurveyId($surveyId); // ✅ satisfait NOT NULL
+                $q->setSurveyId($surveyId);
                 $typeEnum = match ($typeStr) {
                     'multiple' => QuestionType::MULTIPLE,
                     default    => QuestionType::SINGLE,
                 };
                 $q->setType($typeEnum);
 
-                // Ajout des options
                 foreach ($rawOpts as $opt) {
                     $text = trim((string)$opt);
                     if ($text === '') {
@@ -136,13 +128,11 @@ final class AdminQuestionGenerateController
 
                     $a = new AnswerOption();
                     $a->setLabel($text);
-                    $q->addAnswer($a); // owning side sur ManyToOne côté AnswerOption
+                    $q->addAnswer($a);
                 }
 
-                // Persist
                 $this->questionRepository->save($q, true);
 
-                // Sortie
                 $answersOut = [];
                 foreach ($q->getAnswers() as $ans) {
                     $answersOut[] = $ans->getLabel();
@@ -158,7 +148,6 @@ final class AdminQuestionGenerateController
                 ];
             }
 
-            // On renvoie le surveyId (et si c’est un fallback serveur)
             return new JsonResponse([
                 'surveyId'        => $surveyId,
                 'generatedServer' => $generatedSurveyId,
