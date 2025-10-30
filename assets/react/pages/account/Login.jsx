@@ -112,6 +112,7 @@ export default function Login() {
               <button type="submit" className="mt-5 bg-black text-white px-4 py-2 rounded-md">
                 Log in
               </button>
+                <p>Si vous n'avez pas de compte inscrivez-vous <a href="/register">ici</a></p>
             </div>
           </div>
         </form>
