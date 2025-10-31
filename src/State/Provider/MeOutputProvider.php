@@ -48,6 +48,10 @@ final readonly class MeOutputProvider implements ProviderInterface
             throw new \LogicException('The UserInterface implementation must have a getEmail() method.');
         }
 
-        return new MeOutput($user->getEmail(), $user->getRoles());
+        return new MeOutput(
+            email: $user->getEmail(),
+            roles: $user->getRoles(),
+            username: $user->getUsername()
+        );
     }
 }

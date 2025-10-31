@@ -56,7 +56,6 @@ final readonly class PlaylistProvider implements ProviderInterface
         try {
             $user = $this->security->getUser();
             if (null === $user) {
-                // No authenticated user: return empty list (or null if your operation expects null)
                 return [];
             }
 
@@ -134,7 +133,7 @@ final readonly class PlaylistProvider implements ProviderInterface
         return new TrackOutput(
             id: $track->getId(),
             title: $track->getTitle(),
-            artists: $track->getArtist(),
+            artists: $track->getArtists(),
             album: $track->getAlbum(),
             duration: $track->getDuration(),
             spotifyId: $track->getSpotifyId(),

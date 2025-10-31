@@ -26,12 +26,11 @@ use App\State\Provider\MeOutputProvider;
 final class MeOutput
 {
     /**
-     * Constructor to initialize all properties.
-     *
-     * @param string  $email the user's email
-     * @param array<int, string> $roles the user's roles
+     * @param string             $email
+     * @param array<int, string> $roles
+     * @param string|null        $username
      */
-    public function __construct(public string $email, public array $roles)
+    public function __construct(public string $email, public array $roles, public ?string $username = null)
     {
     }
 }

@@ -52,7 +52,7 @@ final readonly class PlaylistProcessor implements ProcessorInterface
         if (!$user) {
             throw new AccessDeniedHttpException('Authentication required.');
         }
-        // Ensure we have our concrete App User entity (not just a generic UserInterface)
+
         if (!$user instanceof AppUser) {
             $userEntity = $this->entityManager->getRepository(AppUser::class)->findOneBy([
                 'email' => method_exists($user, 'getUserIdentifier') ? $user->getUserIdentifier() : null,
@@ -60,7 +60,7 @@ final readonly class PlaylistProcessor implements ProcessorInterface
             if (!$userEntity) {
                 throw new AccessDeniedHttpException('Authenticated user entity not found.');
             }
-            $user = $userEntity; // replace with the concrete entity for downstream setters/comparisons
+            $user = $userEntity;
         }
 
         $method = strtoupper((string)($context['request_method'] ?? 'GET'));
@@ -176,7 +176,7 @@ final readonly class PlaylistProcessor implements ProcessorInterface
 
         return new PlaylistOutput(
             id: (int) $playlist->getId(),
-            title: (string) $playlist->getTitle(),
+            title: $playlist->getTitle(),
             description: method_exists($playlist, 'getDescription') ? $playlist->getDescription() : null,
             mood: method_exists($playlist, 'getMood') ? $playlist->getMood()?->value : null,
             activity: method_exists($playlist, 'getActivity') ? $playlist->getActivity()?->value : null,
