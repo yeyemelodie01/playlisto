@@ -79,7 +79,7 @@ export default function Login() {
     };
 
     return (
-      <main className="min-h-screen flex items-center justify-center bg-base-200">
+      <main className="h-screen overflow-hidden flex items-center justify-center bg-base-200">
         <form onSubmit={handleSubmit} method="post" className="form-width flex flex-col items-center">
 
           <img src="/images/playlisto-logo.png" alt="Logo" className="w-64 px-4 py-2" />
@@ -112,7 +112,7 @@ export default function Login() {
               <button type="submit" className="mt-5 bg-black text-white px-4 py-2 rounded-md">
                 Log in
               </button>
-                <p>Si vous n'avez pas de compte inscrivez-vous <a href="/register">ici</a></p>
+                <p>Si vous n'avez pas de compte <br/> inscrivez-vous <a href="/register" className="text-sky-400 font-bold">ici</a></p>
             </div>
           </div>
         </form>

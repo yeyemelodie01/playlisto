@@ -112,9 +112,9 @@ export default function Signin({ redirectTo = "/", onLoggedIn }) {
     return (
         <>
             <main className="min-h-screen bg-base-200 grid place-items-center p-4">
-                <div className="card w-full max-w-md bg-base-100 shadow-xl border border-base-300">
+                <div className="card w-[40%] max-w-md bg-base-100 shadow-xl border border-base-300">
                     <div className="card-body">
-                        <div className="flex justify-center">
+                        <div className="flex items-center flex-col">
                             <img src="/images/playlisto-logo.png" alt="Logo" className="w-64 px-4 py-2" />
                             <h1 className="text-xl text-center my-4">S'inscrire</h1>
                         </div>
@@ -126,63 +126,72 @@ export default function Signin({ redirectTo = "/", onLoggedIn }) {
                         )}
 
                         <form className="mt-4 space-y-4" onSubmit={onSubmit} noValidate>
-                            <div className="form-control">
-                                <label htmlFor="email" className="label">
-                                    <span className="label-text">Email</span>
-                                </label>
-                                <input
-                                    id="email"
-                                    type="email"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    className={`input input-bordered ${errors.email ? "input-error" : ""}`}
-                                    placeholder="you@example.com"
-                                    autoComplete="email"
-                                />
-                                {errors.email && <label className="label"><span className="label-text-alt text-error">{errors.email}</span></label>}
-                            </div>
-
-                            <div className="form-control">
-                                <label htmlFor="username" className="label">
-                                    <span className="label-text">Pseudo</span>
-                                </label>
+                            <fieldset className="fieldset">
+                                <legend className="fieldset-legend">Pseudonyme</legend>
                                 <input
                                     id="username"
                                     type="text"
                                     value={username}
                                     onChange={(e) => setUsername(e.target.value)}
-                                    className={`input input-bordered ${errors.username ? "input-error" : ""}`}
+                                    className={`input input-bordered ${errors.username ? "input-error" : ""} validator`}
                                     placeholder="Entrez votre pseudo"
-                                    autoComplete="nickname"
+                                    pattern="[A-Za-z][A-Za-z0-9\-]*"
+                                    minLength="3"
+                                    maxLength="30"
+                                    title="Only letters, numbers or dash"
                                 />
-                                {errors.username && <label className="label"><span className="label-text-alt text-error">{errors.username}</span></label>}
-                            </div>
-
-                            <div className="form-control">
-                                <label htmlFor="password" className="label">
-                                    <span className="label-text">Mot de passe</span>
-                                </label>
-                                <div className="input-group">
+                                {errors.username && <label className="label"><span
+                                    className="label-text-alt text-error">{errors.username}</span></label>}
+                            </fieldset>
+                            <fieldset className="fieldset">
+                                <legend className="fieldset-legend">Email</legend>
+                                <input
+                                    id="email"
+                                    type="email"
+                                    value={email}
+                                    required
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    className={`input input-bordered ${errors.email ? "input-error" : ""} validator`}
+                                    pattern="[a-z0-9]+@[a-z0-9]+.{8,}"
+                                    placeholder="you@example.com"
+                                    autoComplete="email"
+                                />
+                                {errors.email && <label className="label"><span
+                                    className="label-text-alt text-error">{errors.email}</span></label>}
+                            </fieldset>
+                            <fieldset className="fieldset">
+                                <legend className="fieldset-legend">Mot de passe</legend>
+                                <div className="relative">
                                     <input
                                         id="password"
                                         type={showPwd ? "text" : "password"}
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
-                                        className={`input input-bordered w-full ${errors.password ? "input-error" : ""}`}
+                                        className={`input input-bordered validator ${errors.password ? "input-error" : ""} pl-4 pr-12`}
                                         placeholder="Entrez votre mot de passe"
-                                        autoComplete="new-password"
+                                        pattern="(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}"
+                                        title="Must be more than 8 characters, including number, lowercase letter, uppercase letter"
                                     />
                                     <button
                                         type="button"
-                                        className="btn btn-ghost"
+                                        className="absolute top-1/2 right-3 -translate-y-1/2 text-gray-500 hover:text-gray-700 pointer-events-auto"
                                         onClick={() => setShowPwd((s) => !s)}
                                         aria-label={showPwd ? "Masquer le mot de passe" : "Afficher le mot de passe"}
                                     >
-                                        {showPwd ? "Masquer" : "Afficher"}
+                                        {showPwd ? (
+                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-5 0-9-4-9-4s1.5-2.5 4-4m5-2a3 3 0 11-4.243 4.243A3 3 0 0112 9zm0 0c.345-.021.687-.032 1.027-.032 4.63 0 8.39 3.1 10.3 5.032-1.14 1.182-2.53 2.316-4.183 3.301" />
+                                            </svg>
+                                        ) : (
+                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0zm7.5 0s-3.5 7-10.5 7S1.5 12 1.5 12 5 5 12 5s10.5 7 10.5 7z" />
+                                            </svg>
+                                        )}
                                     </button>
                                 </div>
-                                {errors.password && <label className="label"><span className="label-text-alt text-error">{errors.password}</span></label>}
-                            </div>
+                                {errors.password && <label className="label"><span
+                                    className="label-text-alt text-error">{errors.password}</span></label>}
+                            </fieldset>
 
                             <button
                                 type="submit"
@@ -193,7 +202,9 @@ export default function Signin({ redirectTo = "/", onLoggedIn }) {
                             </button>
                         </form>
 
-                        <p className="text-xs text-base-content/60 mt-4">Vous avez déja un compte? <a href="/login">connecter-vous</a></p>
+                        <p className="text-xs text-base-content/60 mt-4">Vous avez déja un compte?
+                            <a href="/login" className="text-sky-400 font-bold">connecter-vous</a>
+                        </p>
                     </div>
                 </div>
             </main>
