@@ -36,14 +36,14 @@ const Header = () => {
                         <ul tabIndex="-1" className="menu menu-sm dropdown-content bg-base-100 rounded-box z-1 mt-3 w-52 p-2 shadow">
                             {!loading && me && (
                                 <>
-                                    <li className="menu-title">
-                                        <span>Bienvenue {displayName}</span>
+                                    <li>
+                                        <p className="text-base text-white font-bold">Bienvenue {displayName}</p>
                                     </li>
                                     <li className="disabled">
-                                        <a href="#" onClick={(e) => e.preventDefault()}>Profil (bientôt)</a>
+                                        <Link to="/profile" className="text-base text-white font-bold" onClick={(e) => e.preventDefault()}>Profil (bientôt)</Link>
                                     </li>
                                     <li>
-                                        <button onClick={handleLogout}>Se déconnecter</button>
+                                        <Link className="text-base text-white font-bold" onClick={handleLogout}>Se déconnecter</Link>
                                     </li>
                                 </>
                             )}
@@ -53,18 +53,18 @@ const Header = () => {
                         <img src="/images/playlisto-logo.png" alt="playlisto logo" className="w-40 px-4 py-2"/>
                     </Link>
                 </div>
-                <div className="navbar-center hidden lg:flex">
+                <div className="navbar-end hidden lg:flex">
                     <ul className="menu menu-horizontal px-1">
                         {!loading && me && (
                             <>
-                                <li className="menu-title">
-                                    <span>Bienvenue {displayName}</span>
+                                <li>
+                                    <p className="text-base text-white font-bold">Bienvenue {displayName}</p>
                                 </li>
                                 <li className="disabled">
-                                    <a href="#" onClick={(e) => e.preventDefault()}>Profil (bientôt)</a>
+                                    <Link to="/profile" onClick={(e) => e.preventDefault()} className="text-base font-bold text-white">Profil (bientôt)</Link>
                                 </li>
                                 <li>
-                                    <button onClick={handleLogout}>Se déconnecter</button>
+                                    <Link onClick={handleLogout} className="font-bold text-white text-base">Se déconnecter</Link>
                                 </li>
                             </>
                         )}

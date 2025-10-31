@@ -1,7 +1,5 @@
 import Header from "@components/Header";
-import MenuAside from "@components/MenuAside";
-import Footer from "@components/Footer";
-import MainSection from "@components/MainSection";
+import { Link } from "react-router-dom";
 export default function Home() {
 
   return (
@@ -13,7 +11,7 @@ export default function Home() {
           <p className="text-lg">
             Playlisto est votre assistant musical intelligent. Générez des playlists adaptées à votre humeur et à vos activités grâce à l’intelligence artificielle et à l’intégration avec Spotify.
           </p>
-          <button className="btn btn-primary mt-6">Générer une playlist</button>
+          <Link to="/question" className="btn btn-primary mt-6">Générer une playlist</Link>
         </section>
       </main>
     </>

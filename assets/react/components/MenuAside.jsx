@@ -46,9 +46,6 @@ const MenuAside = () => {
                         </Link>
                     </li>
                 </ul>
-                <div className="p-2">
-                    <Logout />
-                </div>
             </section>
         </>
     );
