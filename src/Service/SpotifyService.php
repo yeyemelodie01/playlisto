@@ -6,18 +6,16 @@ use App\Enum\SpotifyGenre;
 use InvalidArgumentException;
 use RuntimeException;
 use Symfony\Contracts\Cache\CacheInterface;
+use Symfony\Contracts\Cache\ItemInterface;
 use Symfony\Contracts\HttpClient\Exception\ClientExceptionInterface;
 use Symfony\Contracts\HttpClient\Exception\DecodingExceptionInterface;
 use Symfony\Contracts\HttpClient\Exception\RedirectionExceptionInterface;
 use Symfony\Contracts\HttpClient\Exception\ServerExceptionInterface;
 use Symfony\Contracts\HttpClient\Exception\TransportExceptionInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
-use Throwable;
 
-final class SpotifyService
+final readonly class SpotifyService
 {
-    private array $lastQuery;
-
     /**
      * @param HttpClientInterface $http
      * @param CacheInterface      $cache
@@ -32,19 +30,9 @@ final class SpotifyService
         private string $clientSecret,
         private string $baseUrl,
     ) {
-        $this->lastQuery = [];
-    }
-
-
-
-    public function lastQuery(): array
-    {
-        return $this->lastQuery;
     }
 
     /**
-     * Get track recommendations based on mood, activity, and optional genres.
-     *
      * @param string      $q
      * @param string      $type
      * @param int         $limit
@@ -82,15 +70,13 @@ final class SpotifyService
 
 
     /**
-     * Get track recommendations from Spotify API based on seed genres and target attributes.
+     * @param array       $seedGenres
+     * @param array       $seedArtists
+     * @param array       $targets
+     * @param int         $limit
+     * @param string|null $market
      *
-     * @param array       $seedGenres List of seed genres (max 5).
-     * @param array       $seedArtists List of seed artist IDs (max 5).
-     * @param array       $targets Associative array of target audio features (e.g. target_valence, target_energy).
-     * @param int         $limit Number of tracks to return (max 50).
-     * @param string|null $market Market code (e.g. 'FR').
-     *
-     * @return array List of recommended tracks.
+     * @return array
      *
      * @throws ClientExceptionInterface
      * @throws RedirectionExceptionInterface
@@ -109,7 +95,7 @@ final class SpotifyService
         $seedArtists = array_slice($seedArtists, 0, max(0, $slotsLeft));
 
         if (count($seedGenres) === 0) {
-            throw new \InvalidArgumentException('At least one valid seed genre is required.');
+            throw new InvalidArgumentException('At least one valid seed genre is required.');
         }
 
         $query = [
@@ -158,20 +144,19 @@ final class SpotifyService
         }
 
         $parse = function (int $status, ?string $raw, array $q) use ($url): array {
+
+            if ($status >= 400) {
+                return [];
+            }
             if ($raw === '' || $raw === null) {
-                throw new RuntimeException(
-                    'Spotify recommendations HTTP ' . $status . ': response body is empty.'
-                    . ' url=' . $url . ' query=' . http_build_query($q)
-                );
+                return [];
             }
             $data = json_decode($raw, true);
             if (!is_array($data)) {
-                throw new RuntimeException('Spotify recommendations invalid JSON (HTTP ' . $status . '): ' . $raw);
+                return [];
             }
             if (isset($data['error'])) {
-                $msg  = is_array($data['error']) ? ($data['error']['message'] ?? 'unknown error') : (string)$data['error'];
-                $code = is_array($data['error']) ? ($data['error']['status'] ?? $status)       : $status;
-                throw new RuntimeException('Spotify error ' . $code . ': ' . $msg);
+                return [];
             }
             $tracks = $data['tracks'] ?? [];
             return is_array($tracks) ? $tracks : [];
@@ -187,8 +172,6 @@ final class SpotifyService
             } else {
                 unset($q['market']);
             }
-
-            $this->lastQuery = $q;
 
             try {
                 $resp = $this->http->request('GET', $url, [
@@ -216,9 +199,7 @@ final class SpotifyService
     }
 
     /**
-     * Get a Spotify API token using client credentials flow.
-     *
-     * @return string The Spotify API access token.
+     * @return string
      *
      * @throws TransportExceptionInterface
      * @throws ServerExceptionInterface
@@ -277,111 +258,13 @@ final class SpotifyService
     }
 
     /**
-     * Normalize user-provided genres to Spotify seed genres.
-     *
      * @param array $genres
      *
      * @return string[]
      */
     private function normalizeGenres(array $genres): array
     {
-        $valid = array_map(fn($g) => $g->value, SpotifyGenre::cases());
-
-        $map = [
-            'lofi'        => SpotifyGenre::LOFI->value,
-            'lo-fi'       => SpotifyGenre::LOFI->value,
-            'rap'         => SpotifyGenre::HIP_HOP->value,
-            'rap-fr'      => SpotifyGenre::HIP_HOP->value,
-            'rap-francais' => SpotifyGenre::HIP_HOP->value,
-            'rap-us'      => SpotifyGenre::HIP_HOP->value,
-            'hiphop'      => SpotifyGenre::HIP_HOP->value,
-            'hip-hop'     => SpotifyGenre::HIP_HOP->value,
-            'dancehall'   => SpotifyGenre::DANCEHALL->value,
-            'zouk'        => SpotifyGenre::WORLD_MUSIC->value,
-        ];
-
-        $out = [];
-        foreach ($genres as $g) {
-            $g = strtolower(trim((string)$g));
-            if ($g === '') {
-                continue;
-            }
-            $g = $map[$g] ?? $g;
-            if (in_array($g, $valid, true)) {
-                $out[] = $g;
-            }
-        }
-
-        return array_slice(array_unique($out), 0, 5);
-    }
-
-    /**
-     * @param array $genres
-     * @param int   $limit
-     *
-     * @return array
-     *
-     * @throws ClientExceptionInterface
-     * @throws RedirectionExceptionInterface
-     * @throws ServerExceptionInterface
-     * @throws TransportExceptionInterface
-     */
-    public function tracksByGenres(array $genres, int $limit = 25): array
-    {
-        $limit = max(1, min($limit, 50));
-
-        // 1) Normalisation + borne Spotify (max 5), puis on combinera ensuite
-        $seedGenres = $this->normalizeGenres($genres);
-        if (empty($seedGenres)) {
-            throw new \InvalidArgumentException('No valid genres provided.');
-        }
-        // On garde 3 genres max pour les essais "multi"
-        $seed3 = array_slice($seedGenres, 0, 3);
-
-        // Helper local pour factoriser les appels (toujours limit 100 côté API, puis slice local)
-        $try = function (array $seeds, array $targets = []) use ($limit): array {
-            if (!empty($reco = $this->recommendations($seeds, [], $targets, 100, null))) {
-                return array_slice($reco, 0, $limit);
-            }
-            return [];
-        };
-
-        // --- 2) Essais à 3 seeds (strict genres) ---
-        if ($res = $try($seed3, [])) {
-            return $res;
-        }
-        if ($res = $try($seed3, ['min_popularity' => 0])) {
-            return $res;
-        }
-
-        // --- 3) Essais à 2 seeds (toutes les combinaisons) ---
-        // Génère toutes les paires uniques issues de $seed3
-        $pairs = [];
-        for ($i = 0; $i < count($seed3); $i++) {
-            for ($j = $i + 1; $j < count($seed3); $j++) {
-                $pairs[] = [$seed3[$i], $seed3[$j]];
-            }
-        }
-        foreach ($pairs as $p) {
-            if ($res = $try($p, [])) {
-                return $res;
-            }
-            if ($res = $try($p, ['min_popularity' => 0])) {
-                return $res;
-            }
-        }
-
-        // --- 4) Essais à 1 seed (chacun des genres) ---
-        foreach ($seed3 as $g) {
-            if ($res = $try([$g], [])) {
-                return $res;
-            }
-            if ($res = $try([$g], ['min_popularity' => 0])) {
-                return $res;
-            }
-        }
-
-        return [];
+        return SpotifyGenre::normalize($genres);
     }
 
     /**
@@ -389,12 +272,435 @@ final class SpotifyService
      */
     private function apiBase(): string
     {
-        $base = rtrim(trim($this->baseUrl), "/ \t\n\r\0\x0B");
+        $base = trim(($this->baseUrl ?? ''));
+        if ($base === '') {
+            $base = 'https://api.spotify.com';
+        }
+        $base = rtrim($base, "/ \t\n\r\0\x0B");
 
         if (!str_ends_with($base, '/v1')) {
             $base .= '/v1';
         }
 
         return $base;
+    }
+
+    /**
+     * @param string[] $artistIds
+     *
+     * @return array<string, string[]>
+     *
+     * @throws \Psr\Cache\InvalidArgumentException
+     */
+    private function fetchArtistsGenres(array $artistIds): array
+    {
+        $artistIds = array_values(array_unique(array_filter(array_map('strval', $artistIds))));
+        if (!$artistIds) {
+            return [];
+        }
+
+        $chunks = array_chunk($artistIds, 50);
+        $out = [];
+
+        foreach ($chunks as $chunk) {
+            $cacheKey = 'spotify_artists_' . md5(implode(',', $chunk));
+            $data = $this->cache->get($cacheKey, function (ItemInterface $item) use ($chunk) {
+                $item->expiresAfter(1800);
+                $token = $this->token();
+                $url = $this->apiBase() . '/artists';
+                $resp = $this->http->request('GET', $url, [
+                    'headers' => ['Authorization' => 'Bearer ' . $token],
+                    'query'   => ['ids' => implode(',', $chunk)],
+                    'timeout' => 15,
+                ])->toArray(false);
+
+                return is_array($resp) ? $resp : [];
+            });
+
+            $artists = $data['artists'] ?? [];
+            if (!is_array($artists)) {
+                continue;
+            }
+            foreach ($artists as $a) {
+                $id = (string)($a['id'] ?? '');
+                if ($id === '') {
+                    continue;
+                }
+                $genres = array_values(array_unique(array_map('strval', $a['genres'] ?? [])));
+                $out[$id] = $genres;
+            }
+        }
+
+        return $out;
+    }
+
+    /**
+     * @param array    $tracks
+     * @param string[] $allowedGenres
+     *
+     * @return array
+     *
+     * @throws \Psr\Cache\InvalidArgumentException
+     */
+    private function filterTracksByArtistGenres(array $tracks, array $allowedGenres): array
+    {
+        if (!$tracks || !$allowedGenres) {
+            return [];
+        }
+
+        $allowedSet = array_fill_keys(array_map('strtolower', $allowedGenres), true);
+
+        $artistIds = [];
+        foreach ($tracks as $t) {
+            foreach (($t['artists'] ?? []) as $a) {
+                $id = (string)($a['id'] ?? '');
+                if ($id !== '') {
+                    $artistIds[] = $id;
+                }
+            }
+        }
+        $artistIds = array_values(array_unique($artistIds));
+
+        $artistGenres = $this->fetchArtistsGenres($artistIds);
+
+        if (!$artistGenres) {
+            return [];
+        }
+
+        $out = [];
+        foreach ($tracks as $t) {
+            $ok = false;
+            foreach (($t['artists'] ?? []) as $a) {
+                $id = (string)($a['id'] ?? '');
+                if ($id === '' || empty($artistGenres[$id])) {
+                    continue;
+                }
+
+                foreach ($artistGenres[$id] as $g) {
+                    $gLower = strtolower((string)$g);
+                    $gClean = preg_replace('/[^a-z0-9]+/i', '', str_replace('-', ' ', $gLower) ?? '');
+
+                    foreach ($allowedSet as $seed => $_true) {
+                        $seedClean = preg_replace('/[^a-z0-9]+/i', '', str_replace('-', ' ', (string)$seed) ?? '');
+                        if ($seedClean === '') {
+                            continue;
+                        }
+
+                        if ($gLower === $seed) {
+                            $ok = true;
+                            break 2;
+                        }
+
+                        if (preg_match('/\b' . preg_quote($seed, '/') . '\b/i', $gLower) === 1) {
+                            $ok = true;
+                            break 2;
+                        }
+
+                        if ($gClean !== '' && str_contains($gClean, $seedClean)) {
+                            $ok = true;
+                            break 2;
+                        }
+                    }
+                }
+            }
+
+            if ($ok) {
+                $out[] = $t;
+            }
+        }
+
+        return $out;
+    }
+
+    /**
+     * @param array       $genres
+     * @param array       $targets
+     * @param int         $limit
+     * @param string|null $market
+     *
+     * @return array
+     *
+     * @throws ClientExceptionInterface
+     * @throws RedirectionExceptionInterface
+     * @throws ServerExceptionInterface
+     * @throws TransportExceptionInterface
+     * @throws \Psr\Cache\InvalidArgumentException
+     * @throws DecodingExceptionInterface
+     */
+    public function tracksByGenresWithTargets(array $genres, array $targets = [], int $limit = 25, ?string $market = null): array
+    {
+        $limit = max(1, min($limit, 50));
+
+        $seedGenres = $this->normalizeGenres($genres);
+        if (empty($seedGenres)) {
+            throw new InvalidArgumentException('No valid genres provided.');
+        }
+
+        $seed3 = array_slice($seedGenres, 0, 3);
+
+        $try = function (array $seeds) use ($targets, $limit, $market): array {
+            $reco = $this->recommendations($seeds, [], $targets, 100, $market);
+            if (!$reco) {
+                return [];
+            }
+
+            return $this->extracted($reco, $seeds, $targets, $limit);
+        };
+
+        if ($res = $try($seed3)) {
+            return $res;
+        }
+
+        $pairs = [];
+        for ($i = 0; $i < count($seed3); $i++) {
+            for ($j = $i + 1; $j < count($seed3); $j++) {
+                $pairs[] = [$seed3[$i], $seed3[$j]];
+            }
+        }
+        foreach ($pairs as $p) {
+            if ($res = $try($p)) {
+                return $res;
+            }
+        }
+
+        foreach ($seed3 as $g) {
+            if ($res = $try([$g])) {
+                return $res;
+            }
+        }
+
+        $wideTargets = $targets;
+        unset($wideTargets['target_tempo']);
+        if (isset($wideTargets['min_energy'])) {
+            $wideTargets['min_energy'] = max(0.0, (float)$wideTargets['min_energy'] - 0.1);
+        }
+        if (isset($wideTargets['min_danceability'])) {
+            $wideTargets['min_danceability'] = max(0.0, (float)$wideTargets['min_danceability'] - 0.1);
+        }
+
+        $tryWide = function (array $seeds) use ($wideTargets, $limit, $market): array {
+            $reco = $this->recommendations($seeds, [], $wideTargets, 100, $market);
+            if (!$reco) {
+                return [];
+            }
+            return $this->extracted($reco, $seeds, $wideTargets, $limit);
+        };
+
+        if ($res = $tryWide($seed3)) {
+            return $res;
+        }
+        foreach ($pairs as $p) {
+            if ($res = $tryWide($p)) {
+                return $res;
+            }
+        }
+        foreach ($seed3 as $g) {
+            if ($res = $tryWide([$g])) {
+                return $res;
+            }
+        }
+
+        $tryNoTargets = function (array $seeds) use ($limit, $market, $targets): array {
+            $reco = $this->recommendations($seeds, [], [], 100, $market);
+            if (!$reco) {
+                return [];
+            }
+            return $this->extracted($reco, $seeds, $targets, $limit);
+        };
+
+        if ($res = $tryNoTargets($seed3)) {
+            return $res;
+        }
+        foreach ($pairs as $p) {
+            if ($res = $tryNoTargets($p)) {
+                return $res;
+            }
+        }
+        foreach ($seed3 as $g) {
+            if ($res = $tryNoTargets([$g])) {
+                return $res;
+            }
+        }
+
+        $accum = [];
+        foreach ($seed3 as $g) {
+            $items = $this->search('genre:"' . $g . '"', 'track', 50, $market);
+            if ($items) {
+                $accum = array_merge($accum, $items);
+            }
+        }
+        if ($accum) {
+            $seen = [];
+            $unique = [];
+            foreach ($accum as $it) {
+                $id = $it['id'] ?? null;
+                if (!is_string($id) || $id === '' || isset($seen[$id])) {
+                    continue;
+                }
+                $seen[$id] = true;
+                $unique[] = $it;
+            }
+            return $this->extracted($unique, $seed3, $targets, $limit);
+        }
+
+        return [];
+    }
+
+    /**
+     * @param array $targets
+     *
+     * @return array{min_energy?:float,min_danceability?:float,min_tempo?:float,max_tempo?:float}
+     */
+    private function buildAudioRules(array $targets): array
+    {
+        $rules = [];
+
+        if (isset($targets['min_energy'])) {
+            $rules['min_energy'] = max(0.0, min(1.0, (float)$targets['min_energy']));
+        } elseif (isset($targets['target_energy'])) {
+            $rules['min_energy'] = max(0.0, min(1.0, (float)$targets['target_energy'] - 0.1));
+        }
+
+        if (isset($targets['min_danceability'])) {
+            $rules['min_danceability'] = max(0.0, min(1.0, (float)$targets['min_danceability']));
+        } elseif (isset($targets['target_danceability'])) {
+            $rules['min_danceability'] = max(0.0, min(1.0, (float)$targets['target_danceability'] - 0.1));
+        }
+
+        if (isset($targets['min_tempo'])) {
+            $rules['min_tempo'] = max(0.0, (float)$targets['min_tempo']);
+        }
+        if (isset($targets['max_tempo'])) {
+            $rules['max_tempo'] = max(0.0, (float)$targets['max_tempo']);
+        }
+        if (isset($targets['target_tempo'])) {
+            $t = (float)$targets['target_tempo'];
+            if (!isset($rules['min_tempo'])) {
+                $rules['min_tempo'] = max(0.0, $t - 10.0);
+            }
+            if (!isset($rules['max_tempo'])) {
+                $rules['max_tempo'] = max(0.0, $t + 20.0);
+            }
+        }
+
+        return $rules;
+    }
+
+    /**
+     * @param string[] $trackIds
+     *
+     * @return array<string, array>
+     */
+    private function fetchAudioFeatures(array $trackIds): array
+    {
+        $trackIds = array_values(array_unique(array_filter(array_map('strval', $trackIds))));
+        if (!$trackIds) {
+            return [];
+        }
+
+        try {
+            $token = $this->token();
+        } catch (\Throwable $e) {
+            return [];
+        }
+        $url   = $this->apiBase() . '/audio-features';
+        $out   = [];
+
+        foreach (array_chunk($trackIds, 100) as $chunk) {
+            try {
+                $resp = $this->http->request('GET', $url, [
+                    'headers' => [
+                        'Authorization' => 'Bearer ' . $token,
+                        'Accept'        => 'application/json',
+                    ],
+                    'query'   => ['ids' => implode(',', $chunk)],
+                    'timeout' => 15,
+                ]);
+                $data = $resp->toArray(false);
+                $afs  = $data['audio_features'] ?? [];
+                if (!is_array($afs)) {
+                    continue;
+                }
+                foreach ($afs as $af) {
+                    if (!is_array($af)) {
+                        continue;
+                    }
+                    $id = (string)($af['id'] ?? '');
+                    if ($id !== '') {
+                        $out[$id] = $af;
+                    }
+                }
+            } catch (\Throwable) {
+                continue;
+            }
+        }
+
+        return $out;
+    }
+
+    /**
+     * @param array $tracks
+     * @param array $features
+     * @param array $rules
+     *
+     * @return array
+     */
+    private function filterTracksByAudio(array $tracks, array $features, array $rules): array
+    {
+        if (!$tracks || !$rules) {
+            return $tracks;
+        }
+
+        if (!$features) {
+            return $tracks;
+        }
+
+        $kept = [];
+        foreach ($tracks as $t) {
+            $id = (string)($t['id'] ?? '');
+            if ($id === '' || !isset($features[$id]) || !is_array($features[$id])) {
+                $kept[] = $t;
+                continue;
+            }
+            $af = $features[$id];
+
+            if (isset($rules['min_energy']) && isset($af['energy']) && (float)$af['energy'] < (float)$rules['min_energy']) {
+                continue;
+            }
+            if (isset($rules['min_danceability']) && isset($af['danceability']) && (float)$af['danceability'] < (float)$rules['min_danceability']) {
+                continue;
+            }
+            if (isset($rules['min_tempo']) && isset($af['tempo']) && (float)$af['tempo'] < (float)$rules['min_tempo']) {
+                continue;
+            }
+            if (isset($rules['max_tempo']) && isset($af['tempo']) && (float)$af['tempo'] > (float)$rules['max_tempo']) {
+                continue;
+            }
+
+            $kept[] = $t;
+        }
+
+        return $kept;
+    }
+
+    /**
+     * @param array $unique
+     * @param array $seed3
+     * @param array $targets
+     * @param mixed $limit
+     *
+     * @return array
+     *
+     * @throws \Psr\Cache\InvalidArgumentException
+     */
+    public function extracted(array $unique, array $seed3, array $targets, mixed $limit): array
+    {
+        $filtered = $this->filterTracksByArtistGenres($unique, $seed3);
+        $rules = $this->buildAudioRules($targets);
+        if (!empty($rules)) {
+            $features = $this->fetchAudioFeatures(array_map(fn($t) => (string)($t['id'] ?? ''), $filtered));
+            $filtered = $this->filterTracksByAudio($filtered, $features, $rules);
+        }
+        return array_slice($filtered, 0, $limit);
     }
 }

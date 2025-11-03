@@ -13,7 +13,6 @@ use App\Entity\User;
 use App\Repository\PlaylistRepository;
 use App\Repository\TrackRepository;
 use App\Repository\SurveySubmissionRepository;
-use InvalidArgumentException;
 use JsonException;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -21,14 +20,8 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
-use Throwable;
 
-use function array_map;
 use function array_slice;
-use function array_unique;
-use function array_values;
-use function ceil;
-use function class_exists;
 use function count;
 use function implode;
 use function is_array;
@@ -42,7 +35,7 @@ use function method_exists;
  *
  * @psalm-suppress PossiblyUnusedMethod
  */
-final class GeneratePlaylistController
+final readonly class GeneratePlaylistController
 {
     /**
      * @param SpotifyService             $spotify
@@ -52,11 +45,11 @@ final class GeneratePlaylistController
      * @param Security                   $security
      */
     public function __construct(
-        private readonly SpotifyService $spotify,
-        private readonly PlaylistRepository $playlistRepository,
-        private readonly TrackRepository $trackRepository,
-        private readonly SurveySubmissionRepository $submissionRepository,
-        private readonly Security $security,
+        private SpotifyService $spotify,
+        private PlaylistRepository $playlistRepository,
+        private TrackRepository $trackRepository,
+        private SurveySubmissionRepository $submissionRepository,
+        private Security $security,
     ) {
     }
 
@@ -66,6 +59,7 @@ final class GeneratePlaylistController
      * @param Request $request
      *
      * @return JsonResponse
+     *
      * @throws \JsonException
      */
     #[Route('/api/me/generate-playlist', name: 'me_generate_playlist', methods: ['POST'])]
@@ -91,7 +85,7 @@ final class GeneratePlaylistController
         }
 
         $mood     = $submission->getDeducedMood();
-        $activity = $submission->getDeducedActivity();
+        $activity = $submission->getSelectedActivity();
         $genres   = $submission->getPreferredGenres() ?? [];
 
         if (empty($genres)) {
@@ -123,7 +117,8 @@ final class GeneratePlaylistController
         $this->playlistRepository->save($playlist, true);
 
         try {
-            $items = $this->spotify->tracksByGenres($genres, $limit);
+            $targets = $this->targetsFromMoodActivity($mood, $activity);
+            $items   = $this->spotify->tracksByGenresWithTargets($genres, $targets, $limit);
         } catch (\Throwable $e) {
             return new JsonResponse([
                 'status'  => 'error',
@@ -218,5 +213,78 @@ final class GeneratePlaylistController
         }
         $bits[] = 'Submission #' . $submissionId;
         return implode(' | ', $bits);
+    }
+
+    private function targetsFromMoodActivity(?MoodType $mood, ?ActivityType $activity): array
+    {
+        // Valeurs par défaut "neutres"
+        $targets = [
+            'min_popularity' => 0,
+        ];
+
+        if ($mood) {
+            switch ($mood->value) {
+                case 'happy':
+                    $targets['target_valence'] = 0.85;
+                    $targets['target_energy']  = 0.7;
+                    $targets['target_danceability'] = 0.7;
+                    break;
+
+                case 'sad':
+                    $targets['target_valence'] = 0.2;
+                    $targets['target_energy']  = 0.3;
+                    $targets['target_acousticness'] = 0.5;
+                    break;
+
+                case 'calm':
+                case 'relaxed':
+                    $targets['target_energy']  = 0.35;
+                    $targets['target_valence'] = 0.6;
+                    $targets['target_acousticness'] = 0.6;
+                    break;
+
+                case 'angry':
+                    $targets['target_energy']  = 0.9;
+                    $targets['target_valence'] = 0.3;
+                    break;
+            }
+        }
+
+        if ($activity) {
+            switch ($activity->value) {
+                case 'workout':
+                    $targets['min_energy'] = 0.75;
+                    $targets['min_danceability'] = 0.6;
+                    $targets['target_tempo'] = 135;
+                    break;
+
+                case 'running':
+                    $targets['min_energy'] = 0.8;
+                    $targets['target_tempo'] = 165;
+                    break;
+
+                case 'study':
+                case 'focus':
+                    $targets['max_speechiness'] = 0.2;
+                    $targets['max_liveness'] = 0.2;
+                    $targets['min_instrumentalness'] = 0.6;
+                    $targets['target_energy'] = ($targets['target_energy'] ?? 0.4) * 0.9;
+                    break;
+
+                case 'reading':
+                    $targets['min_instrumentalness'] = 0.7;
+                    $targets['max_liveness'] = 0.2;
+                    $targets['target_energy'] = 0.3;
+                    break;
+
+                case 'party':
+                    $targets['min_danceability'] = 0.75;
+                    $targets['min_energy'] = 0.75;
+                    $targets['target_tempo'] = 125;
+                    break;
+            }
+        }
+
+        return $targets;
     }
 }
