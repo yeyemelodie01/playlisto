@@ -87,9 +87,15 @@ const removeToken = () => {
 /**
  * Logs out the user by removing the authentication token and redirecting to the login page.
  */
-const logout = () => {
-    removeToken();
-    window.location.href = '/login';
+const logout = async () => {
+    try {
+        await api.post('api/logout');
+    } finally {
+        removeToken();
+        sessionStorage.setItem('logoutMessage', 'Déconnexion réussie');
+
+        window.location.href = '/login';
+    }
 }
 
 /**

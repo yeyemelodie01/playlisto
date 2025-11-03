@@ -29,7 +29,7 @@ export default function OnePlaylist() {
       setLoading(true);
       setError(null);
       try {
-        // Compute correct API prefix based on configured base URL
+
         const API_URL = process.env.REACT_APP_API_URL || '';
         const prefix = API_URL.endsWith('/api') ? '' : '/api';
         const url = `${prefix}/me/playlists/${id}`;
@@ -38,7 +38,6 @@ export default function OnePlaylist() {
         if (!isMounted) return;
         console.log("[OnePlaylist] raw response", data);
 
-        // Normalize tracks shape so UI always works
         const normalized = {
           ...data,
           tracks: Array.isArray(data.tracks)
@@ -52,7 +51,7 @@ export default function OnePlaylist() {
                   t.image_url ??
                   (t.album && t.album.images && t.album.images[0] ? t.album.images[0].url : null) ??
                   "/images/track-placeholder.png",
-                // duration in seconds (backend may return duration or duration_ms)
+
                 duration: t.duration ?? (t.duration_ms ? Math.round(t.duration_ms / 1000) : undefined),
                 preview_url: t.preview_url ?? null,
                 spotifyId: t.spotifyId ?? t.spotify_id ?? null,
@@ -91,7 +90,6 @@ export default function OnePlaylist() {
     if (!track.preview_url) return;
     const audio = audioRef.current;
 
-    // Toggle play/pause if same track
     if (playingId === track.id) {
       audio.pause();
       setPlayingId(null);
@@ -161,7 +159,6 @@ export default function OnePlaylist() {
       <main className="min-h-[calc(100vh-10rem)] grid lg:grid-cols-5 sm:grid-cols-3 gap-4">
         <MenuAside />
         <section className="lg:col-span-4 sm:grid-cols-2 h-full p-6">
-          {/* Playlist header */}
           <div className="flex items-center gap-6 mb-6">
             <img
               src={cover}

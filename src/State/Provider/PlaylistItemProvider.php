@@ -44,7 +44,7 @@ final readonly class PlaylistItemProvider implements ProviderInterface
     {
         $user = $this->security->getUser();
         if (null === $user) {
-            return null; // No authenticated user
+            return null;
         }
         if (!$user instanceof User) {
             throw new AccessDeniedHttpException('Authenticated user is not a valid application user.');
@@ -55,7 +55,6 @@ final readonly class PlaylistItemProvider implements ProviderInterface
             return null;
         }
 
-        // Fetch playlist with its tracks already loaded for the current user
         $playlist = $this->playlists->findOneForUserWithTracks($playlistId, $user);
         if (!$playlist) {
             return null;
@@ -64,17 +63,14 @@ final readonly class PlaylistItemProvider implements ProviderInterface
         $tracksDto = [];
         if (method_exists($playlist, 'getTracks')) {
             foreach ($playlist->getTracks() as $t) {
-                // Derive artists as array if stored as a single string
                 $artists = method_exists($t, 'getArtist') ? $t->getArtist() : null;
                 if (is_string($artists)) {
                     $artists = array_values(array_filter(array_map('trim', preg_split('/,|;|\\|/u', $artists))));
                 } elseif (is_array($artists)) {
-                    // already an array
                 } else {
                     $artists = [];
                 }
 
-                // Duration: convert seconds (entity) to milliseconds for DTO if needed
                 $durationMs = null;
                 if (method_exists($t, 'getDuration')) {
                     $sec = $t->getDuration();

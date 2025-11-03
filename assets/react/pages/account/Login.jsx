@@ -2,6 +2,7 @@ import {Navigate, useNavigate} from "react-router-dom";
 import {useEffect, useState} from "react";
 import Textfield from "@components/Textfield";
 import apiService from "@services/apiService";
+import {session} from "../../../vendor/@hotwired/turbo/turbo.index";
 
 export default function Login() {
     const navigate = useNavigate();
@@ -18,6 +19,15 @@ export default function Login() {
         if (token) {
             navigate('/home');
         }
+
+        const logoutMessage = sessionStorage.getItem('logoutMessage');
+        if (logoutMessage) {
+          setMessage(logoutMessage);
+          sessionStorage.removeItem('logoutMessage');
+
+          setTimeout(() => setMessage(''), 3500);
+        }
+
     }, [navigate]);
 
     const token = apiService.getToken();
@@ -79,11 +89,16 @@ export default function Login() {
     };
 
     return (
-      <main className="min-h-screen flex items-center justify-center bg-base-200">
+      <main className="h-screen overflow-hidden flex items-center justify-center bg-base-200">
         <form onSubmit={handleSubmit} method="post" className="form-width flex flex-col items-center">
 
           <img src="/images/playlisto-logo.png" alt="Logo" className="w-64 px-4 py-2" />
           <h1 className="text-xl text-center my-4">Log in</h1>
+            {message && (
+                <div className="alert alert-info mb-4 w-80">
+                    <span className="sr-only">{message}</span>
+                </div>
+            )}
 
           <div className="form-login w-80">
             <Textfield
@@ -112,6 +127,7 @@ export default function Login() {
               <button type="submit" className="mt-5 bg-black text-white px-4 py-2 rounded-md">
                 Log in
               </button>
+                <p>Si vous n'avez pas de compte <br/> inscrivez-vous <a href="/register" className="text-sky-400 font-bold">ici</a></p>
             </div>
           </div>
         </form>

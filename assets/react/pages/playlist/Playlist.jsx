@@ -2,6 +2,7 @@ import {useEffect, useState} from "react";
 import apiService from "@services/apiService";
 import Header from "@components/Header";
 import MenuAside from "@components/MenuAside";
+import Footer from "@components/Footer";
 
 export default function Playlist() {
     const [playlists, setPlaylists] = useState([]);
@@ -36,12 +37,12 @@ export default function Playlist() {
     return (
         <>
             <Header />
-            <main className="min-h-[calc(100vh-10rem)] grid lg:grid-cols-5 sm:grid-cols-3 gap-4">
+            <main className="h-[44.8rem] grid lg:grid-cols-5 sm:grid-cols-3 gap-4">
                 <MenuAside />
 
                 <div className="max-w-3xl mx-auto px-4">
                         <h1 className="text-2xl font-semibold">
-                            Playlist
+                            Mes Playlist générée
                         </h1>
                         <p className="text-sm opacity-70">
                             Votre playlist personnalisée.
@@ -78,6 +79,7 @@ export default function Playlist() {
                     </section>
                 </div>
             </main>
+            <Footer />
         </>
     )
 }

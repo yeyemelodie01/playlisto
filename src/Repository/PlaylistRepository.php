@@ -114,6 +114,12 @@ class PlaylistRepository extends ServiceEntityRepository
             ->getArrayResult();
     }
 
+    /**
+     * @param int  $playlistId
+     * @param User $user
+     *
+     * @return Playlist|null
+     */
     public function findOneForUserWithTracks(int $playlistId, User $user): ?Playlist
     {
         return $this->createQueryBuilder('p')
