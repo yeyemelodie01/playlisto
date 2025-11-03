@@ -3,20 +3,6 @@ import { useNavigate } from "react-router-dom";
 import apiService from "@services/apiService";
 import Header from "@components/Header";
 
-const activityMap = Object.freeze({
-    sport: "sport",
-    travail: "work",
-    detente: "relax",
-    etude: "study",
-    cuisine: "cooking",
-});
-
-/**
- * Normalize a question's options to an array of { key: string|number, label: string }.
- * Accepts either:
- *  - [{ id, label }, ...] OR
- *  - ["oui", "non", ...]
- */
 function normalizeOptions(options) {
     if (!Array.isArray(options)) return [];
     return options.map((opt, idx) => {
@@ -47,26 +33,16 @@ function stripDiacritics(str = "") {
 function isActivityQuestion(q) {
     if (!q) return false;
     const label = stripDiacritics(q.label || q.questionLabel || "");
-    if (label.includes("activite")) return true; // match "activité" or "activite"
+    if (label.includes("activite")) return true;
 
-    // Fallback: check options look like the known activity set
     const opts = Array.isArray(q.options) ? q.options : [];
     const labels = opts.map((o) => (typeof o === "object" ? (o.label ?? o.value ?? o.name ?? "") : o));
     const norm = labels.map((l) => stripDiacritics(String(l)));
     const activitySet = new Set(["sport", "travail", "detente", "etude", "cuisine"]);
     const overlap = norm.filter((l) => activitySet.has(l));
-    return overlap.length >= 3; // heuristic
+    return overlap.length >= 3;
 }
 
-/**
- * Build the payload expected by the backend:
- * {
- *   surveyId: number,
- *   answers: [
- *     { questionId: number, optionValue: string } | { questionId: number, optionValues: string[] }
- *   ]
- * }
- */
 function buildSubmissionPayload(questionnaire, selected) {
     const answers = [];
     let activityQId = null;
@@ -89,31 +65,15 @@ function buildSubmissionPayload(questionnaire, selected) {
 
             if (typeof selectedForQ === "string") {
                 let value = selectedForQ;
-
-                const isActivity = (activityQId && qid === activityQId) || isActivityQuestion(q);
-                if (isActivity) {
-                    const key = stripDiacritics(value.trim());
-                    if (activityMap[key]) {
-                        value = activityMap[key];
-                    }
-                }
-
                 answers.push({ questionId: qid, optionValue: value });
             }
         }
     }
 
-    if (activityQId) {
-        for (const a of answers) {
-            if (a.questionId === activityQId && typeof a.optionValue === "string") {
-                const k = stripDiacritics(a.optionValue.trim());
-                if (activityMap[k]) a.optionValue = activityMap[k];
-            }
-        }
-    }
+    console.debug('[questions] root keys:', Object.keys(questionnaire || {}));
+    console.debug('[questions] first question:', questionnaire?.questions?.[0]);
 
     return {
-        surveyId: questionnaire.id ?? questionnaire.surveyId ?? 1,
         answers,
     };
 }
@@ -161,6 +121,7 @@ export default function Questions() {
     const canContinue = useMemo(() => {
         if (!currentQuestion) return false;
         if (qType === "multiple") {
+
             return Array.isArray(currentValue) && currentValue.length > 0;
         }
         return typeof currentValue === "string" && currentValue.length > 0;
@@ -181,6 +142,7 @@ export default function Questions() {
             const clean = String(label).trim();
             const exists = prevArr.includes(clean);
             const next = exists ? prevArr.filter((l) => l !== clean) : [...prevArr, clean];
+
             return { ...prev, [qId]: next };
         });
     };
@@ -206,6 +168,7 @@ export default function Questions() {
             setError(null);
 
             const payload = buildSubmissionPayload(questionnaire, selected);
+
             console.log("[submitAll] Payload (with activity mapped):", payload);
             const submitRes = await apiService.post("/api/me/surveys/submit", payload);
             const submitData = submitRes?.data ?? submitRes;

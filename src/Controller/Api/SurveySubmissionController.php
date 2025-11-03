@@ -66,17 +66,33 @@ final class SurveySubmissionController extends AbstractController
             throw new RuntimeException('Authenticated user not found.');
         }
 
-        $payload = json_decode($request->getContent(), true) ?? [];
-
-        $surveyId = $payload['surveyId'] ?? 1;
-        if (!is_numeric($surveyId)) {
-            throw new InvalidArgumentException('`surveyId` must be a number.');
-        }
-        $surveyId = (int) $surveyId;
+        $payload = json_decode($request->getContent() ?: '{}', true) ?? [];
 
         $items = $payload['answers'] ?? null;
         if (!is_array($items) || $items === []) {
             throw new InvalidArgumentException('`answers` must be a non-empty array.');
+        }
+
+        $surveyId = null;
+        $surveyIdRaw = $payload['surveyId'] ?? null;
+
+        if (is_numeric($surveyIdRaw)) {
+            $surveyId = (int) $surveyIdRaw;
+        } else {
+            $firstQid = (int)($items[0]['questionId'] ?? 0);
+            if ($firstQid > 0) {
+                $firstQ = $this->questionRepo->find($firstQid);
+                if ($firstQ) {
+                    $surveyId = $firstQ->getSurveyId();
+                }
+            }
+        }
+
+        if (!$surveyId || $surveyId <= 0) {
+            return new JsonResponse([
+                'error'   => 'invalid_payload',
+                'message' => 'surveyId manquant : envoyez-le ou fournissez au moins une question valide pour l’inférer.',
+            ], 422);
         }
 
         $activityFromAnswers = null;
@@ -86,11 +102,15 @@ final class SurveySubmissionController extends AbstractController
             $qid = (int) (($row['questionId'] ?? 0));
             if ($qid === self::ACTIVITY_QID) {
                 if (array_key_exists('optionValue', $row) && is_string($row['optionValue'])) {
-                    $activityFromAnswers = strtolower(trim($row['optionValue']));
-                } elseif (array_key_exists('optionId', $row) && is_string($row['optionId'])) {
-                    $activityFromAnswers = strtolower(trim($row['optionId']));
+                    $activityFromAnswers = mb_strtolower(trim($row['optionValue']));
+                } elseif (array_key_exists('optionId', $row) && is_numeric($row['optionId'])) {
+                    $opt = $this->answerOptionRepo->find((int)$row['optionId']);
+                    if ($opt && $opt->getQuestion()?->getId() === self::ACTIVITY_QID) {
+                        $activityFromAnswers = mb_strtolower(trim($opt->getLabel()));
+                    }
                 }
             }
+
             if ($qid === self::GENRES_QID) {
                 if (array_key_exists('optionValues', $row) && is_array($row['optionValues'])) {
                     foreach ($row['optionValues'] as $g) {
@@ -155,10 +175,17 @@ final class SurveySubmissionController extends AbstractController
                 throw new InvalidArgumentException('Each answer-option must contain `questionId`.');
             }
 
-            $persistAnswer = function (?int $optionId, ?string $optionValue) use ($submission, $qId) {
+            $persistAnswer = function (?int $optionId, ?string $optionValue) use ($surveyId, $submission, $qId) {
                 $question = $this->questionRepo->find($qId);
                 if (!$question) {
                     throw new InvalidArgumentException(sprintf('Unknown question id %d.', $qId));
+                }
+                if ($question->getSurveyId() !== $surveyId) {
+                    throw new InvalidArgumentException(sprintf(
+                        'Question %d n’appartient pas au survey %d.',
+                        $qId,
+                        $surveyId
+                    ));
                 }
 
                 if ($optionId !== null) {
@@ -279,15 +306,36 @@ final class SurveySubmissionController extends AbstractController
         }
 
         if (!empty($activityFromAnswers)) {
+            // normalisation accents + mapping FR -> codes enum
+            $norm = mb_strtolower(trim($activityFromAnswers));
+            $norm = strtr($norm, [
+                'é' => 'e','è' => 'e','ê' => 'e','ë' => 'e',
+                'à' => 'a','â' => 'a',
+                'î' => 'i','ï' => 'i',
+                'ô' => 'o',
+                'û' => 'u','ü' => 'u',
+                'ç' => 'c',
+            ]);
+            $map = [
+                'sport'   => 'sport',
+                'travail' => 'work',
+                'detente' => 'relax',
+                'etude'   => 'study',
+                'cuisine' => 'cooking',
+                'aucune'  => 'none',
+            ];
+            $canonical = $map[$norm] ?? $norm;
+
             try {
-                $activityEnum = ActivityType::from($activityFromAnswers);
+                $activityEnum = ActivityType::from($canonical);
             } catch (ValueError $e) {
                 throw new InvalidArgumentException(sprintf(
-                    'Invalid activity value "%s". Must be one of: %s',
+                    'Invalid activity value "%s". Allowed: %s',
                     $activityFromAnswers,
                     implode(', ', array_map(fn($c) => $c->value, ActivityType::cases()))
                 ));
             }
+
             if (method_exists($submission, 'setSelectedActivity')) {
                 $submission->setSelectedActivity($activityEnum);
             }
