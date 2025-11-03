@@ -40,44 +40,33 @@ export default function Playlist() {
             <main className="h-[44.8rem] grid lg:grid-cols-5 sm:grid-cols-3 gap-4">
                 <MenuAside />
 
-                <div className="max-w-3xl mx-auto px-4">
-                        <h1 className="text-2xl font-semibold">
-                            Mes Playlist générée
-                        </h1>
-                        <p className="text-sm opacity-70">
-                            Votre playlist personnalisée.
-                        </p>
-                    <section>
-                        {error && <p className="text-red-600">{error}</p>}
-                        {!error && playlists.length > 0 && (
-                            <ul>
-                                {playlists.map(playlist => (
-                                    <li key={playlist.id} className="p-4 border rounded mb-4 bg-base-100">
-                                        <div className="flex items-start justify-between">
-                                            <h2 className="text-lg font-semibold">{playlist.title ?? `Playlist #${playlist.id}`}</h2>
-                                            <span className="text-sm opacity-70">{playlist.trackCount ?? 0} tracks</span>
-                                        </div>
-                                        {playlist.description && (
-                                            <p className="mt-1 text-sm opacity-80">{playlist.description}</p>
-                                        )}
-                                        <div className="mt-2 text-xs opacity-70">
-                                            {playlist.mood && <span className="mr-3 italic">mood: {playlist.mood}</span>}
-                                            {playlist.activity && <span className="italic">activity: {playlist.activity}</span>}
-                                        </div>
+                <section className="col-span-4 w-full mx-auto px-4 overflow-auto mt-4">
+                    <h1 className="text-2xl font-semibold text-center">
+                        Mes Playlist générée
+                    </h1>
+                    {error && <p className="text-red-600">{error}</p>}
+                    {!error && playlists.length > 0 && (
+                        <ul className="flex flex-wrap gap-6 justify-center mt-6">
+                            {playlists.map(playlist => (
+                                <li key={playlist.id} className="w-64">
+                                    <a
+                                        href={`/playlist/${playlist.id}`}
+                                        className="block h-32 w-full bg-base-100 rounded-lg shadow hover:shadow-md transition p-4 border border-base-300 hover:border-primary cursor-pointer"
+                                    >
+                                        <h2 className="text-lg font-semibold mb-2">{playlist.title ?? `Playlist #${playlist.id}`}</h2>
+                                        <p className="text-sm mb-1 opacity-70">{playlist.trackCount ?? 0} tracks</p>
                                         {playlist.createdAt && (
-                                            <div className="mt-1 text-xs opacity-60">
-                                                created: {new Date(playlist.createdAt).toLocaleString()}
-                                            </div>
+                                            <p className="text-xs text-gray-500">Created: {new Date(playlist.createdAt).toLocaleString()}</p>
                                         )}
-                                    </li>
-                                ))}
-                            </ul>
-                        )}
-                        {!error && playlists.length === 0 && (
-                            <p>Aucune playlist disponible.</p>
-                        )}
-                    </section>
-                </div>
+                                    </a>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                    {!error && playlists.length === 0 && (
+                        <p>Aucune playlist disponible.</p>
+                    )}
+                </section>
             </main>
             <Footer />
         </>

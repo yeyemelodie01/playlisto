@@ -2,10 +2,9 @@
 
 namespace App\Controller\Api;
 
-use App\Entity\SurveySubmission;
 use App\Enum\ActivityType;
 use App\Enum\MoodType;
-use App\Enum\SpotifyGenre;
+use App\Service\OpenAIService;
 use App\Service\SpotifyService;
 use App\Entity\Playlist;
 use App\Entity\Track;
@@ -20,6 +19,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
+use Throwable;
 
 use function array_slice;
 use function count;
@@ -43,6 +43,7 @@ final readonly class GeneratePlaylistController
      * @param TrackRepository            $trackRepository
      * @param SurveySubmissionRepository $submissionRepository
      * @param Security                   $security
+     * @param OpenAIService              $openAI
      */
     public function __construct(
         private SpotifyService $spotify,
@@ -50,6 +51,7 @@ final readonly class GeneratePlaylistController
         private TrackRepository $trackRepository,
         private SurveySubmissionRepository $submissionRepository,
         private Security $security,
+        private readonly OpenAIService $openAI,
     ) {
     }
 
@@ -95,7 +97,18 @@ final readonly class GeneratePlaylistController
             ], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
-        $title = $this->makeTitle($mood, $activity, $genres);
+        try {
+            $title = $this->openAI->generatePlaylistTitle(
+                $mood,
+                $activity,
+                $genres,
+                'fr',
+                48
+            );
+        } catch (Throwable $e) {
+            $title = 'Mix ' . ucfirst($mood->value);
+        }
+
         $desc = $this->makeDescription($submissionId, $mood, $activity, $genres);
 
         $playlist = new Playlist();

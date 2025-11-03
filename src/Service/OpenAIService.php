@@ -2,6 +2,8 @@
 
 namespace App\Service;
 
+use App\Enum\ActivityType;
+use App\Enum\MoodType;
 use App\Enum\SpotifyGenre;
 use Random\RandomException;
 use RuntimeException;
@@ -332,5 +334,140 @@ final readonly class OpenAIService
         }
 
         return $content;
+    }
+
+    /**
+     * Génère un titre court de playlist en combinant MoodType, ActivityType et genres.
+     *
+     * @param MoodType          $mood
+     * @param ActivityType|null $activity
+     * @param string[]          $genres
+     * @param string            $locale
+     * @param int               $maxLen
+     *
+     * @return string
+     */
+    public function generatePlaylistTitle(
+        MoodType $mood,
+        ?ActivityType $activity,
+        array $genres,
+        string $locale = 'fr',
+        int $maxLen = 48
+    ): string {
+        $moodVal = strtolower($mood->value);
+        $activityVal = $activity?->value ? strtolower($activity->value) : null;
+
+        $genres = array_values(array_filter(array_map(
+            static fn($g) => strtolower(trim((string)$g)),
+            $genres
+        )));
+        if (empty($genres)) {
+            $genres = ['pop'];
+        }
+        $genresUsed = array_slice($genres, 0, 3);
+
+        $system = <<<SYS
+        You are a concise naming assistant for a music app (Playlisto). 
+        Goal: produce ONE catchy playlist title that blends the user's mood, activity and 1–3 selected genres.
+        
+        Language & style:
+        - Default language: French (unless locale="en").
+        - Be short and punchy: 24–48 characters if possible.
+        - Natural casing in FR (capitalize first word + proper nouns).
+        - Avoid the word "playlist", hashtags, quotes, and trailing punctuation.
+        - You may use 0 or 1 tasteful emoji max; omit if it hurts clarity.
+        - Prefer separators like " · " (middle dot) or " — " (em dash).
+        
+        Mood labels (input values): happy, sad, energetic, stressed, calm
+        Activity labels: sport, travail, détente, étude, cuisine, aucune/null
+        
+        Composition rules:
+        - Start with the mood display label.
+        - If activity is present (not "aucune"), add " · {Activity}".
+        - Add " · {g1, g2[, g3]}" with provided genres.
+        - Output max_len if provided (≤48).
+        
+        Output STRICT JSON:
+        {
+          "title": "string",
+          "debug": {"mood": "...", "activity": "...", "genres_used": ["..."]}
+        }
+        No explanations.
+        SYS;
+
+        $user = json_encode([
+            'mood'    => $moodVal,
+            'activity' => $activityVal,
+            'genres'  => $genresUsed,
+            'locale'  => $locale,
+            'max_len' => $maxLen,
+        ], JSON_UNESCAPED_UNICODE);
+
+        $payload = [
+            'model' => $this->model,
+            'messages' => [
+                ['role' => 'system', 'content' => $system],
+                ['role' => 'user',   'content' => $user],
+            ],
+            'temperature' => 0.5,
+            'response_format' => ['type' => 'json_object'],
+            'max_tokens' => 120,
+        ];
+
+        try {
+            $raw = $this->request($payload);
+            $data = json_decode($raw, true);
+            $title = trim((string)($data['title'] ?? ''));
+
+            if ($title !== '') {
+                return $this->truncateTitle($title, $maxLen);
+            }
+        } catch (\Throwable) {
+        }
+
+        return $this->fallbackPlaylistTitle($mood, $activity, $genresUsed, $locale, $maxLen);
+    }
+
+    private function fallbackPlaylistTitle(
+        MoodType $mood,
+        ?ActivityType $activity,
+        array $genres,
+        string $locale,
+        int $maxLen
+    ): string {
+        $moodMap = [
+            MoodType::HAPPY->value => ['fr' => 'Joyeux'],
+            MoodType::SAD->value => ['fr' => 'triste'],
+            MoodType::ENERGETIC->value => ['fr' => 'Énergique'],
+            MoodType::STRESSED->value => ['fr' => 'Stresse'],
+            MoodType::CALM->value => ['fr' => 'Calme'],
+        ];
+
+        $activityMap = [
+            ActivityType::SPORT->value => 'Sport',
+            ActivityType::WORK->value => 'Travail',
+            ActivityType::RELAX->value => 'Détente',
+            ActivityType::STUDY->value => 'Étude',
+            ActivityType::COOKING->value => 'Cuisine',
+            ActivityType::NONE->value => null,
+        ];
+
+        $moodLabel = $moodMap[$mood->value][$locale === 'en' ? 'en' : 'fr'] ?? 'Calme';
+        $activityLabel = $activity ? ($activityMap[$activity->value] ?? null) : null;
+        $genresLabel = implode(', ', $genres);
+
+        $parts = array_filter([$moodLabel, $activityLabel, $genresLabel]);
+        $title = implode(' · ', $parts);
+
+        return $this->truncateTitle($title, $maxLen);
+    }
+
+    private function truncateTitle(string $title, int $maxLen): string
+    {
+        $title = trim($title);
+        if (mb_strlen($title) <= $maxLen) {
+            return $title;
+        }
+        return rtrim(mb_substr($title, 0, $maxLen - 1)) . '…';
     }
 }

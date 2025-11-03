@@ -212,12 +212,12 @@ class Track
         $this->coverUrl = $coverUrl;
     }
 
-    public function getPreviewUrl(): string
+    public function getPreviewUrl(): ?string
     {
         return $this->previewUrl;
     }
 
-    public function setPreviewUrl(string $previewUrl): void
+    public function setPreviewUrl(?string $previewUrl): void
     {
         $this->previewUrl = $previewUrl;
     }

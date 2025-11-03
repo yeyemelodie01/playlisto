@@ -6,7 +6,6 @@ use App\Enum\SpotifyGenre;
 use InvalidArgumentException;
 use RuntimeException;
 use Symfony\Contracts\Cache\CacheInterface;
-use Symfony\Contracts\Cache\ItemInterface;
 use Symfony\Contracts\HttpClient\Exception\ClientExceptionInterface;
 use Symfony\Contracts\HttpClient\Exception\DecodingExceptionInterface;
 use Symfony\Contracts\HttpClient\Exception\RedirectionExceptionInterface;
@@ -286,133 +285,6 @@ final readonly class SpotifyService
     }
 
     /**
-     * @param string[] $artistIds
-     *
-     * @return array<string, string[]>
-     *
-     * @throws \Psr\Cache\InvalidArgumentException
-     */
-    private function fetchArtistsGenres(array $artistIds): array
-    {
-        $artistIds = array_values(array_unique(array_filter(array_map('strval', $artistIds))));
-        if (!$artistIds) {
-            return [];
-        }
-
-        $chunks = array_chunk($artistIds, 50);
-        $out = [];
-
-        foreach ($chunks as $chunk) {
-            $cacheKey = 'spotify_artists_' . md5(implode(',', $chunk));
-            $data = $this->cache->get($cacheKey, function (ItemInterface $item) use ($chunk) {
-                $item->expiresAfter(1800);
-                $token = $this->token();
-                $url = $this->apiBase() . '/artists';
-                $resp = $this->http->request('GET', $url, [
-                    'headers' => ['Authorization' => 'Bearer ' . $token],
-                    'query'   => ['ids' => implode(',', $chunk)],
-                    'timeout' => 15,
-                ])->toArray(false);
-
-                return is_array($resp) ? $resp : [];
-            });
-
-            $artists = $data['artists'] ?? [];
-            if (!is_array($artists)) {
-                continue;
-            }
-            foreach ($artists as $a) {
-                $id = (string)($a['id'] ?? '');
-                if ($id === '') {
-                    continue;
-                }
-                $genres = array_values(array_unique(array_map('strval', $a['genres'] ?? [])));
-                $out[$id] = $genres;
-            }
-        }
-
-        return $out;
-    }
-
-    /**
-     * @param array    $tracks
-     * @param string[] $allowedGenres
-     *
-     * @return array
-     *
-     * @throws \Psr\Cache\InvalidArgumentException
-     */
-    private function filterTracksByArtistGenres(array $tracks, array $allowedGenres): array
-    {
-        if (!$tracks || !$allowedGenres) {
-            return [];
-        }
-
-        $allowedSet = array_fill_keys(array_map('strtolower', $allowedGenres), true);
-
-        $artistIds = [];
-        foreach ($tracks as $t) {
-            foreach (($t['artists'] ?? []) as $a) {
-                $id = (string)($a['id'] ?? '');
-                if ($id !== '') {
-                    $artistIds[] = $id;
-                }
-            }
-        }
-        $artistIds = array_values(array_unique($artistIds));
-
-        $artistGenres = $this->fetchArtistsGenres($artistIds);
-
-        if (!$artistGenres) {
-            return [];
-        }
-
-        $out = [];
-        foreach ($tracks as $t) {
-            $ok = false;
-            foreach (($t['artists'] ?? []) as $a) {
-                $id = (string)($a['id'] ?? '');
-                if ($id === '' || empty($artistGenres[$id])) {
-                    continue;
-                }
-
-                foreach ($artistGenres[$id] as $g) {
-                    $gLower = strtolower((string)$g);
-                    $gClean = preg_replace('/[^a-z0-9]+/i', '', str_replace('-', ' ', $gLower) ?? '');
-
-                    foreach ($allowedSet as $seed => $_true) {
-                        $seedClean = preg_replace('/[^a-z0-9]+/i', '', str_replace('-', ' ', (string)$seed) ?? '');
-                        if ($seedClean === '') {
-                            continue;
-                        }
-
-                        if ($gLower === $seed) {
-                            $ok = true;
-                            break 2;
-                        }
-
-                        if (preg_match('/\b' . preg_quote($seed, '/') . '\b/i', $gLower) === 1) {
-                            $ok = true;
-                            break 2;
-                        }
-
-                        if ($gClean !== '' && str_contains($gClean, $seedClean)) {
-                            $ok = true;
-                            break 2;
-                        }
-                    }
-                }
-            }
-
-            if ($ok) {
-                $out[] = $t;
-            }
-        }
-
-        return $out;
-    }
-
-    /**
      * @param array       $genres
      * @param array       $targets
      * @param int         $limit
@@ -424,8 +296,6 @@ final readonly class SpotifyService
      * @throws RedirectionExceptionInterface
      * @throws ServerExceptionInterface
      * @throws TransportExceptionInterface
-     * @throws \Psr\Cache\InvalidArgumentException
-     * @throws DecodingExceptionInterface
      */
     public function tracksByGenresWithTargets(array $genres, array $targets = [], int $limit = 25, ?string $market = null): array
     {
@@ -435,19 +305,17 @@ final readonly class SpotifyService
         if (empty($seedGenres)) {
             throw new InvalidArgumentException('No valid genres provided.');
         }
-
         $seed3 = array_slice($seedGenres, 0, 3);
 
-        $try = function (array $seeds) use ($targets, $limit, $market): array {
-            $reco = $this->recommendations($seeds, [], $targets, 100, $market);
+        $tryReco = function (array $seeds) use ($limit, $market): array {
+            $reco = $this->recommendations($seeds, [], [], 100, $market);
             if (!$reco) {
                 return [];
             }
-
-            return $this->extracted($reco, $seeds, $targets, $limit);
+            return $this->extracted($reco, $seeds, [], $limit);
         };
 
-        if ($res = $try($seed3)) {
+        if ($res = $tryReco($seed3)) {
             return $res;
         }
 
@@ -458,230 +326,62 @@ final readonly class SpotifyService
             }
         }
         foreach ($pairs as $p) {
-            if ($res = $try($p)) {
+            if ($res = $tryReco($p)) {
                 return $res;
             }
         }
 
         foreach ($seed3 as $g) {
-            if ($res = $try([$g])) {
+            if ($res = $tryReco([$g])) {
                 return $res;
             }
         }
 
-        $wideTargets = $targets;
-        unset($wideTargets['target_tempo']);
-        if (isset($wideTargets['min_energy'])) {
-            $wideTargets['min_energy'] = max(0.0, (float)$wideTargets['min_energy'] - 0.1);
-        }
-        if (isset($wideTargets['min_danceability'])) {
-            $wideTargets['min_danceability'] = max(0.0, (float)$wideTargets['min_danceability'] - 0.1);
-        }
-
-        $tryWide = function (array $seeds) use ($wideTargets, $limit, $market): array {
-            $reco = $this->recommendations($seeds, [], $wideTargets, 100, $market);
-            if (!$reco) {
-                return [];
-            }
-            return $this->extracted($reco, $seeds, $wideTargets, $limit);
-        };
-
-        if ($res = $tryWide($seed3)) {
-            return $res;
-        }
-        foreach ($pairs as $p) {
-            if ($res = $tryWide($p)) {
-                return $res;
-            }
-        }
-        foreach ($seed3 as $g) {
-            if ($res = $tryWide([$g])) {
-                return $res;
-            }
-        }
-
-        $tryNoTargets = function (array $seeds) use ($limit, $market, $targets): array {
-            $reco = $this->recommendations($seeds, [], [], 100, $market);
-            if (!$reco) {
-                return [];
-            }
-            return $this->extracted($reco, $seeds, $targets, $limit);
-        };
-
-        if ($res = $tryNoTargets($seed3)) {
-            return $res;
-        }
-        foreach ($pairs as $p) {
-            if ($res = $tryNoTargets($p)) {
-                return $res;
-            }
-        }
-        foreach ($seed3 as $g) {
-            if ($res = $tryNoTargets([$g])) {
-                return $res;
-            }
-        }
+        $markets = [$market, 'US', 'GB', 'DE', 'FR', 'BR', 'JP', 'CA', 'AU', 'NL', 'SE', 'ES', 'IT', 'MX'];
+        $markets = array_values(array_unique(array_filter($markets, fn($m) => $m === null || is_string($m))));
 
         $accum = [];
-        foreach ($seed3 as $g) {
-            $items = $this->search('genre:"' . $g . '"', 'track', 50, $market);
-            if ($items) {
-                $accum = array_merge($accum, $items);
-            }
-        }
-        if ($accum) {
-            $seen = [];
-            $unique = [];
-            foreach ($accum as $it) {
-                $id = $it['id'] ?? null;
-                if (!is_string($id) || $id === '' || isset($seen[$id])) {
+        $seen  = [];
+        foreach ($markets as $mkt) {
+            foreach ($seed3 as $g) {
+                try {
+                    $items = $this->search('genre:"' . $g . '"', 'track', 50, $mkt);
+                } catch (\Throwable) {
+                    $items = [];
+                }
+                if (!$items) {
                     continue;
                 }
-                $seen[$id] = true;
-                $unique[] = $it;
+                foreach ($items as $it) {
+                    $id = (string)($it['id'] ?? '');
+                    if ($id === '' || isset($seen[$id])) {
+                        continue;
+                    }
+                    $seen[$id] = true;
+                    $accum[] = $it;
+                    if (count($accum) >= $limit) {
+                        return $this->extracted($accum, $seed3, [], $limit);
+                    }
+                }
             }
-            return $this->extracted($unique, $seed3, $targets, $limit);
+        }
+
+        foreach ($markets as $mkt) {
+            foreach ($seed3 as $g) {
+                try {
+                    $reco = $this->recommendations([$g], [], ['min_popularity' => 0], 100, $mkt);
+                } catch (\Throwable) {
+                    $reco = [];
+                }
+                if ($reco) {
+                    return $this->extracted($reco, [$g], [], $limit);
+                }
+            }
         }
 
         return [];
     }
 
-    /**
-     * @param array $targets
-     *
-     * @return array{min_energy?:float,min_danceability?:float,min_tempo?:float,max_tempo?:float}
-     */
-    private function buildAudioRules(array $targets): array
-    {
-        $rules = [];
-
-        if (isset($targets['min_energy'])) {
-            $rules['min_energy'] = max(0.0, min(1.0, (float)$targets['min_energy']));
-        } elseif (isset($targets['target_energy'])) {
-            $rules['min_energy'] = max(0.0, min(1.0, (float)$targets['target_energy'] - 0.1));
-        }
-
-        if (isset($targets['min_danceability'])) {
-            $rules['min_danceability'] = max(0.0, min(1.0, (float)$targets['min_danceability']));
-        } elseif (isset($targets['target_danceability'])) {
-            $rules['min_danceability'] = max(0.0, min(1.0, (float)$targets['target_danceability'] - 0.1));
-        }
-
-        if (isset($targets['min_tempo'])) {
-            $rules['min_tempo'] = max(0.0, (float)$targets['min_tempo']);
-        }
-        if (isset($targets['max_tempo'])) {
-            $rules['max_tempo'] = max(0.0, (float)$targets['max_tempo']);
-        }
-        if (isset($targets['target_tempo'])) {
-            $t = (float)$targets['target_tempo'];
-            if (!isset($rules['min_tempo'])) {
-                $rules['min_tempo'] = max(0.0, $t - 10.0);
-            }
-            if (!isset($rules['max_tempo'])) {
-                $rules['max_tempo'] = max(0.0, $t + 20.0);
-            }
-        }
-
-        return $rules;
-    }
-
-    /**
-     * @param string[] $trackIds
-     *
-     * @return array<string, array>
-     */
-    private function fetchAudioFeatures(array $trackIds): array
-    {
-        $trackIds = array_values(array_unique(array_filter(array_map('strval', $trackIds))));
-        if (!$trackIds) {
-            return [];
-        }
-
-        try {
-            $token = $this->token();
-        } catch (\Throwable $e) {
-            return [];
-        }
-        $url   = $this->apiBase() . '/audio-features';
-        $out   = [];
-
-        foreach (array_chunk($trackIds, 100) as $chunk) {
-            try {
-                $resp = $this->http->request('GET', $url, [
-                    'headers' => [
-                        'Authorization' => 'Bearer ' . $token,
-                        'Accept'        => 'application/json',
-                    ],
-                    'query'   => ['ids' => implode(',', $chunk)],
-                    'timeout' => 15,
-                ]);
-                $data = $resp->toArray(false);
-                $afs  = $data['audio_features'] ?? [];
-                if (!is_array($afs)) {
-                    continue;
-                }
-                foreach ($afs as $af) {
-                    if (!is_array($af)) {
-                        continue;
-                    }
-                    $id = (string)($af['id'] ?? '');
-                    if ($id !== '') {
-                        $out[$id] = $af;
-                    }
-                }
-            } catch (\Throwable) {
-                continue;
-            }
-        }
-
-        return $out;
-    }
-
-    /**
-     * @param array $tracks
-     * @param array $features
-     * @param array $rules
-     *
-     * @return array
-     */
-    private function filterTracksByAudio(array $tracks, array $features, array $rules): array
-    {
-        if (!$tracks || !$rules) {
-            return $tracks;
-        }
-
-        if (!$features) {
-            return $tracks;
-        }
-
-        $kept = [];
-        foreach ($tracks as $t) {
-            $id = (string)($t['id'] ?? '');
-            if ($id === '' || !isset($features[$id]) || !is_array($features[$id])) {
-                $kept[] = $t;
-                continue;
-            }
-            $af = $features[$id];
-
-            if (isset($rules['min_energy']) && isset($af['energy']) && (float)$af['energy'] < (float)$rules['min_energy']) {
-                continue;
-            }
-            if (isset($rules['min_danceability']) && isset($af['danceability']) && (float)$af['danceability'] < (float)$rules['min_danceability']) {
-                continue;
-            }
-            if (isset($rules['min_tempo']) && isset($af['tempo']) && (float)$af['tempo'] < (float)$rules['min_tempo']) {
-                continue;
-            }
-            if (isset($rules['max_tempo']) && isset($af['tempo']) && (float)$af['tempo'] > (float)$rules['max_tempo']) {
-                continue;
-            }
-
-            $kept[] = $t;
-        }
-
-        return $kept;
-    }
 
     /**
      * @param array $unique
@@ -690,17 +390,9 @@ final readonly class SpotifyService
      * @param mixed $limit
      *
      * @return array
-     *
-     * @throws \Psr\Cache\InvalidArgumentException
      */
     public function extracted(array $unique, array $seed3, array $targets, mixed $limit): array
     {
-        $filtered = $this->filterTracksByArtistGenres($unique, $seed3);
-        $rules = $this->buildAudioRules($targets);
-        if (!empty($rules)) {
-            $features = $this->fetchAudioFeatures(array_map(fn($t) => (string)($t['id'] ?? ''), $filtered));
-            $filtered = $this->filterTracksByAudio($filtered, $features, $rules);
-        }
-        return array_slice($filtered, 0, $limit);
+        return array_slice($unique, 0, $limit);
     }
 }
