@@ -20,7 +20,7 @@ use Symfony\Component\Validator\Constraints as Assert;
  * Each survey submission includes:
  * - Survey ID (`surveyId`): Identifier for the specific survey.
  * - Deduced Mood (`deducedMood`): The mood inferred from the user's answers.
- * - Deduced Activity (`deducedActivity`): The activity inferred from the user's answers.
+ * - Selected Activity ()
  * - Preferred Genres (`preferredGenres`): A list of music genres preferred by the user.
  * - User (`user`): The user who submitted the survey.
  * - Survey Answers (`surveyAnswers`): A collection of answers provided in the survey.
