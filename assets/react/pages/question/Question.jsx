@@ -126,9 +126,8 @@ export default function Questions() {
     const [questionnaire, setQuestionnaire] = useState(null);
 
     const [currentIndex, setCurrentIndex] = useState(0);
-    const [selected, setSelected] = useState({}); // { [questionId]: string | string[] }
+    const [selected, setSelected] = useState({});
 
-    // Load the active questionnaire
     useEffect(() => {
         const controller = new AbortController();
 
@@ -167,7 +166,6 @@ export default function Questions() {
         return typeof currentValue === "string" && currentValue.length > 0;
     }, [currentQuestion, qType, currentValue]);
 
-    // Handlers
     const onPickSingle = (label) => {
         if (!qId) return;
         console.log('[onPickSingle]', { qId, label });
@@ -207,7 +205,6 @@ export default function Questions() {
             setStatus("submitting");
             setError(null);
 
-            // 1) Submit answers
             const payload = buildSubmissionPayload(questionnaire, selected);
             console.log("[submitAll] Payload (with activity mapped):", payload);
             const submitRes = await apiService.post("/api/me/surveys/submit", payload);
@@ -219,7 +216,6 @@ export default function Questions() {
                 throw new Error("Impossible de récupérer l'identifiant de soumission.");
             }
 
-            // 2) Generate playlist from submission
             const genRes = await apiService.post("/api/me/generate-playlist", {
                 submission_id: submissionId,
                 limit: 20,
@@ -227,14 +223,13 @@ export default function Questions() {
             const genData = genRes?.data ?? genRes;
             console.log("[submitAll] Generate response:", genData);
 
-            // Try to find the created playlist id in various shapes
             const playlistId =
                 genData?.id ||
                 genData?.playlist?.id ||
                 genData?.data?.id;
 
             if (!playlistId) {
-                // If backend returns the full playlist object, navigate directly with state
+
                 return navigate("/playlist" +
                     "", { state: { generated: genData } });
             }

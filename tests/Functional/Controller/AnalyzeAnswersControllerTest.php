@@ -2,21 +2,14 @@
 
 namespace App\Tests\Functional\Controller;
 
-use App\Entity\AnswerOption;
-use App\Entity\Question;
 use App\Entity\User;
-use App\Repository\AnswerOptionRepository;
 use App\Repository\QuestionRepository;
-use App\Repository\SurveySubmissionRepository;
 use App\Repository\UserRepository;
 use App\Service\OpenAIService;
-use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
-use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpClient\MockHttpClient;
 use Symfony\Component\HttpClient\Response\MockResponse;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
-use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 final class AnalyzeAnswersControllerTest extends WebTestCase
 {

@@ -93,6 +93,7 @@ const logout = async () => {
     } finally {
         removeToken();
         sessionStorage.setItem('logoutMessage', 'Déconnexion réussie');
+
         window.location.href = '/login';
     }
 }
