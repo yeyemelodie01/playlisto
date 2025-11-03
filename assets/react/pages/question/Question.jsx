@@ -132,16 +132,30 @@ export default function Questions() {
         console.log('[onPickSingle]', { qId, label });
         const clean = String(label).trim();
         setSelected((prev) => ({ ...prev, [qId]: clean }));
+
+        if (currentIndex < questions.length - 1) {
+
+            setTimeout(() => {
+                setCurrentIndex((i) => i + 1);
+            }, 120);
+        }
     };
 
     const onToggleMulti = (label) => {
         if (!qId) return;
         console.log('[onToggleMulti]', { qId, label });
+
+        const clean = String(label).trim();
         setSelected((prev) => {
             const prevArr = Array.isArray(prev[qId]) ? prev[qId] : [];
-            const clean = String(label).trim();
             const exists = prevArr.includes(clean);
             const next = exists ? prevArr.filter((l) => l !== clean) : [...prevArr, clean];
+
+            if (next.length > 0 && currentIndex < questions.length - 1) {
+                setTimeout(() => {
+                    setCurrentIndex((i) => i + 1);
+                }, 120);
+            }
 
             return { ...prev, [qId]: next };
         });
@@ -207,7 +221,7 @@ export default function Questions() {
     return (
         <>
             <Header />
-            <main className="min-h-screen bg-base-200 py-8">
+            <main className="h-[48.3rem] flex items-center justify-center overflow-hidden bg-base-200">
                 <div className="max-w-3xl mx-auto px-4">
                     {status === "loading" && (
                         <div className="alert">
@@ -231,13 +245,13 @@ export default function Questions() {
                     )}
 
                     {status === "ready" && Array.isArray(questions) && questions.length > 0 && currentQuestion && (
-                        <section className="flex flex-col items-center justify-center min-h-[60vh]">
+                        <section className="flex flex-col items-center justify-center min-h-[calc(100vh-12rem)]">
                             <h2 className="text-2xl font-semibold mb-8 text-center">
                                 {currentQuestion.label}
                             </h2>
 
                             {options.length > 0 ? (
-                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                                <div className={`grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 ${currentIndex === questions.length - 1 ? 'max-h-[40vh] md:max-h-[300px] overflow-y-auto' : ''}`}>
                                     {options.map((opt) => {
                                         const isActive =
                                             qType === "multiple"

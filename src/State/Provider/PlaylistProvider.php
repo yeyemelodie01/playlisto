@@ -138,7 +138,7 @@ final readonly class PlaylistProvider implements ProviderInterface
             duration: $track->getDuration(),
             spotifyId: $track->getSpotifyId(),
             coverUrl: $track->getCoverUrl(),
-            previewUrl: method_exists($track, 'getPreviewUrl') ? $track->getPreviewUrl() : null,
+            previewUrl: method_exists($track, 'getPreviewUrl') ? ($track->getPreviewUrl() ?? '') : '',
         );
     }
 }
