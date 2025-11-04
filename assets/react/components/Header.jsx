@@ -1,10 +1,11 @@
-import { Link } from "react-router-dom";
+import {Link, useLocation} from "react-router-dom";
 import { useState, useEffect } from "react";
 import apiService from "@services/apiService";
 
 const Header = () => {
     const [me, setMe] = useState(null);
     const [loading, setLoading] = useState(true);
+    const location = useLocation();
 
     useEffect(() => {
         const token = apiService.getToken();
@@ -25,6 +26,8 @@ const Header = () => {
         await apiService.logout();
     };
 
+    const hidePlaylistLink = ["/playlist", "/profile"].some(path => location.pathname.startsWith(path));
+
     return (
         <header className="navbar py-2">
             <div className="navbar">
@@ -39,9 +42,14 @@ const Header = () => {
                                     <li>
                                         <p className="text-base text-white font-bold">Bienvenue {displayName}</p>
                                     </li>
-                                    <li className="disabled">
-                                        <Link to="/profile" className="text-base text-white font-bold" onClick={(e) => e.preventDefault()}>Profil (bientôt)</Link>
+                                    <li>
+                                        <Link to="/profile" className="text-base text-white font-bold">Mon Profil</Link>
                                     </li>
+                                    {!hidePlaylistLink && (
+                                        <li>
+                                            <Link to="/playlist" className="text-base text-white font-bold">Mes playlists</Link>
+                                        </li>
+                                    )}
                                     <li>
                                         <Link className="text-base text-white font-bold" onClick={handleLogout}>Se déconnecter</Link>
                                     </li>
@@ -57,12 +65,17 @@ const Header = () => {
                     <ul className="menu menu-horizontal px-1">
                         {!loading && me && (
                             <>
-                                <li>
+                                <li className="disabled">
                                     <p className="text-base text-white font-bold">Bienvenue {displayName}</p>
                                 </li>
-                                <li className="disabled">
-                                    <Link to="/profile" onClick={(e) => e.preventDefault()} className="text-base font-bold text-white">Profil (bientôt)</Link>
+                                <li>
+                                    <Link to="/profile" className="text-base text-white font-bold">Mon Profil</Link>
                                 </li>
+                                {!hidePlaylistLink && (
+                                    <li>
+                                        <Link to="/playlist" className="text-base text-white font-bold">Mes playlists</Link>
+                                    </li>
+                                )}
                                 <li>
                                     <Link onClick={handleLogout} className="font-bold text-white text-base">Se déconnecter</Link>
                                 </li>

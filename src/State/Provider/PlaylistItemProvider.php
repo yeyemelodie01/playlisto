@@ -80,9 +80,9 @@ final readonly class PlaylistItemProvider implements ProviderInterface
                 $tracksDto[] = new TrackOutput(
                     id: $t->getId() ?? 0,
                     title: $t->getTitle() ?? '',
-                    artists: $artists,
+                    artists: $t->getArtists() ?? [],
                     album: method_exists($t, 'getAlbum') ? $t->getAlbum() : null,
-                    duration: $durationMs,
+                    duration: $t->getDuration() ?? 0,
                     spotifyId: method_exists($t, 'getSpotifyId') ? $t->getSpotifyId() : null,
                     coverUrl: method_exists($t, 'getCoverUrl') ? $t->getCoverUrl() : null,
                     previewUrl: method_exists($t, 'getPreviewUrl') ? $t->getPreviewUrl() : null,

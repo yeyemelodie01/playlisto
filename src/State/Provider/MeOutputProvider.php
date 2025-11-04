@@ -34,12 +34,9 @@ final readonly class MeOutputProvider implements ProviderInterface
      *
      * @return MeOutput|null returns a MeOutput object if a user is authenticated, null otherwise
      */
-    #[\Override]
     public function provide(Operation $operation, array $uriVariables = [], array $context = []): ?MeOutput
     {
-        unset($operation, $uriVariables, $context);
         $user = $this->security->getUser();
-
         if (null === $user) {
             return null;
         }
@@ -51,7 +48,7 @@ final readonly class MeOutputProvider implements ProviderInterface
         return new MeOutput(
             email: $user->getEmail(),
             roles: $user->getRoles(),
-            username: $user->getUsername()
+            username: method_exists($user, 'getUsername') ? $user->getUsername() : null
         );
     }
 }

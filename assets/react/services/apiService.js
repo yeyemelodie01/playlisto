@@ -73,10 +73,8 @@ const removeToken = () => {
     const isHttps = window.location.protocol === 'https:';
     const attrs = `Path=/; SameSite=Strict;${isHttps ? ' Secure;' : ''} Expires=Thu, 01 Jan 1970 00:00:00 GMT`;
 
-    // Remove on current host
     document.cookie = `auth_token=; ${attrs}`;
 
-    // Also try removing on parent domain (e.g., .playlisto.com)
     const parts = location.hostname.split('.');
     if (parts.length >= 2) {
         const parent = '.' + parts.slice(-2).join('.');
@@ -88,11 +86,11 @@ const removeToken = () => {
  * Logs out the user by removing the authentication token and redirecting to the login page.
  */
 const logout = async () => {
+    sessionStorage.setItem('logoutMessage', 'Déconnexion réussie');
     try {
         await api.post('api/logout');
     } finally {
         removeToken();
-        sessionStorage.setItem('logoutMessage', 'Déconnexion réussie');
 
         window.location.href = '/login';
     }

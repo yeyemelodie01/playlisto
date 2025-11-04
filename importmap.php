@@ -26,7 +26,7 @@ return [
         'version' => '7.3.0',
     ],
     'react' => [
-        'version' => '18.3.1',
+        'version' => '19.2.0',
     ],
     'react-dom/client' => [
         'version' => '18.3.1',
@@ -57,5 +57,8 @@ return [
     ],
     'set-cookie-parser' => [
         'version' => '2.7.1',
+    ],
+    'lucide-react' => [
+        'version' => '0.552.0',
     ],
 ];

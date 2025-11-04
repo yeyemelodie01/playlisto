@@ -1,4 +1,5 @@
 import {useEffect, useState} from "react";
+import { Link } from "react-router-dom";
 import apiService from "@services/apiService";
 import Header from "@components/Header";
 import MenuAside from "@components/MenuAside";
@@ -49,8 +50,8 @@ export default function Playlist() {
                         <ul className="flex flex-wrap gap-6 justify-center mt-6">
                             {playlists.map(playlist => (
                                 <li key={playlist.id} className="w-64">
-                                    <a
-                                        href={`/playlist/${playlist.id}`}
+                                    <Link
+                                        to={`/playlist/${playlist.id}`}
                                         className="block h-32 w-full bg-base-100 rounded-lg shadow hover:shadow-md transition p-4 border border-base-300 hover:border-primary cursor-pointer"
                                     >
                                         <h2 className="text-lg font-semibold mb-2">{playlist.title ?? `Playlist #${playlist.id}`}</h2>
@@ -58,7 +59,7 @@ export default function Playlist() {
                                         {playlist.createdAt && (
                                             <p className="text-xs text-gray-500">Created: {new Date(playlist.createdAt).toLocaleString()}</p>
                                         )}
-                                    </a>
+                                    </Link>
                                 </li>
                             ))}
                         </ul>
