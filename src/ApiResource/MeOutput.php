@@ -3,7 +3,10 @@
 namespace App\ApiResource;
 
 use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\Put;
+use App\State\Processor\MeProcessor;
 use App\State\Provider\MeOutputProvider;
 
 /**
@@ -19,6 +22,21 @@ use App\State\Provider\MeOutputProvider;
             security: "is_granted('IS_AUTHENTICATED_FULLY')",
             name: 'GetCurrentUser',
             provider: MeOutputProvider::class
+        ),
+        new Put(
+            uriTemplate: '/me',
+            description: 'Update the currently authenticated user',
+            security: "is_granted('IS_AUTHENTICATED_FULLY')",
+            input: MeInput::class,
+            output: self::class,
+            provider: MeOutputProvider::class,
+            processor: MeProcessor::class
+        ),
+        new Delete(
+            uriTemplate: '/me',
+            description: 'Delete the currently authenticated user',
+            security: "is_granted('IS_AUTHENTICATED_FULLY')",
+            processor: MeProcessor::class
         ),
     ],
     paginationEnabled: false

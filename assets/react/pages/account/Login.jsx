@@ -1,8 +1,7 @@
-import {Navigate, useNavigate} from "react-router-dom";
+import {Navigate, useNavigate, Link} from "react-router-dom";
 import {useEffect, useState} from "react";
 import Textfield from "@components/Textfield";
 import apiService from "@services/apiService";
-import {session} from "../../../vendor/@hotwired/turbo/turbo.index";
 
 export default function Login() {
     const navigate = useNavigate();
@@ -21,12 +20,10 @@ export default function Login() {
         }
 
         const logoutMessage = sessionStorage.getItem('logoutMessage');
-        if (logoutMessage) {
+        console.log(logoutMessage);
           setMessage(logoutMessage);
           sessionStorage.removeItem('logoutMessage');
-
           setTimeout(() => setMessage(''), 3500);
-        }
 
     }, [navigate]);
 
@@ -95,8 +92,11 @@ export default function Login() {
           <img src="/images/playlisto-logo.png" alt="Logo" className="w-64 px-4 py-2" />
           <h1 className="text-xl text-center my-4">Log in</h1>
             {message && (
-                <div className="alert alert-info mb-4 w-80">
-                    <span className="sr-only">{message}</span>
+                <div role="alert" className="alert alert-success mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 shrink-0 stroke-current" fill="none" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <p className="text-black font-bold text-base">{message}</p>
                 </div>
             )}
 
@@ -127,7 +127,7 @@ export default function Login() {
               <button type="submit" className="mt-5 bg-black text-white px-4 py-2 rounded-md">
                 Log in
               </button>
-                <p>Si vous n'avez pas de compte <br/> inscrivez-vous <a href="/register" className="text-sky-400 font-bold">ici</a></p>
+                <p>Si vous n'avez pas de compte <br/> inscrivez-vous <Link to="/register" className="text-sky-400 font-bold">ici</Link></p>
             </div>
           </div>
         </form>

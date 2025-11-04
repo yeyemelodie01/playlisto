@@ -19,7 +19,7 @@ final class TrackOutput
     public ?string $album = null;
 
     #[Groups(['playlist:read'])]
-    public ?int $duration = null; // en secondes
+    public ?int $duration = null;
 
     #[Groups(['playlist:read'])]
     public ?string $spotifyId = null;

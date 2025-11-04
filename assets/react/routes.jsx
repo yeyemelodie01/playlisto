@@ -8,6 +8,7 @@ import Question from "@pages/question/Question";
 import Playlist from "@pages/playlist/Playlist";
 import OnePlaylist from "@pages/playlist/OnePlaylist";
 import Signin from "@pages/account/Signin";
+import Profile from "@pages/profile/Profile";
 
 const AppRoutes = () => {
   return (
@@ -34,6 +35,14 @@ const AppRoutes = () => {
             element={
                 <ProtectedRoute>
                     <Home />
+                </ProtectedRoute>
+            }
+        />
+        <Route
+            path="/profile"
+            element={
+                <ProtectedRoute>
+                    <Profile />
                 </ProtectedRoute>
             }
         />

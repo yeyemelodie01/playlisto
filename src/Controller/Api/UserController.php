@@ -51,7 +51,7 @@ final class UserController
      *
      * @return JsonResponse
      */
-    #[Route('/update', name: 'update', methods: ['PATCH'])]
+    #[Route('/update', name: 'update', methods: ['PUT'])]
     public function updateUser(Request $request): JsonResponse
     {
         $user = $this->security->getUser();
