@@ -55,7 +55,7 @@ const AppRoutes = () => {
             }
         />
         <Route
-            path="/playlist"
+            path="/history"
             element={
                 <ProtectedRoute>
                     <Playlist />

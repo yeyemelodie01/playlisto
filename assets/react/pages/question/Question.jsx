@@ -207,7 +207,7 @@ export default function Questions() {
 
             if (!playlistId) {
 
-                return navigate("/playlist" +
+                return navigate("/history" +
                     "", { state: { generated: genData } });
             }
 
@@ -290,13 +290,7 @@ export default function Questions() {
                                 </button>
 
                                 {currentIndex < questions.length - 1 ? (
-                                    <button
-                                        className="btn btn-primary"
-                                        onClick={goNext}
-                                        disabled={!canContinue}
-                                    >
-                                        Suivant
-                                    </button>
+                                    <></>
                                 ) : (
                                     <button
                                         className="btn btn-accent"

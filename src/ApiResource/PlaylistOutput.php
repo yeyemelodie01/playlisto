@@ -34,20 +34,20 @@ use function count;
         new GetCollection(
             uriTemplate: '/me/playlists',
             description: 'List playlists of the currently authenticated user',
-            security: "is_granted('ROLE_USER')",
+            security: "is_granted('IS_AUTHENTICATED_FULLY')",
             name: 'GetMyPlaylists',
             provider: PlaylistProvider::class
         ),
         new Get(
             uriTemplate: '/me/playlists/{id}',
             description: 'Get a specific playlist of the currently authenticated user',
-            security: "is_granted('ROLE_USER')",
+            security: "is_granted('IS_AUTHENTICATED_FULLY')",
             name: 'GetMyPlaylist',
             provider: PlaylistItemProvider::class
         ),
         new Post(
             uriTemplate: '/me/playlists',
-            security: "is_granted('ROLE_USER')",
+            security: "is_granted('IS_AUTHENTICATED_FULLY')",
             input: PlaylistInput::class,
             output: PlaylistOutput::class,
             name: 'CreateMyPlaylist',
@@ -55,7 +55,7 @@ use function count;
         ),
         new Patch(
             uriTemplate: '/me/playlists/{id}',
-            security: "is_granted('ROLE_USER')",
+            security: "is_granted('IS_AUTHENTICATED_FULLY')",
             input: PlaylistInput::class,
             output: PlaylistOutput::class,
             name: 'UpdateMyPlaylist',
@@ -64,7 +64,9 @@ use function count;
         ),
         new Delete(
             uriTemplate: '/me/playlists/{id}',
-            security: "is_granted('ROLE_USER')",
+            security: "is_granted('IS_AUTHENTICATED_FULLY')",
+            input: false,
+            output: false,
             name: 'DeleteMyPlaylist',
             provider: PlaylistItemProvider::class,
             processor: PlaylistProcessor::class

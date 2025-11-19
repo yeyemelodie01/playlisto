@@ -117,7 +117,7 @@ export default function Profile() {
     return (
         <>
             <Header />
-            <main className="h-[44.8rem] grid lg:grid-cols-5 sm:grid-cols-3 gap-4">
+            <main className="h-[44.5rem] grid lg:grid-cols-5 sm:grid-cols-3 gap-4">
                 <MenuAside />
 
                 <section className="col-span-4 w-full mx-auto px-4 overflow-auto mt-4">

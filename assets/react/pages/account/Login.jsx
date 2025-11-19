@@ -90,7 +90,7 @@ export default function Login() {
         <form onSubmit={handleSubmit} method="post" className="form-width flex flex-col items-center">
 
           <img src="/images/playlisto-logo.png" alt="Logo" className="w-64 px-4 py-2" />
-          <h1 className="text-xl text-center my-4">Log in</h1>
+          <h1 className="text-xl text-center my-4">Se connecter</h1>
             {message && (
                 <div role="alert" className="alert alert-success mb-4">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 shrink-0 stroke-current" fill="none" viewBox="0 0 24 24">
@@ -125,7 +125,7 @@ export default function Login() {
 
             <div className="grid">
               <button type="submit" className="mt-5 bg-black text-white px-4 py-2 rounded-md">
-                Log in
+                Se connecter
               </button>
                 <p>Si vous n'avez pas de compte <br/> inscrivez-vous <Link to="/register" className="text-sky-400 font-bold">ici</Link></p>
             </div>

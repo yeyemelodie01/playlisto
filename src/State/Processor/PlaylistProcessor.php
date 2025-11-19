@@ -3,19 +3,26 @@
 namespace App\State\Processor;
 
 use ApiPlatform\Metadata\Operation;
+use ApiPlatform\Metadata\Post;
+use ApiPlatform\Metadata\Put;
+use ApiPlatform\Metadata\Patch;
+use ApiPlatform\Metadata\Delete;
 use ApiPlatform\State\ProcessorInterface;
 use App\ApiResource\PlaylistInput;
 use App\ApiResource\PlaylistOutput;
 use App\Entity\Playlist;
-use App\Entity\Track;
 use App\Entity\User as AppUser;
 use App\Enum\ActivityType;
 use App\Enum\MoodType;
-use Doctrine\ORM\EntityManagerInterface;
+use App\Repository\PlaylistRepository;
+use App\Repository\TrackRepository;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
+
+use function assert;
+use function count;
 
 /**
  * Processor for handling playlist-related operations.
@@ -25,14 +32,12 @@ use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 final readonly class PlaylistProcessor implements ProcessorInterface
 {
     /**
-     * Constructor for PlaylistProcessor.
-     *
-     * @param EntityManagerInterface $entityManager the Doctrine entity manager
-     * @param Security               $security      the security component used to fetch the current authenticated user
-     *
+     * @param PlaylistRepository $playlistRepository
+     * @param Security           $security
+     * @param TrackRepository    $trackRepository
      * @psalm-suppress PossiblyUnusedMethod
      */
-    public function __construct(private EntityManagerInterface $entityManager, private Security $security)
+    public function __construct(private PlaylistRepository $playlistRepository, private Security $security, private TrackRepository $trackRepository)
     {
     }
 
@@ -54,7 +59,7 @@ final readonly class PlaylistProcessor implements ProcessorInterface
         }
 
         if (!$user instanceof AppUser) {
-            $userEntity = $this->entityManager->getRepository(AppUser::class)->findOneBy([
+            $userEntity = $this->playlistRepository->findOneBy([
                 'email' => method_exists($user, 'getUserIdentifier') ? $user->getUserIdentifier() : null,
             ]);
             if (!$userEntity) {
@@ -63,10 +68,9 @@ final readonly class PlaylistProcessor implements ProcessorInterface
             $user = $userEntity;
         }
 
-        $method = strtoupper((string)($context['request_method'] ?? 'GET'));
 
-        if ($method === 'POST') {
-            \assert($data instanceof PlaylistInput);
+        if ($operation instanceof Post) {
+            assert($data instanceof PlaylistInput);
 
             if ('' === trim($data->title ?? '')) {
                 throw new BadRequestHttpException('Title is required.');
@@ -88,26 +92,24 @@ final readonly class PlaylistProcessor implements ProcessorInterface
             }
 
             if ($data->trackIds && method_exists($playlist, 'addTrack')) {
-                $repoTrack = $this->entityManager->getRepository(Track::class);
                 foreach ($data->trackIds as $tid) {
-                    $t = $repoTrack->find((int)$tid);
+                    $t = $this->trackRepository->find((int)$tid);
                     if ($t) {
                         $playlist->addTrack($t);
                     }
                 }
             }
 
-            $this->entityManager->persist($playlist);
-            $this->entityManager->flush();
+            $this->playlistRepository->save($playlist, true);
 
             return $this->toOutput($playlist);
         }
 
-        if ($method === 'PATCH' || $method === 'PUT') {
-            \assert($data instanceof PlaylistInput);
+        if ($operation instanceof Put || $operation instanceof Patch) {
+            assert($data instanceof PlaylistInput);
             $id = (int)($uriVariables['id'] ?? 0);
 
-            $playlist = $this->entityManager->getRepository(Playlist::class)->find($id);
+            $playlist = $this->playlistRepository->find($id);
             if (!$playlist) {
                 throw new NotFoundHttpException('Playlist not found');
             }
@@ -135,24 +137,25 @@ final readonly class PlaylistProcessor implements ProcessorInterface
                         $playlist->removeTrack($t);
                     }
                 }
-                $repoTrack = $this->entityManager->getRepository(Track::class);
+
                 foreach ($data->trackIds as $tid) {
-                    $t = $repoTrack->find((int)$tid);
+                    $t = $this->trackRepository->find((int)$tid);
                     if ($t) {
                         $playlist->addTrack($t);
                     }
                 }
             }
 
-            $this->entityManager->flush();
+            $this->playlistRepository->save($playlist, true);
+
             return $this->toOutput($playlist);
         }
 
-        if ($method === 'DELETE') {
+        if ($operation instanceof Delete) {
             $id = (int)($uriVariables['id'] ?? 0);
 
-            /** @var Playlist|null $playlist */
-            $playlist = $this->entityManager->getRepository(Playlist::class)->find($id);
+            $playlist = $this->playlistRepository->find($id);
+
             if (!$playlist) {
                 throw new NotFoundHttpException('Playlist not found');
             }
@@ -160,8 +163,7 @@ final readonly class PlaylistProcessor implements ProcessorInterface
                 throw new AccessDeniedHttpException('Not your playlist.');
             }
 
-            $this->entityManager->remove($playlist);
-            $this->entityManager->flush();
+            $this->playlistRepository->remove($playlist, true);
 
             return null;
         }
@@ -172,7 +174,7 @@ final readonly class PlaylistProcessor implements ProcessorInterface
     private function toOutput(Playlist $playlist): PlaylistOutput
     {
         $tracks = method_exists($playlist, 'getTracks') ? $playlist->getTracks() : null;
-        $trackCount = is_object($tracks) && method_exists($tracks, 'count') ? $tracks->count() : (is_countable($tracks) ? \count($tracks) : 0);
+        $trackCount = is_object($tracks) && method_exists($tracks, 'count') ? $tracks->count() : (is_countable($tracks) ? count($tracks) : 0);
 
         return new PlaylistOutput(
             id: (int) $playlist->getId(),

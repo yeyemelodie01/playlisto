@@ -82,7 +82,6 @@ final class PlaylistController extends AbstractController
                     $playlist->setDescription($description ?: null);
                 }
 
-                // Persist via repository SaveTrait
                 $this->playlistRepository->save($playlist, true);
 
                 $this->addFlash('success', $this->translator->trans('create.success', [], 'Crud'));

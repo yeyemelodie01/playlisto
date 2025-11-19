@@ -22,6 +22,8 @@ export default function OnePlaylist() {
   const [currentTrack, setCurrentTrack] = useState(null);
   const [playingId, setPlayingId] = useState(null);
   const audioRef = useRef(new Audio());
+  const [deleting, setDeleting] = useState(false);
+  const [alert, setAlert] = useState({ type: "", message: "" });
 
     useEffect(() => {
         let isMounted = true;
@@ -54,19 +56,16 @@ export default function OnePlaylist() {
                         (t.album && t.album.images && t.album.images[0] ? t.album.images[0].url : null) ??
                         "/images/track-placeholder.png";
 
-                    // --- ARTISTS: tente plusieurs sources ---
                     const artistsArr = Array.isArray(t.artists) && t.artists.length
                         ? t.artists
                         : (Array.isArray(t.artistNames) && t.artistNames.length
                             ? t.artistNames
                             : (t.artist ? [t.artist] : []));
 
-                    // --- DURATION: normalise en millisecondes ---
                     let durationMs = null;
                     if (Number.isFinite(t.duration_ms)) {
                         durationMs = t.duration_ms;
                     } else if (Number.isFinite(t.duration)) {
-                        // si t.duration > 1000 on suppose que c'est déjà en ms, sinon en secondes
                         durationMs = t.duration > 1000 ? t.duration : Math.round(t.duration * 1000);
                     }
 
@@ -76,7 +75,7 @@ export default function OnePlaylist() {
                         artists: artistsArr,
                         album: t.album ?? t.album_name ?? "",
                         coverUrl,
-                        durationMs, // ✅ on stocke en ms
+                        durationMs,
                         previewUrl: (t.previewUrl ?? t.preview_url ?? null) || null,
                         spotifyId: t.spotifyId ?? t.spotify_id ?? null,
                     };
@@ -150,6 +149,52 @@ export default function OnePlaylist() {
         if (next) handleSelectForPlayer(next);
     };
 
+    const onDelete = async () => {
+        if (!playlist?.id) {
+            setAlert({
+                type: "error",
+                message: "Impossible de supprimer : playlist sans identifiant.",
+            });
+            return;
+        }
+
+        if (!window.confirm("Confirmer la suppression de cette playlist ? Cette action est irréversible.")) {
+            return;
+        }
+
+        setDeleting(true);
+        setAlert({ type: "", message: "" });
+
+        try {
+            const res = await apiService.delete(`/api/me/playlists/${playlist.id}`);
+
+            console.log("[OnePlaylist] DELETE /api/me/playlists/", playlist.id, "status:", res.status);
+
+            if (res.status === 200 || res.status === 204) {
+                navigate("/history", {
+                    state: {
+                        message: "Playlist supprimée avec succès",
+                        type: "success",
+                    },
+                });
+            } else {
+                setAlert({
+                    type: "error",
+                    message: `Impossible de supprimer la playlist (HTTP ${res.status}).`,
+                });
+                setDeleting(false);
+            }
+        } catch (err) {
+            console.error("[OnePlaylist] delete error", err);
+            const msg =
+                err?.response?.data?.message ??
+                err?.message ??
+                "Erreur réseau lors de la suppression.";
+            setAlert({ type: "error", message: msg });
+            setDeleting(false);
+        }
+    };
+
     if (loading) {
         return (
             <>
@@ -204,8 +249,8 @@ export default function OnePlaylist() {
             <main className="min-h-[calc(100vh-10rem)] grid lg:grid-cols-5 sm:grid-cols-3 gap-4">
                 <MenuAside />
 
-                <section className="lg:col-span-4 sm:col-span-2 h-full p-0">
-                    <div className="min-h-[calc(100vh-3.5rem-5rem)] p-4 md:p-8 pb-24">
+                <section className="lg:col-span-4 sm:col-span-2 h-full p-0 px-2 sm:px-4 overflow-y-auto">
+                    <div className="max-h-[calc(100vh-6rem)] overflow-y-auto p-4 md:p-8 pb-24">
                         <div className="max-w-6xl mx-auto">
                             <div className="flex items-center justify-between mb-6">
                                 <div className="flex items-center gap-6">
@@ -218,7 +263,7 @@ export default function OnePlaylist() {
                                         <h1 className="text-2xl md:text-3xl font-bold">
                                             {playlist.title || "Playlist générée"}
                                         </h1>
-                                        <div className="mt-2 flex flex-wrap gap-2 items-center">
+                                        <div className="mt-2 flex flex-wrap justify-center gap-2 mb-8">
                                             {playlist.mood ? <div className="badge badge-primary">mood: {playlist.mood}</div> : null}
                                             {playlist.activity ? <div className="badge badge-secondary">activity: {playlist.activity}</div> : null}
                                             {playlist.trackCount ? <div className="badge">tracks: {playlist.trackCount}</div> : null}
@@ -234,9 +279,12 @@ export default function OnePlaylist() {
                                 <button className="btn bg-black text-white hover:bg-black/80 border-0">
                                     Ajouter aux favoris
                                 </button>
+                                <button type="button" className={`btn btn-error ${deleting ? "loading" : ""}`} onClick={onDelete} disabled={deleting}>
+                                    {deleting ? "Suppression…" : "Supprimer la playlist"}
+                                </button>
                             </div>
 
-                            <div className="flex flex-wrap gap-2 mb-8">
+                            <div className="flex flex-wrap justify-center gap-2 mb-8">
                                 {genres.map((genre) => (
                                     <div
                                         key={genre}
@@ -252,10 +300,10 @@ export default function OnePlaylist() {
                                     playlist.tracks.map((track) => (
                                         <div
                                             key={track.id || track.spotifyId}
-                                            className="card bg-white border-2 border-black hover:bg-base-200 cursor-pointer transition-all rounded-2xl"
+                                            className="card bg-white border-2 border-black hover:bg-base-200 cursor-pointer transition-all rounded-2xl w-full sm:w-[48%] md:w-full"
                                             onClick={() => handleSelectForPlayer(track)}
                                         >
-                                            <div className="card-body p-4 flex-row items-center gap-4">
+                                            <div className="card-body p-4 flex flex-col sm:flex-row items-center sm:items-start sm:gap-4 gap-2">
                                                 <div className="avatar">
                                                     <div className="w-12 h-12 rounded bg-base-200 overflow-hidden">
                                                         <img
@@ -265,7 +313,7 @@ export default function OnePlaylist() {
                                                     </div>
                                                 </div>
 
-                                                <div className="flex-1 min-w-0">
+                                                <div className="flex-1 min-w-0 text-center sm:text-left">
                                                     <h3 className="font-medium truncate">
                                                         {track.title || "Titre inconnu"}
                                                     </h3>

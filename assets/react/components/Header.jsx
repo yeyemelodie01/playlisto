@@ -26,10 +26,10 @@ const Header = () => {
         await apiService.logout();
     };
 
-    const hidePlaylistLink = ["/playlist", "/profile"].some(path => location.pathname.startsWith(path));
+    const hidePlaylistLink = ["/history", "/profile"].some(path => location.pathname.startsWith(path));
 
     return (
-        <header className="navbar py-2">
+        <header className="navbar">
             <div className="navbar">
                 <div className="navbar-start">
                     <div className="dropdown">
@@ -40,18 +40,18 @@ const Header = () => {
                             {!loading && me && (
                                 <>
                                     <li>
-                                        <p className="text-base text-white font-bold">Bienvenue {displayName}</p>
+                                        <Link to="/profile" className="text-base text-black font-bold">Bienvenue {displayName}</Link>
                                     </li>
                                     <li>
-                                        <Link to="/profile" className="text-base text-white font-bold">Mon Profil</Link>
+                                        <Link to="/favorites" className="text-base text-black font-bold">Mes favoris</Link>
                                     </li>
                                     {!hidePlaylistLink && (
                                         <li>
-                                            <Link to="/playlist" className="text-base text-white font-bold">Mes playlists</Link>
+                                            <Link to="/history" className="text-base text-black font-bold">Historique</Link>
                                         </li>
                                     )}
                                     <li>
-                                        <Link className="text-base text-white font-bold" onClick={handleLogout}>Se déconnecter</Link>
+                                        <Link className="text-base text-black font-bold" onClick={handleLogout}>Se déconnecter</Link>
                                     </li>
                                 </>
                             )}
@@ -65,15 +65,12 @@ const Header = () => {
                     <ul className="menu menu-horizontal px-1">
                         {!loading && me && (
                             <>
-                                <li className="disabled">
-                                    <p className="text-base text-white font-bold">Bienvenue {displayName}</p>
-                                </li>
                                 <li>
-                                    <Link to="/profile" className="text-base text-white font-bold">Mon Profil</Link>
+                                    <Link to="/profile" className="text-base text-white font-bold">Bienvenue {displayName}</Link>
                                 </li>
                                 {!hidePlaylistLink && (
                                     <li>
-                                        <Link to="/playlist" className="text-base text-white font-bold">Mes playlists</Link>
+                                        <Link to="/history" className="text-base text-white font-bold">Historique</Link>
                                     </li>
                                 )}
                                 <li>
