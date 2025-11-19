@@ -5,7 +5,7 @@ export default function Home() {
   return (
     <>
       <Header />
-      <main className="h-[49.3rem] flex items-center justify-center p-4 sm:p-8 overflow-hidden">
+      <main className="h-[48.1rem] flex items-center justify-center p-4 sm:p-8 overflow-hidden">
         <section className="text-center max-w-2xl">
           <h1 className="text-3xl font-bold mb-4">Bienvenue sur Playlisto</h1>
           <p className="text-lg">

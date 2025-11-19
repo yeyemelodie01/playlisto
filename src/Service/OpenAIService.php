@@ -54,12 +54,11 @@ final readonly class OpenAIService
     {
         $total = max(5, min(50, $total));
         $reservedTail = 2;
-        $maxBehaviour = max(1, $total - $reservedTail);
-        $minBehaviour = min(4, $maxBehaviour);
+        $behaviourTarget = max(3, $total - $reservedTail);
 
         $spotifySeeds = array_map(static fn(SpotifyGenre $g) => $g->value, SpotifyGenre::cases());
 
-        $maxHaveYou = (int)ceil($maxBehaviour / 3);
+        $maxHaveYou = (int)ceil($behaviourTarget / 3);
         $nonce = bin2hex(random_bytes(4));
 
         $system = <<<SYS
@@ -67,8 +66,7 @@ final readonly class OpenAIService
         
         Goal:
         - Generate French yes/no questions that help deduce the user's MOOD.
-        - Let K be the number of mood-diagnostic questions.
-        - Constraints on K: {$minBehaviour} ≤ K ≤ {$maxBehaviour}.
+        - Generate EXACTLY {$behaviourTarget} French yes/no questions that help deduce the user's MOOD.
         - Do NOT include any questions about activity or genres; ONLY behaviour questions here.
         
         Stylistic constraints:
@@ -123,7 +121,7 @@ final readonly class OpenAIService
         $seen = [];
         $behaviourOut = [];
         foreach ($questions as $q) {
-            if (count($behaviourOut) >= $maxBehaviour) {
+            if (count($behaviourOut) >= $behaviourTarget) {
                 break;
             }
             $title = isset($q['title']) ? trim((string)$q['title']) : '';
@@ -367,32 +365,38 @@ final readonly class OpenAIService
         $genresUsed = array_slice($genres, 0, 3);
 
         $system = <<<SYS
-        You are a concise naming assistant for a music app (Playlisto). 
-        Goal: produce ONE catchy playlist title that blends the user's mood, activity and 1–3 selected genres.
+        You are a playlist title creator for a music app (Playlisto).
         
-        Language & style:
-        - Default language: French (unless locale="en").
-        - Be short and punchy: 24–48 characters if possible.
-        - Natural casing in FR (capitalize first word + proper nouns).
-        - Avoid the word "playlist", hashtags, quotes, and trailing punctuation.
-        - You may use 0 or 1 tasteful emoji max; omit if it hurts clarity.
-        - Prefer separators like " · " (middle dot) or " — " (em dash).
+        Goal:
+        Create ONE original, catchy playlist title inspired by:
+        - the user's mood
+        - the user's activity
+        - 1 to 3 selected genres
         
-        Mood labels (input values): happy, sad, energetic, stressed, calm
-        Activity labels: sport, travail, détente, étude, cuisine, aucune/null
+        Rules:
+        - Language: French by default unless locale="en".
+        - Style: short, punchy, creative (10–48 characters).
+        - You may invent metaphors, vibes, atmospheres.
+        - Do NOT just concatenate mood + activity + genres.
+        - The title must feel like a real playlist name.
+        - Optional: 1 tasteful emoji maximum.
+        - No quotes, no trailing punctuation.
+        - Avoid the word “playlist”.
         
-        Composition rules:
-        - Start with the mood display label.
-        - If activity is present (not "aucune"), add " · {Activity}".
-        - Add " · {g1, g2[, g3]}" with provided genres.
-        - Output max_len if provided (≤48).
+        VERY IMPORTANT:
+        - Return a SINGLE JSON OBJECT, NOT an array.
+        - Do NOT use a "titles" field, do NOT return a list.
+        - The "title" field must be a simple string, not an array.
         
-        Output STRICT JSON:
+        Output STRICT JSON, for example (shape only):
         {
           "title": "string",
-          "debug": {"mood": "...", "activity": "...", "genres_used": ["..."]}
+          "debug": {
+            "mood": "...",
+            "activity": "...",
+            "genres": ["...", "..."]
+          }
         }
-        No explanations.
         SYS;
 
         $user = json_encode([

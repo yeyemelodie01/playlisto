@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import apiService from "@services/apiService";
 
 export default function Signin({ redirectTo = "/", onLoggedIn }) {
     const [email, setEmail] = useState("");
@@ -33,27 +34,25 @@ export default function Signin({ redirectTo = "/", onLoggedIn }) {
     };
 
     const loginAfterSignup = async (email, password) => {
-        const res = await fetch("/api/authentication_token", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", Accept: "application/json" },
-            body: JSON.stringify({ email, password }),
-        });
+        try {
+            const res = await apiService.post("/api/authentication_token", { email, password });
+            const data = res.data || {};
 
-        if (!res.ok) {
-            let data = {};
-            try { data = await res.json(); } catch {}
-            throw new Error(data?.message || `Login failed (HTTP ${res.status})`);
+            const token = data.token || data.id_token || data.jwt;
+            if (!token) {
+                throw new Error("No token returned by auth endpoint");
+            }
+
+            apiService.setToken(token);
+
+            if (typeof onLoggedIn === "function") {
+                onLoggedIn(token);
+            }
+
+            window.location.assign(redirectTo);
+        } catch (err) {
+            throw err;
         }
-
-        const data = await res.json();
-        const token = data?.token || data?.id_token || data?.jwt;
-        if (!token) throw new Error("No token returned by auth endpoint");
-
-        localStorage.setItem("authToken", token);
-        localStorage.setItem("authEmail", email);
-
-        if (typeof onLoggedIn === "function") onLoggedIn(token);
-        window.location.assign(redirectTo);
     };
 
     const onSubmit = async (e) => {
@@ -65,25 +64,42 @@ export default function Signin({ redirectTo = "/", onLoggedIn }) {
         try {
             const res = await fetch("/api/signup", {
                 method: "POST",
-                headers: { "Content-Type": "application/json", Accept: "application/json" },
-                body: JSON.stringify({ email: email.trim(), username: username.trim() || undefined, password }),
+                headers: {
+                    "Content-Type": "application/json",
+                    Accept: "application/json",
+                },
+                body: JSON.stringify({
+                    email: email.trim(),
+                    username: username.trim() || undefined,
+                    password,
+                }),
             });
 
             let data = {};
-            try { data = await res.json(); } catch {}
+            try {
+                data = await res.json();
+            } catch {
+                data = {};
+            }
 
             if (res.status === 201 && (data?.status === "ok" || data?.message)) {
                 try {
                     await loginAfterSignup(email.trim(), password);
                     return;
                 } catch (authErr) {
-                    setAlert({ type: "bad", message: authErr?.message || "Authentification impossible après l'inscription." });
+                    setAlert({
+                        type: "bad",
+                        message: authErr?.message || "Authentification impossible après l'inscription.",
+                    });
                     return;
                 }
             }
 
             if (res.status === 409 && data?.error === "email_already_used") {
-                setErrors((prev) => ({ ...prev, email: data.message || "Email déjà utilisé" }));
+                setErrors((prev) => ({
+                    ...prev,
+                    email: data.message || "Email déjà utilisé",
+                }));
                 setAlert({ type: "bad", message: "Impossible de créer le compte." });
                 return;
             }
@@ -104,7 +120,10 @@ export default function Signin({ redirectTo = "/", onLoggedIn }) {
 
             setAlert({ type: "bad", message: data?.message || "Erreur inattendue, réessayez." });
         } catch {
-            setAlert({ type: "bad", message: "Erreur réseau. Vérifiez votre connexion." });
+            setAlert({
+                type: "bad",
+                message: "Erreur réseau. Vérifiez votre connexion.",
+            });
         } finally {
             setLoading(false);
         }

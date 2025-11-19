@@ -1,13 +1,13 @@
 import { Play, Pause, SkipBack, SkipForward } from "lucide-react";
 import {useEffect, useMemo, useRef, useState} from "react";
 
-
 function formatTime(sec) {
     if (!Number.isFinite(sec)) return "0:00";
     const m = Math.floor(sec / 60);
     const s = Math.max(0, Math.floor(sec % 60));
     return `${m}:${s.toString().padStart(2, "0")}`;
 }
+
 const MusicPlayer = ({ track, onPrev, onNext }) => {
     const audioRef = useRef(null);
     const [isPlaying, setIsPlaying] = useState(false);
@@ -98,11 +98,11 @@ const MusicPlayer = ({ track, onPrev, onNext }) => {
     const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
     return (
-        <div className="fixed bottom-0 left-0 right-0 border-t-2 border-foreground p-4 z-30 music_player">
+        <div className="fixed bottom-0 left-0 right-0 border-t-2 border-foreground p-4 z-30 music_player bg-base-100">
             <audio key={track?.previewUrl || track?.id || 'no-preview'} ref={audioRef} preload="metadata" />
             <div className="max-w-7xl mx-auto">
-                <div className="flex flex-col md:flex-row items-center gap-4">
-                    <div className="flex items-center gap-3 flex-1 min-w-0 w-full md:w-auto">
+                <div className="flex md:flex-row md:items-center sm:flex-col sm:items-start justify-between gap-4 w-full">
+                    <div className="flex items-center gap-3 w-full sm:w-auto flex-1 min-w-0">
                         <div className="avatar">
                             <div className="w-14 h-14 rounded bg-base-200 overflow-hidden">
                                 {track.image ? (
@@ -116,7 +116,7 @@ const MusicPlayer = ({ track, onPrev, onNext }) => {
                         </div>
                         <div className="min-w-0 flex-1">
                             <p className="font-semibold truncate text-sm text-foreground">{track.title || "Titre inconnu"}</p>
-                            <p className="text-xs text-foreground/70 truncate">{track.artist || "Artiste inconnu"}</p>
+                            <p className="text-xs text-foreground/70 truncate">{track.artists || "Artiste inconnu"}</p>
                         </div>
                     </div>
 
@@ -149,7 +149,7 @@ const MusicPlayer = ({ track, onPrev, onNext }) => {
                         </button>
                     </div>
 
-                    <div className="hidden md:flex items-center gap-3 flex-1 max-w-md">
+                    <div className="hidden sm:flex items-center gap-3 flex-1 max-w-md">
                         <span className="text-xs text-foreground">{formatTime(currentTime)}</span>
                         <input
                             type="range"

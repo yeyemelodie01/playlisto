@@ -8,7 +8,7 @@ use App\Repository\QuestionRepository;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
-final class AdAdminQuestionGenerateControllerTest extends WebTestCase
+final class AdminQuestionGenerateControllerTest extends WebTestCase
 {
     /**
      * @group live-openai

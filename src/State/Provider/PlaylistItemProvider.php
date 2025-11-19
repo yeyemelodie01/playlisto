@@ -17,13 +17,13 @@ final readonly class PlaylistItemProvider implements ProviderInterface
     /**
      * Constructor for PlaylistItemProvider.
      *
-     * @param PlaylistRepository $playlists the playlist repository
+     * @param PlaylistRepository $playlistRepository the playlist repository
      * @param Security           $security  the security component used to fetch the current authenticated user
      *
      * @psalm-suppress PossiblyUnusedMethod
      */
     public function __construct(
-        private PlaylistRepository $playlists,
+        private PlaylistRepository $playlistRepository,
         private Security $security
     ) {
     }
@@ -55,7 +55,7 @@ final readonly class PlaylistItemProvider implements ProviderInterface
             return null;
         }
 
-        $playlist = $this->playlists->findOneForUserWithTracks($playlistId, $user);
+        $playlist = $this->playlistRepository->findOneForUserWithTracks($playlistId, $user);
         if (!$playlist) {
             return null;
         }
