@@ -27,11 +27,9 @@ use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 final readonly class AnswerOptionProcessor implements ProcessorInterface
 {
     /**
-     * Constructor for AnswerOptionProcessor.
+     * @param Security $security
      *
-     * @param Security $security the security component used to fetch the current authenticated user
-     *
-     * @psalm-suppress PossiblyUnusedMethod
+     * @psalm-suppress
      */
     public function __construct(private Security $security, private EntityManagerInterface $entityManager)
     {
@@ -52,7 +50,7 @@ final readonly class AnswerOptionProcessor implements ProcessorInterface
      */
     public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = []): mixed
     {
-        if (null === $this->security->getUser()) {
+        if ($this->security->getUser() === null) {
             throw new AccessDeniedHttpException('Authentication required.');
         }
 
@@ -63,7 +61,7 @@ final readonly class AnswerOptionProcessor implements ProcessorInterface
         if (!isset($data->surveyId) || $data->surveyId <= 0) {
             throw new BadRequestHttpException('Invalid surveyId.');
         }
-        if (!\is_array($data->answers) || $data->answers === []) {
+        if ($data->answers === []) {
             throw new BadRequestHttpException('answers must be a non-empty array.');
         }
 
@@ -92,24 +90,24 @@ final readonly class AnswerOptionProcessor implements ProcessorInterface
 
         foreach ($data->answers as $item) {
             $questionId = (int)($item['questionId'] ?? 0);
-            $optionIds  = $item['optionIds'] ?? [];
+            $optionIds = $item['optionIds'] ?? [];
             if (!\is_array($optionIds)) {
                 continue;
             }
 
-            if ($questionId === 101 && isset($optionIds[0]) && isset($moodMap[(int)$optionIds[0]])) {
+            if (isset($optionIds[0], $moodMap[(int)$optionIds[0]]) && $questionId === 101) {
                 $deducedMood = $moodMap[(int)$optionIds[0]];
             }
 
-            if ($questionId === 102 && isset($optionIds[0]) && isset($activityMap[(int)$optionIds[0]])) {
+            if (isset($optionIds[0], $activityMap[(int)$optionIds[0]]) && $questionId === 102) {
                 $selectedActivity = $activityMap[(int)$optionIds[0]];
             }
 
             if ($questionId === 103) {
-                foreach ($optionIds as $oid) {
-                    $oid = (int)$oid;
-                    if (isset($genreSeeds[$oid])) {
-                        $seeds[] = $genreSeeds[$oid];
+                foreach ($optionIds as $answeroptionid) {
+                    $answeroptionid = (int)$answeroptionid;
+                    if (isset($genreSeeds[$answeroptionid])) {
+                        $seeds[] = $genreSeeds[$answeroptionid];
                     }
                 }
             }
@@ -143,11 +141,11 @@ final readonly class AnswerOptionProcessor implements ProcessorInterface
             if (!\is_array($optionIds)) {
                 continue;
             }
-            foreach ($optionIds as $oid) {
+            foreach ($optionIds as $answeroptionid) {
                 $answer = new SurveyAnswer();
                 $answer->setSubmission($submission);
                 $answer->setQuestion($question);
-                $answer->setAnswerOption($oid);
+                $answer->setAnswerOption($answeroptionid);
                 $this->entityManager->persist($answer);
             }
         }
@@ -155,7 +153,7 @@ final readonly class AnswerOptionProcessor implements ProcessorInterface
         $this->entityManager->flush();
 
         return new AnswerOptionResultOutput(
-            surveyId: (int)$data->surveyId,
+            surveyId: $data->surveyId,
             deducedMood: $deducedMood,
             selectedActivity: $selectedActivity,
             recommendationSeeds: $seeds ?: null

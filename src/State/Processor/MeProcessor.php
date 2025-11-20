@@ -67,9 +67,6 @@ final readonly class MeProcessor implements ProcessorInterface
             );
         }
 
-        throw new RuntimeException(sprintf(
-            'Unsupported operation: %s',
-            $operation::class
-        ));
+        throw new RuntimeException(\sprintf('Unsupported operation: %s', $operation::class));
     }
 }

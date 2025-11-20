@@ -117,7 +117,7 @@ export default function Profile() {
     return (
         <>
             <Header />
-            <main className="h-[44.5rem] grid lg:grid-cols-5 sm:grid-cols-3 gap-4">
+            <main className="h-[34.4rem] md:h-[33.99rem] grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-4">
                 <MenuAside />
 
                 <section className="col-span-4 w-full mx-auto px-4 overflow-auto mt-4">
@@ -135,8 +135,7 @@ export default function Profile() {
                     {loading ? (
                         <div className="text-center py-10">Chargement…</div>
                     ) : (
-                        <form className="space-y-6 max-w-xl" onSubmit={onSubmit} noValidate>
-
+                        <form className="space-y-6 max-w-xl w-[60%]" onSubmit={onSubmit} noValidate>
                             <div className="form-control">
                                 <label className="label">
                                     <span className="label-text">Nom d’utilisateur</span>
@@ -186,7 +185,7 @@ export default function Profile() {
                             <div className="form-control">
                                 <label className="label">
                                   <span className="label-text">
-                                    Mot de passe (laisser vide pour garder l'actuel)
+                                    Mot de passe
                                   </span>
                                 </label>
                                 <div className="input-group">
@@ -232,7 +231,6 @@ export default function Profile() {
                     )}
                 </section>
             </main>
-
             <Footer />
         </>
     )

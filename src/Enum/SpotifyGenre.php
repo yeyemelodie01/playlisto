@@ -86,11 +86,21 @@ enum SpotifyGenre : string
     case TRIP_HOP = 'trip-hop';
     case WORLD_MUSIC = 'world-music';
 
+    /**
+     * @param string $genre
+     *
+     * @return bool
+     */
     public static function isValid(string $genre): bool
     {
-        return in_array($genre, array_column(self::cases(), 'value'), true);
+        return \in_array($genre, array_column(self::cases(), 'value'), true);
     }
 
+    /**
+     * @param array $genres
+     *
+     * @return array
+     */
     public static function normalize(array $genres): array
     {
         $valid = [];
@@ -99,6 +109,6 @@ enum SpotifyGenre : string
                 $valid[] = $g;
             }
         }
-        return array_slice(array_unique($valid), 0, 5); // Spotify accepte max 5 seeds
+        return \array_slice(array_unique($valid), 0, 5);
     }
 }

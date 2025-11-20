@@ -39,11 +39,7 @@ final readonly class AdminStatsService
         $to = $to ?? new \DateTimeImmutable('now');
         $from = $from ?? $to->modify('-7 days');
 
-        $key = sprintf(
-            'dashboard_v1_%s_%s',
-            $from->format('Ymd'),
-            $to->format('Ymd')
-        );
+        $key = \sprintf('dashboard_v1_%s_%s', $from->format('Ymd'), $to->format('Ymd'));
 
         return $this->cache->get($key, function (ItemInterface $item) use ($from, $to) {
             $item->expiresAfter(60);

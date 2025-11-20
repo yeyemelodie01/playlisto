@@ -45,11 +45,14 @@ const Header = () => {
                                     <li>
                                         <Link to="/favorites" className="text-base text-black font-bold">Mes favoris</Link>
                                     </li>
-                                    {!hidePlaylistLink && (
-                                        <li>
-                                            <Link to="/history" className="text-base text-black font-bold">Historique</Link>
-                                        </li>
-                                    )}
+                                    <li>
+                                        <Link to="/history" className="text-base text-black font-bold">Historique</Link>
+                                    </li>
+                                    <li>
+                                        <Link to="/question" className="text-base text-black font-bold">
+                                            Générer une playlist
+                                        </Link>
+                                    </li>
                                     <li>
                                         <Link className="text-base text-black font-bold" onClick={handleLogout}>Se déconnecter</Link>
                                     </li>

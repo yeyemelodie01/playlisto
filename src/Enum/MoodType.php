@@ -10,7 +10,6 @@ namespace App\Enum;
 enum MoodType: string
 {
     case HAPPY = 'happy';
-
     case SAD = 'sad';
     case ENERGETIC = 'energetic';
     case STRESSED = 'stressed';

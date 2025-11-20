@@ -31,7 +31,7 @@ final class SignupController
     public function __invoke(Request $request): JsonResponse
     {
         try {
-            $data = json_decode($request->getContent(), true);
+            $data = json_decode($request->getContent(), true, 512, JSON_THROW_ON_ERROR);
 
             $username = $data['username'] ?? null;
             $email = $data['email'] ?? null;

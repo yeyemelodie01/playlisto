@@ -15,8 +15,6 @@ use ApiPlatform\State\ProviderInterface;
 final readonly class MeOutputProvider implements ProviderInterface
 {
     /**
-     * Constructor for MeOutputProvider.
-     *
      * @param Security $security
      *
      * @psalm-suppress

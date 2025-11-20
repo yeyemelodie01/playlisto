@@ -60,10 +60,10 @@ final class SurveySubmissionController extends AbstractController
             throw new RuntimeException('Authenticated user not found.');
         }
 
-        $payload = json_decode($request->getContent() ?: '{}', true) ?? [];
+        $payload = json_decode($request->getContent() ?: '{}', true, 512, JSON_THROW_ON_ERROR) ?? [];
 
         $items = $payload['answers'] ?? null;
-        if (!is_array($items) || $items === []) {
+        if (!\is_array($items) || $items === []) {
             throw new InvalidArgumentException('`answers` must be a non-empty array.');
         }
 
@@ -95,9 +95,9 @@ final class SurveySubmissionController extends AbstractController
         foreach ($items as $row) {
             $qid = (int) (($row['questionId'] ?? 0));
             if ($qid === self::ACTIVITY_QID) {
-                if (array_key_exists('optionValue', $row) && is_string($row['optionValue'])) {
+                if (\array_key_exists('optionValue', $row) && \is_string($row['optionValue'])) {
                     $activityFromAnswers = mb_strtolower(trim($row['optionValue']));
-                } elseif (array_key_exists('optionId', $row) && is_numeric($row['optionId'])) {
+                } elseif (\array_key_exists('optionId', $row) && is_numeric($row['optionId'])) {
                     $opt = $this->answerOptionRepo->find((int)$row['optionId']);
                     if ($opt && $opt->getQuestion()?->getId() === self::ACTIVITY_QID) {
                         $activityFromAnswers = mb_strtolower(trim($opt->getLabel()));
@@ -132,7 +132,7 @@ final class SurveySubmissionController extends AbstractController
         if (!empty($genresFromAnswers)) {
             $genresFromAnswers = array_values(array_unique($genresFromAnswers));
 
-            $invalidGenres   = [];
+            $invalidGenres = [];
             $validatedGenres = [];
 
             foreach ($genresFromAnswers as $g) {
@@ -146,11 +146,7 @@ final class SurveySubmissionController extends AbstractController
 
             if (!empty($invalidGenres)) {
                 $allowed = implode(', ', array_map(static fn($c) => $c->value, SpotifyGenre::cases()));
-                throw new InvalidArgumentException(sprintf(
-                    'Invalid genre(s): %s. Allowed values are: %s',
-                    implode(', ', $invalidGenres),
-                    $allowed
-                ));
+                throw new InvalidArgumentException(\sprintf('Invalid genre(s): %s. Allowed values are: %s', implode(', ', $invalidGenres), $allowed));
             }
 
             $genresFromAnswers = $validatedGenres;
@@ -172,47 +168,43 @@ final class SurveySubmissionController extends AbstractController
             $persistAnswer = function (?int $optionId, ?string $optionValue) use ($surveyId, $submission, $qId) {
                 $question = $this->questionRepo->find($qId);
                 if (!$question) {
-                    throw new InvalidArgumentException(sprintf('Unknown question id %d.', $qId));
+                    throw new InvalidArgumentException(\sprintf('Unknown question id %d.', $qId));
                 }
                 if ($question->getSurveyId() !== $surveyId) {
-                    throw new InvalidArgumentException(sprintf(
-                        'Question %d n’appartient pas au survey %d.',
-                        $qId,
-                        $surveyId
-                    ));
+                    throw new InvalidArgumentException(\sprintf('Question %d n’appartient pas au survey %d.', $qId, $surveyId));
                 }
 
                 if ($optionId !== null) {
-                    $opt = $this->answerOptionRepo->find($optionId);
-                    if (!$opt) {
-                        throw new InvalidArgumentException(sprintf('Unknown option id %d for question %d.', $optionId, $qId));
+                    $optId = $this->answerOptionRepo->find($optionId);
+                    if (!$optId) {
+                        throw new InvalidArgumentException(\sprintf('Unknown option id %d for question %d.', $optionId, $qId));
                     }
 
-                    if ($opt->getQuestion()?->getId() !== $qId) {
-                        throw new InvalidArgumentException(sprintf('Option %d does not belong to question %d.', $optionId, $qId));
+                    if ($optId->getQuestion()?->getId() !== $qId) {
+                        throw new InvalidArgumentException(\sprintf('Option %d does not belong to question %d.', $optionId, $qId));
                     }
-                    $ans = new SurveyAnswer();
-                    $ans->setSubmission($submission);
-                    $ans->setQuestion($question);
-                    $ans->setAnswerOption($opt);
-                    $this->surveyAnswerRepo->save($ans, false);
+                    $surveyAnswer = new SurveyAnswer();
+                    $surveyAnswer->setSubmission($submission);
+                    $surveyAnswer->setQuestion($question);
+                    $surveyAnswer->setAnswerOption($optId);
+                    $this->surveyAnswerRepo->save($surveyAnswer, false);
 
                     return;
                 }
 
                 if ($optionValue !== null && trim($optionValue) !== '') {
                     $label = trim($optionValue);
-                    $opt = $this->answerOptionRepo->findOneBy(['question' => $question, 'label' => $label]) ?? $this->answerOptionRepo->findOneBy(['question' => $question, 'label' => mb_strtolower($label)]);
+                    $optId = $this->answerOptionRepo->findOneBy(['question' => $question, 'label' => $label]) ?? $this->answerOptionRepo->findOneBy(['question' => $question, 'label' => mb_strtolower($label)]);
 
-                    if (!$opt) {
+                    if (!$optId) {
                         throw new InvalidArgumentException(sprintf('Unknown option label "%s" for question %d.', $label, $qId));
                     }
 
-                    $ans = new SurveyAnswer();
-                    $ans->setSubmission($submission);
-                    $ans->setQuestion($question);
-                    $ans->setAnswerOption($opt);
-                    $this->surveyAnswerRepo->save($ans, false);
+                    $surveyAnswer = new SurveyAnswer();
+                    $surveyAnswer->setSubmission($submission);
+                    $surveyAnswer->setQuestion($question);
+                    $surveyAnswer->setAnswerOption($optId);
+                    $this->surveyAnswerRepo->save($surveyAnswer, false);
 
                     return;
                 }
@@ -220,7 +212,7 @@ final class SurveySubmissionController extends AbstractController
                 throw new InvalidArgumentException(sprintf('Missing optionId/optionValue for question %d.', $qId));
             };
 
-            if (array_key_exists('optionId', $row)) {
+            if (\array_key_exists('optionId', $row)) {
                 $id = is_numeric($row['optionId']) ? (int)$row['optionId'] : null;
                 $persistAnswer($id, null);
                 continue;
@@ -249,9 +241,7 @@ final class SurveySubmissionController extends AbstractController
                 continue;
             }
 
-            throw new InvalidArgumentException(
-                sprintf('Answer for question %s must contain `optionId`/`optionIds` or `optionValue`/`optionValues`.', $qId)
-            );
+            throw new InvalidArgumentException(sprintf('Answer for question %s must contain `optionId`/`optionIds` or `optionValue`/`optionValues`.', $qId));
         }
 
         $this->surveySubmissionRepo->save($submission, true);
@@ -300,7 +290,6 @@ final class SurveySubmissionController extends AbstractController
         }
 
         if (!empty($activityFromAnswers)) {
-            // normalisation accents + mapping FR -> codes enum
             $norm = mb_strtolower(trim($activityFromAnswers));
             $norm = strtr($norm, [
                 'é' => 'e','è' => 'e','ê' => 'e','ë' => 'e',
@@ -323,11 +312,7 @@ final class SurveySubmissionController extends AbstractController
             try {
                 $activityEnum = ActivityType::from($canonical);
             } catch (ValueError $e) {
-                throw new InvalidArgumentException(sprintf(
-                    'Invalid activity value "%s". Allowed: %s',
-                    $activityFromAnswers,
-                    implode(', ', array_map(fn($c) => $c->value, ActivityType::cases()))
-                ));
+                throw new InvalidArgumentException(\sprintf('Invalid activity value "%s". Allowed: %s', $activityFromAnswers, implode(', ', array_map(fn($c) => $c->value, ActivityType::cases()))));
             }
 
             if (method_exists($submission, 'setSelectedActivity')) {
@@ -344,16 +329,13 @@ final class SurveySubmissionController extends AbstractController
         }
 
         if (!empty($analysis['mood']) && method_exists($submission, 'setDeducedMood')) {
-            $moodRaw = (string)$analysis['mood'];
+            $moodRaw = $analysis['mood'];
             try {
                 $moodEnum = MoodType::from($moodRaw);
             } catch (ValueError $e) {
-                throw new InvalidArgumentException(sprintf(
-                    'Invalid mood value "%s". Must be one of: %s',
-                    $moodRaw,
-                    implode(', ', array_map(fn($c) => $c->value, MoodType::cases()))
-                ));
+                throw new InvalidArgumentException(sprintf('Invalid mood value "%s". Must be one of: %s', $moodRaw, implode(', ', array_map(fn($c) => $c->value, MoodType::cases()))));
             }
+
             $submission->setDeducedMood($moodEnum);
             $analysis['mood'] = $moodEnum->value;
         }
@@ -361,10 +343,10 @@ final class SurveySubmissionController extends AbstractController
         $this->surveySubmissionRepo->save($submission, true);
 
         return new JsonResponse([
-            'status'        => 'ok',
+            'status' => 'ok',
             'submission_id' => $submission->getId(),
-            'survey_id'     => $surveyId,
-            'analysis'      => $analysis,
+            'survey_id' => $surveyId,
+            'analysis' => $analysis,
         ]);
     }
 }

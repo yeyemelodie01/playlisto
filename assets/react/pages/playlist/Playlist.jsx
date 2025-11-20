@@ -38,7 +38,7 @@ export default function Playlist() {
 
                 console.log('[Playlist] normalized items:', items);
 
-                const sorted = [...items].sort((a, b) => {
+                const sorted= [...items].sort((a, b) => {
                     const da = new Date(a.createdAt);
                     const db = new Date(b.createdAt);
                     return db - da;
@@ -60,7 +60,7 @@ export default function Playlist() {
     return (
         <>
             <Header />
-            <main className="h-[44.6rem] grid lg:grid-cols-5 sm:grid-cols-3 gap-4">
+            <main className="md:h-[34rem] h-[34.4rem] grid lg:grid-cols-5 sm:grid-cols-3 gap-4">
                 <MenuAside />
 
                 <section className="col-span-4 w-full mx-auto px-4 overflow-auto mt-4">

@@ -26,7 +26,7 @@ use Throwable;
 final class AnalyzeAnswersController
 {
     private const ACTIVITY_QID = 14;
-    private const GENRES_QID   = 15;
+    private const GENRES_QID = 15;
 
     /**
      * @param OpenAIService              $openAI
@@ -47,27 +47,21 @@ final class AnalyzeAnswersController
         try {
             $data = json_decode($request->getContent() ?: '{}', true, 512, JSON_THROW_ON_ERROR);
         } catch (JsonException) {
-            return new JsonResponse([
-                'error' => 'invalid_json',
-                'message' => 'Body must be valid JSON.',
-            ], Response::HTTP_BAD_REQUEST);
+
+            return new JsonResponse(['error' => 'invalid_json', 'message' => 'Body must be valid JSON.',], Response::HTTP_BAD_REQUEST);
         }
 
         $surveyId = (int)($data['surveyId'] ?? 0);
-        $answers  = $data['answers'] ?? null;
+        $answers = $data['answers'] ?? null;
 
         if ($surveyId <= 0) {
-            return new JsonResponse([
-                'error' => 'invalid_payload',
-                'message' => 'Field "surveyId" is required and must be a positive integer.',
-            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+
+            return new JsonResponse(['error' => 'invalid_payload', 'message' => 'Field "surveyId" is required and must be a positive integer.',], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
         if (!is_array($answers) || $answers === []) {
-            return new JsonResponse([
-                'error' => 'invalid_payload',
-                'message' => 'Field "answers" is required and must be a non-empty array.',
-            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+
+            return new JsonResponse(['error' => 'invalid_payload', 'message' => 'Field "answers" is required and must be a non-empty array.',], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
         $requiredQids = range(1, 13);
@@ -81,19 +75,13 @@ final class AnalyzeAnswersController
 
         $missing = array_values(array_diff($requiredQids, $receivedQids));
         if ($missing) {
-            return new JsonResponse([
-                'error'   => 'missing_required_questions',
-                'message' => 'Some required questions are missing.',
-                'missing' => $missing,
-            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+            return new JsonResponse(['error' => 'missing_required_questions', 'message' => 'Some required questions are missing.', 'missing' => $missing,], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
         $user = $this->security->getUser();
         if (!$user instanceof User) {
-            return new JsonResponse([
-                'error' => 'unauthenticated',
-                'message' => 'Authenticated User entity not found.',
-            ], Response::HTTP_UNAUTHORIZED);
+
+            return new JsonResponse(['error' => 'unauthenticated', 'message' => 'Authenticated User entity not found.',], Response::HTTP_UNAUTHORIZED);
         }
 
         $submission = new SurveySubmission();
@@ -107,14 +95,17 @@ final class AnalyzeAnswersController
         foreach ($answers as $a) {
             $qid = (int)($a['questionId'] ?? 0);
             if ($qid <= 0) {
+
                 return new JsonResponse(['error' => 'invalid_question_id'], 422);
             }
 
             $question = $this->questionRepo->find($qid);
             if (!$question) {
+
                 return new JsonResponse(['error' => "unknown_question_$qid"], 422);
             }
             if ($question->getSurveyId() !== $submission->getSurveyId()) {
+
                 return new JsonResponse(['error' => "survey_mismatch_q$qid"], 422);
             }
 
@@ -129,54 +120,56 @@ final class AnalyzeAnswersController
                         continue;
                     }
 
-                    $opt = $this->optionRepo->find((int)$oid);
-                    if (!$opt instanceof AnswerOption) {
+                    $answerOption = $this->optionRepo->find((int)$oid);
+                    if (!$answerOption instanceof AnswerOption) {
+
                         return new JsonResponse(['error' => "unknown_option_$oid"], 422);
                     }
-                    if ($opt->getQuestion()?->getId() !== $qid) {
+                    if ($answerOption->getQuestion()?->getId() !== $qid) {
+
                         return new JsonResponse(['error' => "option_not_of_question_q{$qid}"], 422);
                     }
 
-                    $ans = new SurveyAnswer();
-                    $ans->setSubmission($submission);
-                    $ans->setQuestion($question);
-                    $ans->setAnswerOption($opt);
-                    $this->answerRepo->save($ans, false);
+                    $surveyAnswer = new SurveyAnswer();
+                    $surveyAnswer->setSubmission($submission);
+                    $surveyAnswer->setQuestion($question);
+                    $surveyAnswer->setAnswerOption($answerOption);
+                    $this->answerRepo->save($surveyAnswer, false);
 
-                    $labels[] = trim($opt->getLabel());
+                    $labels[] = trim($answerOption->getLabel());
                 }
 
                 if ($labels) {
                     $payloadForAI[] = [
-                        'questionId'   => $qid,
+                        'questionId' => $qid,
                         'optionValues' => array_values(array_unique($labels)),
-                        'isActivity'   => $isActivity ?: null,
-                        'isGenres'     => $isGenres   ?: null,
+                        'isActivity' => $isActivity ?: null,
+                        'isGenres' => $isGenres   ?: null,
                     ];
                 }
                 continue;
             }
 
             if (isset($a['optionId']) && is_numeric($a['optionId'])) {
-                $opt = $this->optionRepo->find((int)$a['optionId']);
-                if (!$opt instanceof AnswerOption) {
+                $answerOption = $this->optionRepo->find((int)$a['optionId']);
+                if (!$answerOption instanceof AnswerOption) {
                     return new JsonResponse(['error' => "unknown_option_{$a['optionId']}"], 422);
                 }
-                if ($opt->getQuestion()?->getId() !== $qid) {
+                if ($answerOption->getQuestion()?->getId() !== $qid) {
                     return new JsonResponse(['error' => "option_not_of_question_q{$qid}"], 422);
                 }
 
-                $ans = new SurveyAnswer();
-                $ans->setSubmission($submission);
-                $ans->setQuestion($question);
-                $ans->setAnswerOption($opt);
-                $this->answerRepo->save($ans, false);
+                $surveyAnswer = new SurveyAnswer();
+                $surveyAnswer->setSubmission($submission);
+                $surveyAnswer->setQuestion($question);
+                $surveyAnswer->setAnswerOption($answerOption);
+                $this->answerRepo->save($surveyAnswer, false);
 
                 $payloadForAI[] = [
-                    'questionId'  => $qid,
-                    'optionValue' => trim($opt->getLabel()),
-                    'isActivity'  => $isActivity ?: null,
-                    'isGenres'    => $isGenres   ?: null,
+                    'questionId' => $qid,
+                    'optionValue' => trim($answerOption->getLabel()),
+                    'isActivity' => $isActivity ?: null,
+                    'isGenres' => $isGenres   ?: null,
                 ];
                 continue;
             }
@@ -184,27 +177,25 @@ final class AnalyzeAnswersController
             if (isset($a['optionValue']) && is_string($a['optionValue']) && trim($a['optionValue']) !== '') {
                 $label = trim($a['optionValue']);
 
-                $opt = $this->optionRepo->findOneBy(['question' => $question, 'label' => $label])
+                $answerOption = $this->optionRepo->findOneBy(['question' => $question, 'label' => $label])
                     ?? $this->optionRepo->findOneBy(['question' => $question, 'label' => mb_strtolower($label)]);
 
-                if (!$opt instanceof AnswerOption) {
-                    return new JsonResponse([
-                        'error' => "unknown_option_label_for_q{$qid}",
-                        'label' => $label,
-                    ], 422);
+                if (!$answerOption instanceof AnswerOption) {
+                    
+                    return new JsonResponse(['error' => "unknown_option_label_for_q{$qid}", 'label' => $label,], 422);
                 }
 
-                $ans = new SurveyAnswer();
-                $ans->setSubmission($submission);
-                $ans->setQuestion($question);
-                $ans->setAnswerOption($opt);
-                $this->answerRepo->save($ans, false);
+                $surveyAnswer = new SurveyAnswer();
+                $surveyAnswer->setSubmission($submission);
+                $surveyAnswer->setQuestion($question);
+                $surveyAnswer->setAnswerOption($answerOption);
+                $this->answerRepo->save($surveyAnswer, false);
 
                 $payloadForAI[] = [
-                    'questionId'  => $qid,
+                    'questionId' => $qid,
                     'optionValue' => $label,
-                    'isActivity'  => $isActivity ?: null,
-                    'isGenres'    => $isGenres   ?: null,
+                    'isActivity' => $isActivity ?: null,
+                    'isGenres' => $isGenres ?: null,
                 ];
                 continue;
             }
@@ -215,50 +206,48 @@ final class AnalyzeAnswersController
                     static fn($v) => $v !== ''
                 )));
 
-                $found   = [];
+                $found = [];
                 $missing = [];
 
                 foreach ($labels as $label) {
-                    $opt = $this->optionRepo->findOneBy(['question' => $question, 'label' => $label])
+                    $answerOption = $this->optionRepo->findOneBy(['question' => $question, 'label' => $label])
                         ?? $this->optionRepo->findOneBy(['question' => $question, 'label' => mb_strtolower($label)]);
 
-                    if (!$opt instanceof AnswerOption) {
+                    if (!$answerOption instanceof AnswerOption) {
                         $missing[] = $label;
                         continue;
                     }
-                    if ($opt->getQuestion()?->getId() !== $qid) {
+                    if ($answerOption->getQuestion()?->getId() !== $qid) {
                         return new JsonResponse(['error' => "option_not_of_question_q{$qid}"], 422);
                     }
-                    $found[] = $opt;
+                    $found[] = $answerOption;
                 }
 
                 if ($missing) {
                     return new JsonResponse([
-                        'error'  => "unknown_option_labels_for_q{$qid}",
+                        'error' => "unknown_option_labels_for_q{$qid}",
                         'labels' => $missing,
                     ], 422);
                 }
 
-                foreach ($found as $opt) {
-                    $ans = new SurveyAnswer();
-                    $ans->setSubmission($submission);
-                    $ans->setQuestion($question);
-                    $ans->setAnswerOption($opt);
-                    $this->answerRepo->save($ans, false);
+                foreach ($found as $answerOption) {
+                    $surveyAnswer = new SurveyAnswer();
+                    $surveyAnswer->setSubmission($submission);
+                    $surveyAnswer->setQuestion($question);
+                    $surveyAnswer->setAnswerOption($answerOption);
+                    $this->answerRepo->save($surveyAnswer, false);
                 }
 
                 $payloadForAI[] = [
-                    'questionId'   => $qid,
+                    'questionId' => $qid,
                     'optionValues' => $labels,
-                    'isActivity'   => $isActivity ?: null,
-                    'isGenres'     => $isGenres   ?: null,
+                    'isActivity' => $isActivity ?: null,
+                    'isGenres' => $isGenres ?: null,
                 ];
                 continue;
             }
 
-            return new JsonResponse([
-                'error' => "question_{$qid}_requires_optionId(s)_or_optionValue(s)",
-            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+            return new JsonResponse(['error' => "question_{$qid}_requires_optionId(s)_or_optionValue(s)",], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
         $this->answerRepo->flush();
@@ -266,24 +255,22 @@ final class AnalyzeAnswersController
         try {
             $result = $this->openAI->analyzeAnswers(['answers' => $payloadForAI]);
         } catch (Throwable $e) {
-            return new JsonResponse([
-                'error' => 'openai_analyze_failed',
-                'message' => $e->getMessage(),
-            ], Response::HTTP_INTERNAL_SERVER_ERROR);
+
+            return new JsonResponse(['error' => 'openai_analyze_failed', 'message' => $e->getMessage(),], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
 
         $moodStr = strtolower($result['mood'] ?? 'calm');
         $moodMap = [
-            'happy'     => MoodType::HAPPY,
-            'sad'       => MoodType::SAD,
+            'happy' => MoodType::HAPPY,
+            'sad' => MoodType::SAD,
             'energetic' => MoodType::ENERGETIC,
-            'stressed'  => MoodType::STRESSED,
-            'calm'      => MoodType::CALM,
+            'stressed' => MoodType::STRESSED,
+            'calm' => MoodType::CALM,
         ];
         $submission->setDeducedMood($moodMap[$moodStr] ?? MoodType::CALM);
 
         $activity = null;
-        $genres   = [];
+        $genres = [];
 
         foreach ($payloadForAI as $entry) {
             if (!empty($entry['isActivity'])) {
@@ -296,10 +283,7 @@ final class AnalyzeAnswersController
         }
         foreach ($payloadForAI as $entry) {
             if (!empty($entry['isGenres']) && !empty($entry['optionValues']) && is_array($entry['optionValues'])) {
-                $genres = array_values(array_unique(array_map(
-                    static fn($g) => mb_strtolower(trim((string)$g)),
-                    $entry['optionValues']
-                )));
+                $genres = array_values(array_unique(array_map(static fn($g) => mb_strtolower(trim((string)$g)), $entry['optionValues'])));
                 break;
             }
         }
@@ -311,12 +295,12 @@ final class AnalyzeAnswersController
 
 
             $actMap = [
-                'sport'   => ActivityType::SPORT,
+                'sport' => ActivityType::SPORT,
                 'travail' => ActivityType::WORK,
                 'detente' => ActivityType::RELAX,
-                'etude'   => ActivityType::STUDY,
+                'etude' => ActivityType::STUDY,
                 'cuisine' => ActivityType::COOKING,
-                'aucune'  => ActivityType::NONE,
+                'aucune' => ActivityType::NONE,
             ];
             if (isset($actMap[$norm])) {
                 $submission->setSelectedActivity($actMap[$norm]);
@@ -336,8 +320,8 @@ final class AnalyzeAnswersController
         $this->submissionRepo->save($submission, true);
 
         return new JsonResponse([
-            'submissionId'    => $submission->getId(),
-            'deducedMood'     => $submission->getDeducedMood()->value,
+            'submissionId' => $submission->getId(),
+            'deducedMood' => $submission->getDeducedMood()->value,
             'selectedActivity' => $submission->getSelectedActivity()?->value,
             'preferredGenres' => $submission->getPreferredGenres() ?? [],
         ], Response::HTTP_OK);

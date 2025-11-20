@@ -363,7 +363,7 @@ final readonly class OpenAIService
         Create ONE original, catchy playlist title inspired by:
         - the user's mood
         - the user's activity
-        - 1 to 3 selected genres
+        - 3 to 5 selected genres
         
         Rules:
         - Language: French by default unless locale="en".

@@ -17,7 +17,7 @@ final readonly class FirewallDetector
      * @param FirewallMap  $firewallMap
      * @param RequestStack $requestStack
      *
-     * @psalm-suppress PossiblyUnusedMethod
+     * @psalm-suppress
      */
     public function __construct(private FirewallMap $firewallMap, private RequestStack $requestStack)
     {
@@ -28,7 +28,7 @@ final readonly class FirewallDetector
      */
     public function getFirewallConfig(): ?FirewallConfig
     {
-        return null !== $this->requestStack->getCurrentRequest() ? $this->firewallMap->getFirewallConfig($this->requestStack->getCurrentRequest()) : null;
+        return $this->requestStack->getCurrentRequest() !== null ? $this->firewallMap->getFirewallConfig($this->requestStack->getCurrentRequest()) : null;
     }
 
     /**
@@ -36,9 +36,7 @@ final readonly class FirewallDetector
      */
     public function getFirewallName(): ?string
     {
-        $firewallConfig = $this->getFirewallConfig();
-
-        return $firewallConfig?->getName();
+        return $this->getFirewallConfig()?->getName();
     }
 
     /**
@@ -48,6 +46,6 @@ final readonly class FirewallDetector
     {
         $name = $this->getFirewallName();
 
-        return null !== $name ? str_replace('_secured_area', '', $name) : null;
+        return $name !== null ? str_replace('_secured_area', '', $name) : null;
     }
 }
