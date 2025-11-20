@@ -30,10 +30,10 @@ final readonly class OpenAIService
      *
      */
     public function __construct(
-        private readonly HttpClientInterface $httpClient,
-        private readonly string $apiKey,
-        private readonly string $model = 'gpt-4o-mini',
-        private readonly int $timeout = 30
+        private HttpClientInterface $httpClient,
+        private string $apiKey,
+        private string $model = 'gpt-4o-mini',
+        private int $timeout = 30
     ) {
     }
 
@@ -181,16 +181,8 @@ final readonly class OpenAIService
 
     /**
      * Analyze user answers and infer ONLY the mood.
-     *
-     * Notes:
-     * - We intentionally exclude activity (Q7) and genres (Q8) from the LLM prompt.
-     * - Return array contains only: ['mood' => 'happy|sad|energetic|stressed|calm'].
-     *
      * @param array $answers
-     *   Supported shapes:
-     *   1) ['answers' => [['questionId'=>int,'optionValue'=>string]|['questionId'=>int,'optionValues'=>string[]], ...], 'activity' => ..., 'genres' => [...]]
-     *   2) Flat behaviour payload under keys 'behaviour'|'behavior'|'behaviour_answers' (activity/genres keys, if present, are dropped before sending).
-     *
+
      * @return array{mood:string}
      *
      * @throws ClientExceptionInterface
@@ -466,6 +458,12 @@ final readonly class OpenAIService
         return $this->truncateTitle($title, $maxLen);
     }
 
+    /**
+     * @param string $title
+     * @param int    $maxLen
+     *
+     * @return string
+     */
     private function truncateTitle(string $title, int $maxLen): string
     {
         $title = trim($title);

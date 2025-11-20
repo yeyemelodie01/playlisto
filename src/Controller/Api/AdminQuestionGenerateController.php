@@ -25,10 +25,8 @@ use Throwable;
  */
 final class AdminQuestionGenerateController
 {
-    public function __construct(
-        private readonly OpenAIService $openAIService,
-        private readonly QuestionRepository $questionRepository
-    ) {
+    public function __construct(private readonly OpenAIService $openAIService, private readonly QuestionRepository $questionRepository)
+    {
     }
 
     /**

@@ -45,14 +45,8 @@ final readonly class GeneratePlaylistController
      * @param Security                   $security
      * @param OpenAIService              $openAI
      */
-    public function __construct(
-        private SpotifyService $spotify,
-        private PlaylistRepository $playlistRepository,
-        private TrackRepository $trackRepository,
-        private SurveySubmissionRepository $submissionRepository,
-        private Security $security,
-        private readonly OpenAIService $openAI,
-    ) {
+    public function __construct(private SpotifyService $spotify, private PlaylistRepository $playlistRepository, private TrackRepository $trackRepository, private SurveySubmissionRepository $submissionRepository, private Security $security, private OpenAIService $openAI,)
+    {
     }
 
     /**
@@ -212,6 +206,14 @@ final readonly class GeneratePlaylistController
         return sprintf('%s%s%s', $m, $a, $g) ?: 'Mix';
     }
 
+    /**
+     * @param int               $submissionId
+     * @param MoodType|null     $mood
+     * @param ActivityType|null $activity
+     * @param array             $genres
+     *
+     * @return string
+     */
     private function makeDescription(int $submissionId, ?MoodType $mood, ?ActivityType $activity, array $genres): string
     {
         $bits = [];
@@ -228,9 +230,14 @@ final readonly class GeneratePlaylistController
         return implode(' | ', $bits);
     }
 
+    /**
+     * @param MoodType|null     $mood
+     * @param ActivityType|null $activity
+     *
+     * @return int[]
+     */
     private function targetsFromMoodActivity(?MoodType $mood, ?ActivityType $activity): array
     {
-        // Valeurs par défaut "neutres"
         $targets = [
             'min_popularity' => 0,
         ];

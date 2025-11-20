@@ -2,7 +2,9 @@
 
 namespace App\State\Processor;
 
+use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Metadata\Operation;
+use ApiPlatform\Metadata\Put;
 use ApiPlatform\State\ProcessorInterface;
 use App\ApiResource\MeInput;
 use App\ApiResource\MeOutput;
@@ -21,11 +23,8 @@ final readonly class MeProcessor implements ProcessorInterface
      * @param UserRepository              $userRepository
      * @param UserPasswordHasherInterface $passwordHasher
      */
-    public function __construct(
-        private Security $security,
-        private UserRepository $userRepository,
-        private UserPasswordHasherInterface $passwordHasher,
-    ) {
+    public function __construct(private Security $security, private UserRepository $userRepository, private UserPasswordHasherInterface $passwordHasher,)
+    {
     }
 
     /**
@@ -38,14 +37,12 @@ final readonly class MeProcessor implements ProcessorInterface
      */
     public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = []): mixed
     {
-        $method = strtoupper($context['request']->getMethod() ?? 'GET');
-
         $user = $this->security->getUser();
         if (!$user instanceof User) {
             throw new RuntimeException('User not authenticated');
         }
 
-        if ($method === 'PUT') {
+        if ($operation instanceof Put) {
             assert($data instanceof MeInput);
 
             if ($data->email && $data->email !== $user->getEmail()) {
@@ -70,11 +67,15 @@ final readonly class MeProcessor implements ProcessorInterface
             );
         }
 
-        if ($method === 'DELETE') {
+        if ($operation instanceof Delete) {
+            dd($user);
             $this->userRepository->remove($user, true);
             return null;
         }
 
-        throw new RuntimeException(sprintf('Unsupported method: %s', $method));
+        throw new RuntimeException(sprintf(
+            'Unsupported operation: %s',
+            $operation::class
+        ));
     }
 }

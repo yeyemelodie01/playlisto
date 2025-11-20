@@ -40,15 +40,15 @@ final readonly class AnswerOptionProcessor implements ProcessorInterface
     /**
      * Processes the submitted answers and deduces mood, activity, and recommendation seeds.
      *
-     * @param mixed                $data         The input data, expected to be an instance of AnswerOptionInput.
-     * @param Operation            $operation    The operation being performed (POST, etc.).
-     * @param array<string, mixed> $uriVariables an array of URI variables (unused here)
-     * @param array<string, mixed> $context      additional context passed by API Platform
+     * @param mixed                $data
+     * @param Operation            $operation
+     * @param array<string, mixed> $uriVariables
+     * @param array<string, mixed> $context
      *
-     * @return AnswerOptionResultOutput the result containing deduced mood, activity, and recommendation seeds
+     * @return AnswerOptionResultOutput
      *
-     * @throws AccessDeniedHttpException if the user is not authenticated
-     * @throws BadRequestHttpException   if the input data is invalid
+     * @throws AccessDeniedHttpException
+     * @throws BadRequestHttpException
      */
     public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = []): mixed
     {
@@ -116,7 +116,6 @@ final readonly class AnswerOptionProcessor implements ProcessorInterface
         }
 
         $seeds = array_values(array_unique($seeds));
-
 
         $user = $this->security->getUser();
 

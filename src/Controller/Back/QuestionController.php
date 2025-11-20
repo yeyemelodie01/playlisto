@@ -99,7 +99,6 @@ final class QuestionController extends AbstractController
                 return $this->redirectToRoute('question_index');
             }
 
-            // Display errors
             foreach ($errors as $e) {
                 $this->addFlash('error', $e);
             }

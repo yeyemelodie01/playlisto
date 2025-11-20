@@ -44,10 +44,10 @@ final readonly class PlaylistProcessor implements ProcessorInterface
     /**
      * Processes the given data for a playlist operation.
      *
-     * @param mixed                $data         The data to be processed.
-     * @param Operation            $operation    The operation being performed.
-     * @param array<string, mixed> $uriVariables Any URI variables that may have been provided.
-     * @param array<string, mixed> $context      Additional context passed by API Platform.
+     * @param mixed                $data
+     * @param Operation            $operation
+     * @param array<string, mixed> $uriVariables
+     * @param array<string, mixed> $context
      *
      * @return mixed The processed data.
      */

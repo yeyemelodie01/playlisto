@@ -58,7 +58,7 @@ final class BackController extends AbstractController
                 $to   = (new DateTimeImmutable($toParam))->setTime(23, 59, 59);
                 if ($from > $to) {
                     $this->addFlash('error', 'Invalid date range.');
-                    $from = $to = null; // fallback to service default
+                    $from = $to = null;
                 }
             } catch (Exception) {
                 $this->addFlash('error', 'Dates invalid.');

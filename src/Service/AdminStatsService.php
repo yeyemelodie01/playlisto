@@ -21,17 +21,17 @@ final readonly class AdminStatsService
      * @param PlaylistRepository $playlistRepository
      * @param CacheInterface     $cache
      */
-    public function __construct(private readonly UserRepository $userRepository, private readonly PlaylistRepository $playlistRepository, private readonly CacheInterface $cache)
+    public function __construct(private UserRepository $userRepository, private PlaylistRepository $playlistRepository, private CacheInterface $cache)
     {
     }
 
     /**
      * Retrieves various statistics for the admin dashboard.
      *
-     * @param DateTimeInterface|null $from Start date for filtering statistics (default: 7 days ago)
-     * @param DateTimeInterface|null $to End date for filtering statistics (default: now)
+     * @param DateTimeInterface|null $from
+     * @param DateTimeInterface|null $to
      *
-     * @return array An associative array containing various statistics
+     * @return array
      * @throws InvalidArgumentException
      */
     public function getDashboardStats(?DateTimeInterface $from = null, ?DateTimeInterface $to = null): array

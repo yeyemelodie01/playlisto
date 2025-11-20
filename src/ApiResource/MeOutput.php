@@ -36,6 +36,10 @@ use App\State\Provider\MeOutputProvider;
             uriTemplate: '/me',
             description: 'Delete the currently authenticated user',
             security: "is_granted('IS_AUTHENTICATED_FULLY')",
+            input: false,
+            output: false,
+            read: true,
+            provider: MeOutputProvider::class,
             processor: MeProcessor::class
         ),
     ],
