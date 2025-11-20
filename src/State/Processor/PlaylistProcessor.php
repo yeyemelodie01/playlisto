@@ -68,7 +68,6 @@ final readonly class PlaylistProcessor implements ProcessorInterface
             $user = $userEntity;
         }
 
-
         if ($operation instanceof Post) {
             assert($data instanceof PlaylistInput);
 

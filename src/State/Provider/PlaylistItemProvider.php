@@ -17,10 +17,10 @@ final readonly class PlaylistItemProvider implements ProviderInterface
     /**
      * Constructor for PlaylistItemProvider.
      *
-     * @param PlaylistRepository $playlistRepository the playlist repository
-     * @param Security           $security  the security component used to fetch the current authenticated user
+     * @param PlaylistRepository $playlistRepository
+     * @param Security           $security
      *
-     * @psalm-suppress PossiblyUnusedMethod
+     * @psalm-suppress
      */
     public function __construct(
         private PlaylistRepository $playlistRepository,
@@ -31,13 +31,13 @@ final readonly class PlaylistItemProvider implements ProviderInterface
     /**
      * Provides a PlaylistOutput DTO for a specific playlist owned by the currently authenticated user.
      *
-     * @param Operation            $operation    The operation being performed (GET, etc.).
-     * @param array<string, mixed> $uriVariables an array of URI variables, expecting 'id' for the playlist ID
-     * @param array<string, mixed> $context      additional context passed by API Platform
+     * @param Operation            $operation
+     * @param array<string, mixed> $uriVariables
+     * @param array<string, mixed> $context
      *
-     * @return PlaylistOutput|null returns a PlaylistOutput object if found and owned by the user, null otherwise
+     * @return PlaylistOutput|null
      *
-     * @throws AccessDeniedHttpException if the playlist does not belong to the authenticated user
+     * @throws AccessDeniedHttpException
      */
     #[Override]
     public function provide(Operation $operation, array $uriVariables = [], array $context = []): ?PlaylistOutput
@@ -46,6 +46,7 @@ final readonly class PlaylistItemProvider implements ProviderInterface
         if (null === $user) {
             return null;
         }
+
         if (!$user instanceof User) {
             throw new AccessDeniedHttpException('Authenticated user is not a valid application user.');
         }
