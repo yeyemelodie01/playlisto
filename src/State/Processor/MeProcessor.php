@@ -67,12 +67,6 @@ final readonly class MeProcessor implements ProcessorInterface
             );
         }
 
-        if ($operation instanceof Delete) {
-            dd($user);
-            $this->userRepository->remove($user, true);
-            return null;
-        }
-
         throw new RuntimeException(sprintf(
             'Unsupported operation: %s',
             $operation::class
