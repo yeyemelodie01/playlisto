@@ -5,6 +5,7 @@ namespace App\Service;
 use App\Enum\SpotifyGenre;
 use InvalidArgumentException;
 use RuntimeException;
+use Symfony\Contracts\Cache\CacheInterface;
 use Symfony\Contracts\HttpClient\Exception\ClientExceptionInterface;
 use Symfony\Contracts\HttpClient\Exception\DecodingExceptionInterface;
 use Symfony\Contracts\HttpClient\Exception\RedirectionExceptionInterface;
@@ -17,15 +18,12 @@ final readonly class SpotifyService
     /**
      * @param HttpClientInterface $http
      * @param string              $clientId
+     * @param CacheInterface      $cache
      * @param string              $clientSecret
      * @param string              $baseUrl
      */
-    public function __construct(
-        private HttpClientInterface $http,
-        private string $clientId,
-        private string $clientSecret,
-        private string $baseUrl,
-    ) {
+    public function __construct(private HttpClientInterface $http, private string $clientId, private CacheInterface $cache, private string $clientSecret, private string $baseUrl)
+    {
     }
 
     /**
