@@ -69,7 +69,7 @@ final readonly class GeneratePlaylistController
         }
 
         $submissionId = (int)($payload['submission_id'] ?? 0);
-        $limit        = max(1, min((int)($payload['limit'] ?? 20), 50));
+        $limit = max(1, min((int)($payload['limit'] ?? 20), 50));
 
         if ($submissionId <= 0) {
             return new JsonResponse(['status' => 'error','message' => 'Missing submission_id'], Response::HTTP_BAD_REQUEST);
@@ -80,25 +80,17 @@ final readonly class GeneratePlaylistController
             return new JsonResponse(['status' => 'error','message' => 'Submission not found'], Response::HTTP_NOT_FOUND);
         }
 
-        $mood     = $submission->getDeducedMood();
+        $mood = $submission->getDeducedMood();
         $activity = $submission->getSelectedActivity();
-        $genres   = $submission->getPreferredGenres() ?? [];
+        $genres = $submission->getPreferredGenres() ?? [];
 
         if (empty($genres)) {
-            return new JsonResponse([
-                'status'  => 'error',
-                'message' => 'No preferred genres on submission',
-            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+            
+            return new JsonResponse(['status'  => 'error', 'message' => 'No preferred genres on submission',], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
         try {
-            $title = $this->openAI->generatePlaylistTitle(
-                $mood,
-                $activity,
-                $genres,
-                'fr',
-                48
-            );
+            $title = $this->openAI->generatePlaylistTitle($mood, $activity, $genres, 'fr', 48);
         } catch (Throwable $e) {
             $title = 'Mix ' . ucfirst($mood->value);
         }
@@ -127,16 +119,14 @@ final readonly class GeneratePlaylistController
             $targets = $this->targetsFromMoodActivity($mood, $activity);
             $items   = $this->spotify->tracksByGenresWithTargets($genres, $targets, $limit);
         } catch (\Throwable $e) {
-            return new JsonResponse([
-                'status'  => 'error',
-                'message' => 'Failed to generate playlist: ' . $e->getMessage(),
-            ], Response::HTTP_BAD_GATEWAY);
+
+            return new JsonResponse(['status'  => 'error', 'message' => 'Failed to generate playlist: ' . $e->getMessage(),], Response::HTTP_BAD_GATEWAY);
         }
 
         $added = [];
         foreach ($items as $it) {
             $spotifyId = $it['id'] ?? null;
-            $name      = $it['name'] ?? null;
+            $name = $it['name'] ?? null;
             if (!is_string($spotifyId) || $spotifyId === '' || !is_string($name) || $name === '') {
                 continue;
             }
@@ -148,10 +138,10 @@ final readonly class GeneratePlaylistController
                 }
             }
             $albumName = $it['album']['name'] ?? '';
-            $duration  = (int)($it['duration_ms'] ?? 0);
-            $images    = $it['album']['images'] ?? [];
-            $coverUrl  = is_array($images) && isset($images[0]['url']) ? (string)$images[0]['url'] : '';
-            $preview   = isset($it['preview_url']) && is_string($it['preview_url']) ? $it['preview_url'] : null;
+            $duration = (int)($it['duration_ms'] ?? 0);
+            $images = $it['album']['images'] ?? [];
+            $coverUrl = is_array($images) && isset($images[0]['url']) ? (string)$images[0]['url'] : '';
+            $preview = isset($it['preview_url']) && is_string($it['preview_url']) ? $it['preview_url'] : null;
 
             $genreStr = is_array($genres) && !empty($genres) ? (string)$genres[0] : 'unknown';
 
@@ -176,34 +166,26 @@ final readonly class GeneratePlaylistController
 
             $playlist->addTrack($track);
             $added[] = [
-                'id'           => $spotifyId,
-                'name'         => $name,
-                'artists'      => $artists,
-                'album'        => $albumName,
-                'image_url'    => $coverUrl,
-                'duration_ms'  => $duration,
+                'id' => $spotifyId,
+                'name' => $name,
+                'artists' => $artists,
+                'album' => $albumName,
+                'image_url' => $coverUrl,
+                'duration_ms' => $duration,
                 'external_url' => $it['external_urls']['spotify'] ?? null,
-                'preview_url'  => $preview,
+                'preview_url' => $preview,
             ];
         }
 
         $this->playlistRepository->save($playlist, true);
 
         return new JsonResponse([
-            'status'      => 'ok',
-            'submission'  => $submissionId,
+            'status' => 'ok',
+            'submission' => $submissionId,
             'playlist_id' => $playlist->getId(),
-            'count'       => count($added),
-            'tracks'      => $added,
+            'count' => count($added),
+            'tracks' => $added,
         ], Response::HTTP_OK);
-    }
-
-    private function makeTitle(?MoodType $mood, ?ActivityType $activity, array $genres): string
-    {
-        $g = $genres ? (' · ' . implode(', ', array_slice($genres, 0, 2))) : '';
-        $a = $activity ? (' · ' . ucfirst($activity->value)) : '';
-        $m = $mood ? ucfirst($mood->value) : 'Mix';
-        return sprintf('%s%s%s', $m, $a, $g) ?: 'Mix';
     }
 
     /**
@@ -227,6 +209,7 @@ final readonly class GeneratePlaylistController
             $bits[] = 'Genres: ' . implode(', ', array_slice($genres, 0, 5));
         }
         $bits[] = 'Submission #' . $submissionId;
+
         return implode(' | ', $bits);
     }
 
@@ -238,9 +221,7 @@ final readonly class GeneratePlaylistController
      */
     private function targetsFromMoodActivity(?MoodType $mood, ?ActivityType $activity): array
     {
-        $targets = [
-            'min_popularity' => 0,
-        ];
+        $targets = ['min_popularity' => 0];
 
         if ($mood) {
             switch ($mood->value) {

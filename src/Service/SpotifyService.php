@@ -46,9 +46,9 @@ final readonly class SpotifyService
         $url   = $this->apiBase() . '/search';
 
         $query = [
-            'q'      => $q,
-            'type'   => $type,
-            'limit'  => min(max($limit, 1), 50),
+            'q' => $q,
+            'type' => $type,
+            'limit' => min(max($limit, 1), 50),
         ];
         if ($market !== null && $market !== '') {
             $query['market'] = $market;
@@ -56,7 +56,7 @@ final readonly class SpotifyService
 
         $data = $this->http->request('GET', $url, [
             'headers' => ['Authorization' => 'Bearer ' . $token],
-            'query'   => $query,
+            'query' => $query,
         ])->toArray(false);
 
         return $data[$type . 's']['items'] ?? [];
@@ -99,7 +99,7 @@ final readonly class SpotifyService
             $query['market'] = $market;
         }
         if ($seedGenres) {
-            $query['seed_genres']  = implode(',', $seedGenres);
+            $query['seed_genres'] = implode(',', $seedGenres);
         }
         if ($seedArtists) {
             $query['seed_artists'] = implode(',', $seedArtists);
@@ -127,7 +127,7 @@ final readonly class SpotifyService
         }
 
         $token = $this->token();
-        $url   = $this->apiBase() . '/recommendations';
+        $url = $this->apiBase() . '/recommendations';
 
         if (
             empty($query['seed_genres'])
@@ -171,14 +171,14 @@ final readonly class SpotifyService
                 $resp = $this->http->request('GET', $url, [
                     'headers' => [
                         'Authorization' => 'Bearer ' . $token,
-                        'Accept'        => 'application/json',
+                        'Accept' => 'application/json',
                     ],
-                    'query'   => $q,
+                    'query' => $q,
                     'timeout' => 15,
                 ]);
 
                 $status = $resp->getStatusCode();
-                $raw    = $resp->getContent(false);
+                $raw = $resp->getContent(false);
                 $tracks = $parse($status, $raw, $q);
 
                 if (!empty($tracks)) {
@@ -213,10 +213,10 @@ final readonly class SpotifyService
         $resp = $this->http->request('POST', 'https://accounts.spotify.com/api/token', [
             'headers' => [
                 'Authorization' => 'Basic ' . $auth,
-                'Content-Type'  => 'application/x-www-form-urlencoded',
-                'Accept'        => 'application/json',
+                'Content-Type' => 'application/x-www-form-urlencoded',
+                'Accept' => 'application/json',
             ],
-            'body'    => ['grant_type' => 'client_credentials'],
+            'body' => ['grant_type' => 'client_credentials'],
             'timeout' => 15,
         ]);
 
@@ -226,11 +226,7 @@ final readonly class SpotifyService
 
         if ($status >= 400) {
             $snippet = is_string($raw) ? mb_substr($raw, 0, 300) : '';
-            throw new RuntimeException(sprintf(
-                'Spotify token HTTP %d. Body: %s',
-                $status,
-                $snippet !== '' ? $snippet : '<empty>'
-            ));
+            throw new RuntimeException(\sprintf('Spotify token HTTP %d. Body: %s', $status, $snippet !== '' ? $snippet : '<empty>'));
         }
 
         if (!is_array($data)) {
@@ -239,12 +235,12 @@ final readonly class SpotifyService
         }
 
         if (isset($data['error'])) {
-            $desc = $data['error_description'] ?? (is_string($data['error']) ? $data['error'] : 'unknown error');
+            $desc = $data['error_description'] ?? (\is_string($data['error']) ? $data['error'] : 'unknown error');
             throw new RuntimeException('Spotify token error: ' . $desc);
         }
 
         $token = $data['access_token'] ?? null;
-        if (!is_string($token) || $token === '') {
+        if (!\is_string($token) || $token === '') {
             throw new RuntimeException('Spotify token missing in response: ' . json_encode($data, JSON_UNESCAPED_SLASHES));
         }
 
@@ -315,8 +311,8 @@ final readonly class SpotifyService
         }
 
         $pairs = [];
-        for ($i = 0; $i < count($seed3); $i++) {
-            for ($j = $i + 1; $j < count($seed3); $j++) {
+        for ($i = 0, $iMax = count($seed3); $i < $iMax; $i++) {
+            for ($j = $i + 1, $jMax = count($seed3); $j < $jMax; $j++) {
                 $pairs[] = [$seed3[$i], $seed3[$j]];
             }
         }
@@ -336,7 +332,7 @@ final readonly class SpotifyService
         $markets = array_values(array_unique(array_filter($markets, fn($m) => $m === null || is_string($m))));
 
         $accum = [];
-        $seen  = [];
+        $seen = [];
         foreach ($markets as $mkt) {
             foreach ($seed3 as $g) {
                 try {
@@ -388,6 +384,6 @@ final readonly class SpotifyService
      */
     public function extracted(array $unique, array $seed3, array $targets, mixed $limit): array
     {
-        return array_slice($unique, 0, $limit);
+        return \array_slice($unique, 0, $limit);
     }
 }

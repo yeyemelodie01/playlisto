@@ -15,8 +15,6 @@ use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 final readonly class PlaylistItemProvider implements ProviderInterface
 {
     /**
-     * Constructor for PlaylistItemProvider.
-     *
      * @param PlaylistRepository $playlistRepository
      * @param Security           $security
      *

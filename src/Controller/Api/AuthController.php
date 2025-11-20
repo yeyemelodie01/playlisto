@@ -24,7 +24,7 @@ final class AuthController
      */
     public function __invoke(#[CurrentUser] User|Administrator|null $user): JsonResponse
     {
-        if (null === $user) {
+        if ($user === null) {
             return new JsonResponse(['message' => 'Email ou mot de passe incorrect.'], Response::HTTP_UNAUTHORIZED);
         }
 

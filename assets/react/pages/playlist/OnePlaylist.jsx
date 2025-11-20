@@ -249,29 +249,24 @@ export default function OnePlaylist() {
             <main className="min-h-[calc(100vh-10rem)] grid lg:grid-cols-5 sm:grid-cols-3 gap-4">
                 <MenuAside />
 
-                <section className="lg:col-span-4 sm:col-span-2 h-full p-0 px-2 sm:px-4 overflow-y-auto">
-                    <div className="max-h-[calc(100vh-6rem)] overflow-y-auto p-4 md:p-8 pb-24">
+                <section className="lg:col-span-4 col-span-2 w-full max-w-4xl h-full p-0 md:px-2 px-4 overflow-y-auto">
+                    <div className="md:max-h-[calc(100vh-6rem)] overflow-y-auto p-4 md:p-8 pb-24">
                         <div className="max-w-6xl mx-auto">
-                            <div className="flex items-center justify-between mb-6">
-                                <div className="flex items-center gap-6">
+                            <div className="flex md:items-center md:justify-between md:flex-row mb-6 flex-col">
+                                <div className="flex items-center gap-6 flex-col md:flex-row">
                                     <img
                                         src={cover}
                                         alt={playlist.title || "Playlist cover"}
                                         className="w-20 h-20 md:w-28 md:h-28 object-cover rounded shadow"
                                     />
                                     <div>
-                                        <h1 className="text-2xl md:text-3xl font-bold">
+                                        <h1 className="text-2xl md:text-3xl font-bold text-center md:text-left">
                                             {playlist.title || "Playlist générée"}
                                         </h1>
                                         <div className="mt-2 flex flex-wrap justify-center gap-2 mb-8">
                                             {playlist.mood ? <div className="badge badge-primary">mood: {playlist.mood}</div> : null}
                                             {playlist.activity ? <div className="badge badge-secondary">activity: {playlist.activity}</div> : null}
                                             {playlist.trackCount ? <div className="badge">tracks: {playlist.trackCount}</div> : null}
-                                            {playlist.createdAt ? (
-                                                <div className="badge badge-ghost">
-                                                    {new Date(playlist.createdAt).toLocaleString()}
-                                                </div>
-                                            ) : null}
                                         </div>
                                     </div>
                                 </div>
@@ -295,7 +290,7 @@ export default function OnePlaylist() {
                                 ))}
                             </div>
 
-                            <div className="space-y-3">
+                            <div className="space-y-3 w-full">
                                 {Array.isArray(playlist.tracks) && playlist.tracks.length > 0 ? (
                                     playlist.tracks.map((track) => (
                                         <div
@@ -314,10 +309,10 @@ export default function OnePlaylist() {
                                                 </div>
 
                                                 <div className="flex-1 min-w-0 text-center sm:text-left">
-                                                    <h3 className="font-medium truncate">
+                                                    <h3 className="font-medium">
                                                         {track.title || "Titre inconnu"}
                                                     </h3>
-                                                    <p className="text-sm text-base-content/70 truncate">
+                                                    <p className="text-sm text-base-content/70">
                                                         {Array.isArray(track.artists) && track.artists.length
                                                             ? track.artists.join(", ")
                                                             : "Artiste inconnu"}

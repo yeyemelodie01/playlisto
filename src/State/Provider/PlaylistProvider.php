@@ -24,8 +24,6 @@ use Throwable;
 final readonly class PlaylistProvider implements ProviderInterface
 {
     /**
-     * Constructor for PlaylistProvider.
-     *
      * @param LoggerInterface $logger
      * @param Security        $security
      *

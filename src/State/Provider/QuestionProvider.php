@@ -16,11 +16,9 @@ use UnitEnum;
 final readonly class QuestionProvider implements ProviderInterface
 {
     /**
-     * Constructor for QuestionProvider.
+     * @param Security $security
      *
-     * @param Security $security the security component used to fetch the current authenticated user
-     *
-     * @psalm-suppress PossiblyUnusedMethod
+     * @psalm-suppress
      */
     public function __construct(private Security $security, private EntityManagerInterface $entityManager)
     {
@@ -29,11 +27,11 @@ final readonly class QuestionProvider implements ProviderInterface
     /**
      * Provides a QuestionOutput DTO based on the currently authenticated user.
      *
-     * @param Operation            $operation    The operation being performed (GET, etc.).
-     * @param array<string, mixed> $uriVariables an array of URI variables (unused here)
-     * @param array<string, mixed> $context      additional context passed by API Platform
+     * @param Operation            $operation
+     * @param array<string, mixed> $uriVariables
+     * @param array<string, mixed> $context
      *
-     * @return QuestionOutput|null returns a QuestionOutput object if a user is authenticated, null otherwise
+     * @return QuestionOutput|null
      */
     public function provide(Operation $operation, array $uriVariables = [], array $context = []): ?QuestionOutput
     {
@@ -78,7 +76,6 @@ final readonly class QuestionProvider implements ProviderInterface
 
             $dto->questions[] = $qDto;
         }
-
 
         return $dto;
     }

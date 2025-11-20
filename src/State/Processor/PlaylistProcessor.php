@@ -35,7 +35,8 @@ final readonly class PlaylistProcessor implements ProcessorInterface
      * @param PlaylistRepository $playlistRepository
      * @param Security           $security
      * @param TrackRepository    $trackRepository
-     * @psalm-suppress PossiblyUnusedMethod
+     *
+     * @psalm-suppress
      */
     public function __construct(private PlaylistRepository $playlistRepository, private Security $security, private TrackRepository $trackRepository)
     {
@@ -71,7 +72,7 @@ final readonly class PlaylistProcessor implements ProcessorInterface
         if ($operation instanceof Post) {
             assert($data instanceof PlaylistInput);
 
-            if ('' === trim($data->title ?? '')) {
+            if (trim($data->title ?? '') === '') {
                 throw new BadRequestHttpException('Title is required.');
             }
 
@@ -80,21 +81,24 @@ final readonly class PlaylistProcessor implements ProcessorInterface
             if (method_exists($playlist, 'setDescription')) {
                 $playlist->setDescription($data->description ?? null);
             }
+
             if ($data->mood !== null && method_exists($playlist, 'setMood')) {
                 $playlist->setMood(MoodType::from($data->mood));
             }
+
             if ($data->activity !== null && method_exists($playlist, 'setActivity')) {
                 $playlist->setActivity(ActivityType::from($data->activity));
             }
+
             if (method_exists($playlist, 'setUser')) {
                 $playlist->setUser($user);
             }
 
             if ($data->trackIds && method_exists($playlist, 'addTrack')) {
-                foreach ($data->trackIds as $tid) {
-                    $t = $this->trackRepository->find((int)$tid);
-                    if ($t) {
-                        $playlist->addTrack($t);
+                foreach ($data->trackIds as $trackId) {
+                    $track = $this->trackRepository->find((int)$trackId);
+                    if ($track) {
+                        $playlist->addTrack($track);
                     }
                 }
             }
@@ -106,9 +110,9 @@ final readonly class PlaylistProcessor implements ProcessorInterface
 
         if ($operation instanceof Put || $operation instanceof Patch) {
             assert($data instanceof PlaylistInput);
-            $id = (int)($uriVariables['id'] ?? 0);
+            $playlistId = (int)($uriVariables['playlistId'] ?? 0);
 
-            $playlist = $this->playlistRepository->find($id);
+            $playlist = $this->playlistRepository->find($playlistId);
             if (!$playlist) {
                 throw new NotFoundHttpException('Playlist not found');
             }
@@ -119,12 +123,15 @@ final readonly class PlaylistProcessor implements ProcessorInterface
             if (isset($data->title)) {
                 $playlist->setTitle($data->title);
             }
+
             if (property_exists($data, 'description')) {
                 $playlist->setDescription($data->description ?? null);
             }
+
             if (property_exists($data, 'mood') && method_exists($playlist, 'setMood')) {
                 $playlist->setMood($data->mood !== null ? MoodType::from($data->mood) : $playlist->getMood());
             }
+
             if (property_exists($data, 'activity') && method_exists($playlist, 'setActivity')) {
                 $playlist->setActivity($data->activity !== null ? ActivityType::from($data->activity) : $playlist->getActivity());
             }
@@ -132,15 +139,15 @@ final readonly class PlaylistProcessor implements ProcessorInterface
             if ($data->trackIds !== null && method_exists($playlist, 'getTracks') && method_exists($playlist, 'addTrack') && method_exists($playlist, 'removeTrack')) {
                 $tracks = $playlist->getTracks();
                 if (is_iterable($tracks)) {
-                    foreach ($tracks as $t) {
-                        $playlist->removeTrack($t);
+                    foreach ($tracks as $track) {
+                        $playlist->removeTrack($track);
                     }
                 }
 
-                foreach ($data->trackIds as $tid) {
-                    $t = $this->trackRepository->find((int)$tid);
-                    if ($t) {
-                        $playlist->addTrack($t);
+                foreach ($data->trackIds as $trackId) {
+                    $track = $this->trackRepository->find((int)$trackId);
+                    if ($track) {
+                        $playlist->addTrack($track);
                     }
                 }
             }
@@ -151,9 +158,9 @@ final readonly class PlaylistProcessor implements ProcessorInterface
         }
 
         if ($operation instanceof Delete) {
-            $id = (int)($uriVariables['id'] ?? 0);
+            $playlistId = (int)($uriVariables['playlistId'] ?? 0);
 
-            $playlist = $this->playlistRepository->find($id);
+            $playlist = $this->playlistRepository->find($playlistId);
 
             if (!$playlist) {
                 throw new NotFoundHttpException('Playlist not found');
