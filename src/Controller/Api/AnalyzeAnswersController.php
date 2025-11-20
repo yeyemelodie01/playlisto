@@ -36,14 +36,8 @@ final class AnalyzeAnswersController
      * @param AnswerOptionRepository     $optionRepo
      * @param Security                   $security
      */
-    public function __construct(
-        private readonly OpenAIService $openAI,
-        private readonly SurveySubmissionRepository $submissionRepo,
-        private readonly SurveyAnswerRepository $answerRepo,
-        private readonly QuestionRepository $questionRepo,
-        private readonly AnswerOptionRepository $optionRepo,
-        private readonly Security $security,
-    ) {
+    public function __construct(private readonly OpenAIService $openAI, private readonly SurveySubmissionRepository $submissionRepo, private readonly SurveyAnswerRepository $answerRepo, private readonly QuestionRepository $questionRepo, private readonly AnswerOptionRepository $optionRepo, private readonly Security $security,)
+    {
     }
 
     #[Route('/api/me/answers/analyze', name: 'api_me_answers_analyze', methods: ['POST'])]

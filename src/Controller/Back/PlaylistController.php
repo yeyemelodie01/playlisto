@@ -31,11 +31,8 @@ final class PlaylistController extends AbstractController
      * @param LoggerInterface     $logger
      * @param TranslatorInterface $translator
      */
-    public function __construct(
-        private readonly PlaylistRepository $playlistRepository,
-        private readonly LoggerInterface $logger,
-        private readonly TranslatorInterface $translator
-    ) {
+    public function __construct(private readonly PlaylistRepository $playlistRepository, private readonly LoggerInterface $logger, private readonly TranslatorInterface $translator)
+    {
     }
 
     /**

@@ -41,14 +41,8 @@ final class SurveySubmissionController extends AbstractController
      * @param QuestionRepository         $questionRepo
      * @param AnswerOptionRepository     $answerOptionRepo
      */
-    public function __construct(
-        private readonly Security $security,
-        private readonly SurveySubmissionRepository $surveySubmissionRepo,
-        private readonly SurveyAnswerRepository $surveyAnswerRepo,
-        private readonly OpenAIService $openAIService,
-        private readonly QuestionRepository $questionRepo,
-        private readonly AnswerOptionRepository $answerOptionRepo,
-    ) {
+    public function __construct(private readonly Security $security, private readonly SurveySubmissionRepository $surveySubmissionRepo, private readonly SurveyAnswerRepository $surveyAnswerRepo, private readonly OpenAIService $openAIService, private readonly QuestionRepository $questionRepo, private readonly AnswerOptionRepository $answerOptionRepo,)
+    {
     }
 
     /**

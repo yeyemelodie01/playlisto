@@ -26,19 +26,14 @@ final class AnswerOptionController extends AbstractController
     protected const TEMPLATE_DIR = 'back/answer-option-option';
 
     /**
-     * @param AnswerOptionRepository    $answerRepository
-     * @param QuestionRepository  $questionRepository
-     * @param UserRepository      $userRepository
-     * @param LoggerInterface     $logger
-     * @param TranslatorInterface $translator
+     * @param AnswerOptionRepository $answerOptionRepository
+     * @param QuestionRepository     $questionRepository
+     * @param UserRepository         $userRepository
+     * @param LoggerInterface        $logger
+     * @param TranslatorInterface    $translator
      */
-    public function __construct(
-        private readonly AnswerOptionRepository $answerOptionRepository,
-        private readonly QuestionRepository $questionRepository,
-        private readonly UserRepository $userRepository,
-        private readonly LoggerInterface $logger,
-        private readonly TranslatorInterface $translator
-    ) {
+    public function __construct(private readonly AnswerOptionRepository $answerOptionRepository, private readonly QuestionRepository $questionRepository, private readonly UserRepository $userRepository, private readonly LoggerInterface $logger, private readonly TranslatorInterface $translator)
+    {
     }
 
     /**
@@ -106,6 +101,7 @@ final class AnswerOptionController extends AbstractController
 
                 $this->answerOptionRepository->save($answer, true);
                 $this->addFlash('success', $this->translator->trans('create.success', [], 'Crud'));
+
                 return $this->redirectToRoute('back_answer_index');
             }
 

@@ -26,27 +26,25 @@ final readonly class PlaylistProvider implements ProviderInterface
     /**
      * Constructor for PlaylistProvider.
      *
-     * @param LoggerInterface $logger   the logger service
-     * @param Security        $security the security component used to fetch the current authenticated user
+     * @param LoggerInterface $logger
+     * @param Security        $security
      *
-     * @psalm-suppress PossiblyUnusedMethod
+     * @psalm-suppress
      */
-    public function __construct(
-        private LoggerInterface $logger,
-        private Security $security
-    ) {
+    public function __construct(private LoggerInterface $logger, private Security $security)
+    {
     }
 
     /**
      * Provides a collection of PlaylistOutput DTOs for the currently authenticated user.
      *
-     * @param Operation            $operation    The operation being performed (GET, etc.).
-     * @param array<string, mixed> $uriVariables an array of URI variables (unused here)
-     * @param array<string, mixed> $context      additional context passed by API Platform
+     * @param Operation            $operation
+     * @param array<string, mixed> $uriVariables
+     * @param array<string, mixed> $context
      *
-     * @return PlaylistOutput[]|null an array of PlaylistOutput DTOs or null if no user is authenticated
+     * @return PlaylistOutput[]|null
      *
-     * @throws Throwable on unexpected errors
+     * @throws Throwable
      */
     #[Override]
     public function provide(Operation $operation, array $uriVariables = [], array $context = []): array|null
@@ -63,7 +61,6 @@ final readonly class PlaylistProvider implements ProviderInterface
                 throw new LogicException('The User implementation must have a getPlaylists() method returning a Collection<Playlist>.');
             }
 
-            /** @var Collection<int, PlaylistEntity>|iterable $collection */
             $collection = $user->getPlaylists();
 
             if ($collection instanceof Collection) {
@@ -93,9 +90,9 @@ final readonly class PlaylistProvider implements ProviderInterface
     /**
      * Maps a Playlist entity to a PlaylistOutput DTO.
      *
-     * @param PlaylistEntity $playlist the Playlist entity to map
+     * @param PlaylistEntity $playlist
      *
-     * @return PlaylistOutput the mapped PlaylistOutput DTO
+     * @return PlaylistOutput
      */
     private function mapEntityToDto(PlaylistEntity $playlist): PlaylistOutput
     {
@@ -114,8 +111,8 @@ final readonly class PlaylistProvider implements ProviderInterface
         }
 
         return new PlaylistOutput(
-            id: (int) $playlist->getId(),
-            title: (string) $playlist->getTitle(),
+            id:$playlist->getId(),
+            title: $playlist->getTitle(),
             description: method_exists($playlist, 'getDescription') ? ($playlist->getDescription() ?? null) : null,
             mood: $mood,
             activity: $activity,
@@ -126,7 +123,9 @@ final readonly class PlaylistProvider implements ProviderInterface
     }
 
     /**
-     * Maps a Track entity to a TrackOutput DTO.
+     * @param TrackEntity $track
+     *
+     * @return TrackOutput
      */
     private function mapTrackToDto(Track $track): TrackOutput
     {

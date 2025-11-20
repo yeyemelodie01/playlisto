@@ -30,16 +30,8 @@ final class TrackOutput
     #[Groups(['playlist:read'])]
     public ?string $previewUrl = null;
 
-    public function __construct(
-        int|string $id,
-        string $title,
-        array $artists = [],
-        ?string $album = null,
-        ?int $duration = null,
-        ?string $spotifyId = null,
-        ?string $coverUrl = null,
-        ?string $previewUrl = null,
-    ) {
+    public function __construct(int|string $id, string $title, array $artists = [], ?string $album = null, ?int $duration = null, ?string $spotifyId = null, ?string $coverUrl = null, ?string $previewUrl = null,)
+    {
         $this->id = $id;
         $this->title = $title;
         $this->artists = $artists;
