@@ -168,11 +168,7 @@ export default function Profile() {
                 <section className="col-span-4 w-full mx-auto px-4 overflow-auto mt-4">
                   <h1 className="text-2xl font-semibold mb-6">Mon profil</h1>
                     {alert.message && (
-                        <div
-                            className={`alert w-60 ${
-                                alert.type === "success" ? "alert-success" : "alert-error"
-                            } mb-4`}
-                        >
+                        <div className={`alert w-60 ${alert.type === "success" ? "alert-success" : "alert-error"} mb-4`}>
                             <span>{alert.message}</span>
                         </div>
                     )}
@@ -180,7 +176,7 @@ export default function Profile() {
                     {loading ? (
                         <div className="text-center py-10">Chargement…</div>
                     ) : (
-                        <form className="space-y-6 max-w-xl w-80" noValidate>
+                        <form className="space-y-6 max-w-xl md:w-80" noValidate>
                             <div className="form-control">
                                 <label className="label">
                                     <span className="label-text">Nom d’utilisateur</span>
