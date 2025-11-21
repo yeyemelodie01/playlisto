@@ -271,7 +271,7 @@ export default function OnePlaylist() {
                                     </div>
                                 </div>
 
-                                <button className="btn bg-black text-white hover:bg-black/80 border-0">
+                                <button className="btn bg-black text-white hover:bg-black/80 border-0 mb-4 md:mb-0">
                                     Ajouter aux favoris
                                 </button>
                                 <button type="button" className={`btn btn-error ${deleting ? "loading" : ""}`} onClick={onDelete} disabled={deleting}>
@@ -279,32 +279,14 @@ export default function OnePlaylist() {
                                 </button>
                             </div>
 
-                            <div className="flex flex-wrap justify-center gap-2 mb-8">
-                                {genres.map((genre) => (
-                                    <div
-                                        key={genre}
-                                        className="badge badge-lg border-2 border-[#9333EA] text-[#9333EA] bg-[#F3E8FF] hover:bg-[#9333EA] hover:text-white cursor-pointer transition-all py-4 px-4 rounded-full"
-                                    >
-                                        {genre}
-                                    </div>
-                                ))}
-                            </div>
-
                             <div className="space-y-3 w-full">
                                 {Array.isArray(playlist.tracks) && playlist.tracks.length > 0 ? (
                                     playlist.tracks.map((track) => (
-                                        <div
-                                            key={track.id || track.spotifyId}
-                                            className="card bg-white border-2 border-black hover:bg-base-200 cursor-pointer transition-all rounded-2xl w-full sm:w-[48%] md:w-full"
-                                            onClick={() => handleSelectForPlayer(track)}
-                                        >
-                                            <div className="card-body p-4 flex flex-col sm:flex-row items-center sm:items-start sm:gap-4 gap-2">
+                                        <div key={track.id || track.spotifyId} className="card bg-white border-2 border-black hover:bg-base-200 cursor-pointer transition-all rounded-2xl w-full sm:w-[48%] md:w-full" onClick={() => handleSelectForPlayer(track)}>
+                                            <div className="card-body p-4 flex md:flex-col flex-row md:items-center items-start gap-4 md:gap-2">
                                                 <div className="avatar">
                                                     <div className="w-12 h-12 rounded bg-base-200 overflow-hidden">
-                                                        <img
-                                                            src={track.coverUrl || "/images/track-placeholder.png"}
-                                                            alt={track.title || "cover"}
-                                                        />
+                                                        <img src={track.coverUrl || "/images/track-placeholder.png"} alt={track.title || "cover"}/>
                                                     </div>
                                                 </div>
 
@@ -313,9 +295,7 @@ export default function OnePlaylist() {
                                                         {track.title || "Titre inconnu"}
                                                     </h3>
                                                     <p className="text-sm text-base-content/70">
-                                                        {Array.isArray(track.artists) && track.artists.length
-                                                            ? track.artists.join(", ")
-                                                            : "Artiste inconnu"}
+                                                        {Array.isArray(track.artists) && track.artists.length ? track.artists.join(", ") : "Artiste inconnu"}
                                                     </p>
                                                 </div>
 
