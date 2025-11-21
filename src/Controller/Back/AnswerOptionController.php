@@ -16,14 +16,14 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
- * AnswerOptionController manages answer-option-related operations in the back office.
+ * AnswerOptionController manages answer-related operations in the back office.
  *
  * This controller provides functionality to view and manage answers.
  */
 #[Route(path: ['en' => '/answer_options', 'fr' => '/option_reponses'], name: 'answer_option_')]
 final class AnswerOptionController extends AbstractController
 {
-    protected const TEMPLATE_DIR = 'back/answer-option-option';
+    protected const TEMPLATE_DIR = 'back/answer';
 
     /**
      * @param AnswerOptionRepository $answerOptionRepository
@@ -56,61 +56,6 @@ final class AnswerOptionController extends AbstractController
         return $this->render(self::TEMPLATE_DIR . DIRECTORY_SEPARATOR . 'index.html.twig', [
             'pagination' => $pagination,
         ]);
-    }
-
-    /**
-     * @param Request $request
-     *
-     * @return Response
-     */
-    #[Route(path: ['en' => '/new', 'fr' => '/nouveau'], name: 'new', methods: ['GET','POST'])]
-    public function create(Request $request): Response
-    {
-        if ($request->isMethod('POST')) {
-            $questionId = (int) $request->request->get('questionId', 0);
-            $userId     = (int) $request->request->get('userId', 0);
-            $label      = trim((string) $request->request->get('label', ''));
-
-            $errors = [];
-            if ($questionId <= 0) {
-                $errors[] = 'Question is required.';
-            }
-            if ($userId <= 0) {
-                $errors[] = 'User is required.';
-            }
-            if ($label === '') {
-                $errors[] = 'Label is required.';
-            }
-
-            $question = $questionId > 0 ? $this->questionRepository->find($questionId) : null;
-            $user     = $userId > 0 ? $this->userRepository->find($userId) : null;
-            if (!$question) {
-                $errors[] = 'Question not found.';
-            }
-            if (!$user) {
-                $errors[] = 'User not found.';
-            }
-
-            if (empty($errors)) {
-                $answer = new AnswerOption();
-                $answer->setQuestion($question);
-                $answer->setLabel($label);
-                if (method_exists($answer, 'setAnsweredAt')) {
-                    $answer->setAnsweredAt(new \DateTimeImmutable());
-                }
-
-                $this->answerOptionRepository->save($answer, true);
-                $this->addFlash('success', $this->translator->trans('create.success', [], 'Crud'));
-
-                return $this->redirectToRoute('back_answer_index');
-            }
-
-            foreach ($errors as $e) {
-                $this->addFlash('error', $e);
-            }
-        }
-
-        return $this->render(self::TEMPLATE_DIR . DIRECTORY_SEPARATOR . 'new.html.twig');
     }
 
     /**
@@ -167,7 +112,7 @@ final class AnswerOptionController extends AbstractController
         }
 
         return $this->render(self::TEMPLATE_DIR . DIRECTORY_SEPARATOR . 'edit.html.twig', [
-            'answer-option' => $answer,
+            'answer' => $answer,
         ]);
     }
 

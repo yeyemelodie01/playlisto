@@ -8,13 +8,13 @@ use Doctrine\ORM\Mapping as ORM;
 use Gedmo\Timestampable\Traits\TimestampableEntity;
 
 /**
- * Represents an answer-option to a survey question in the application.
+ * Represents an answer to a survey question in the application.
  *
  * This entity is used to store individual answers linked to a specific survey submission.
- * Each survey answer-option includes:
+ * Each survey answer includes:
  * - Option (`option`): The selected answer option chosen by the user.
- * - Question (`question`): The survey question to which this answer-option corresponds.
- * - Submission (`submission`): The related survey submission to which this answer-option belongs.
+ * - Question (`question`): The survey question to which this answer corresponds.
+ * - Submission (`submission`): The related survey submission to which this answer belongs.
  *
  * Used in survey modules where users provide responses to multiple questions.
  */

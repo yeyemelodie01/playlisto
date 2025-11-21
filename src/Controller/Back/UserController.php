@@ -92,7 +92,7 @@ final class UserController extends AbstractController
         }
 
         return $this->render(self::TEMPLATE_DIR . DIRECTORY_SEPARATOR . 'edit.html.twig', [
-            'form' => $form->createView(),
+            'userTypeForm' => $form->createView(),
             'user' => $user,
         ]);
     }

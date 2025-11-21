@@ -2,6 +2,7 @@
 
 namespace App\Security\Authentication;
 
+use App\Repository\UserRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -33,10 +34,8 @@ final class LoginFormAuthenticator extends AbstractLoginFormAuthenticator
      *
      * @psalm-suppress PossiblyUnusedMethod
      */
-    public function __construct(
-        private readonly UrlGeneratorInterface $urlGenerator,
-        private readonly EntityManagerInterface $em,
-    ) {
+    public function __construct(private readonly UrlGeneratorInterface $urlGenerator, private readonly UserRepository $userRepository)
+    {
     }
 
     /**
@@ -73,7 +72,8 @@ final class LoginFormAuthenticator extends AbstractLoginFormAuthenticator
         $user = $token->getUser();
         if (\is_object($user) && \method_exists($user, 'setLastLoginAt')) {
             $user->setLastLoginAt(new \DateTimeImmutable());
-            $this->em->flush();
+            dd($user);
+            $this->userRepository->save($user, true);
         }
 
         $targetPath = $this->getTargetPath($request->getSession(), $firewallName);

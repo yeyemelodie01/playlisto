@@ -26,20 +26,20 @@ use Symfony\Component\Serializer\Annotation\Groups;
             processor: AnswerOptionProcessor::class
         )
     ],
-    normalizationContext: ['groups' => ['answer-option:result:read']],
+    normalizationContext: ['groups' => ['answer:result:read']],
 )]
 final class AnswerOptionResultOutput
 {
-    #[Groups(['answer-option:result:read'])]
+    #[Groups(['answer:result:read'])]
     public int $surveyId;
 
-    #[Groups(['answer-option:result:read'])]
+    #[Groups(['answer:result:read'])]
     public string $deducedMood;
 
-    #[Groups(['answer-option:result:read'])]
+    #[Groups(['answer:result:read'])]
     public string $selectedActivity;
 
-    #[Groups(['answer-option:result:read'])]
+    #[Groups(['answer:result:read'])]
     public ?array $recommendationSeeds = null;
 
     /**

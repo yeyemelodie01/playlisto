@@ -1,0 +1,99 @@
+{% extends 'back/layout.html.twig' %}
+
+{% block breadcrumb %}
+    {% set pathsNames = {
+        ('home'|trans({}, 'Menu')): 'back_index',
+        ('title'|trans({}, 'User')): 'back_user_index',
+        ('edit.title'|trans({}, 'User')): '',
+    } %}
+    <div class="breadcrumbs text-sm">
+        <ul>
+            {% for name, route in pathsNames %}
+                <li>
+                    {% if route is defined and route is not empty %}
+                        <a href="{{ path(route) }}" class="text-gray-700 hover:underline">
+                            {{ name|upper }}
+                        </a>
+                    {% else %}
+                        <span class="text-orange-400">{{ name|upper }}</span>
+                    {% endif %}
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+{% endblock %}
+
+{% block content %}
+<h1 class="text-xl font-bold my-6">{{ 'edit.title'|trans({}, 'User') }}</h1>
+<h3 class="text-2xl font-bold mb-2">ID : {{ user.id }}</h3>
+<h3 class="text-2xl font-bold mb-2">{{ 'roles'|trans({}, 'User') }} : {{ user.roles|join(', ') }}</h3>
+<h3 class="text-2xl font-bold mb-6">{{ 'lastLoginAt'|trans({}, 'User') }} : {{ user.lastLoginAt | date('d/m/Y H:i:s') }}</h3>
+
+<div class="py-6 pr-6 w-80 max-w-2xl bg-transparent">
+    {{ form_start(userTypeForm) }}
+
+    <div class="form-control w-full mb-4">
+        <label class="label">
+            <span class="label-text font-semibold">Username</span>
+        </label>
+        {{ form_widget(userTypeForm.username, {
+            'attr': {
+                'class': 'input input-bordered w-72',
+                'placeholder': 'email'|trans([], 'SignIn'),
+                'type': 'email'
+            }
+        }) }}
+        <span id="email_error_message" class="text-error text-sm mt-1"></span>
+    </div>
+
+    <div class="form-control w-full mb-4">
+        <label class="label">
+            <span class="label-text font-semibold">Email</span>
+        </label>
+        {{ form_widget(userTypeForm.email, {
+            'attr': {
+                'class': 'input input-bordered w-72',
+                'placeholder': 'email'|trans([], 'SignIn'),
+                'type': 'email'
+            }
+        }) }}
+        <span id="email_error_message" class="text-error text-sm mt-1"></span>
+    </div>
+
+    <div class="form-control w-full mb-4">
+        <label class="label">
+            <span class="label-text font-semibold">Mot de passe</span>
+        </label>
+        {{ form_widget(userTypeForm.password, {
+            'attr': {
+                'class': 'input input-bordered w-72',
+                'placeholder': 'password'|trans([], 'SignIn'),
+                'type': 'password'
+            }
+        }) }}
+    </div>
+
+    <div class="form-control mb-6">
+        <label class="cursor-pointer label">
+            <span class="label-text font-semibold">Activer le compte</span>
+            {{ form_widget(userTypeForm.isActive, {
+                'attr': {
+                    'class': 'toggle toggle-primary'
+                }
+            }) }}
+        </label>
+    </div>
+
+    <div class="flex justify-between gap-4">
+        <button type="reset" class="btn btn-warning">
+            {{ 'button'|trans([], 'SignIn') }}
+        </button>
+        <button type="submit" class="btn btn-success">
+            {{ 'button'|trans([], 'SignIn') }}
+        </button>
+    </div>
+
+    {{ form_end(userTypeForm) }}
+</div>
+
+{% endblock %}

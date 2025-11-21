@@ -33,10 +33,8 @@
     <div>
         <div class="overflow-x-auto my-8 rounded-box border border-base-content/5 bg-base-100">
             <table class="table table-zebra">
-                <!-- head -->
                 <thead>
                 <tr>
-                    <th class="text-center">{{ 'username'|trans({}, 'Answer') }}</th>
                     <th class="text-center">{{ 'question'|trans({}, 'Answer') }}</th>
                     <th class="text-center">{{ 'réponses'|trans({}, 'Answer') }}</th>
                     <th class="text-center">{{ 'actions'|trans({}, 'Crud') }}</th>
@@ -45,12 +43,11 @@
                 <tbody>
                 {% for answer in pagination %}
                     <tr>
-                        <td class="text-center">{{ answer.user.username ?? 'N/A' }}</td>
                         <td class="text-center">{{ answer.question.label ?? ''}}</td>
                         <td class="text-center">{{ answer.label }}</td>
                         <td class="flex justify-center">
                             <a class="d-flex justify-content-center text-decoration-none fa-lg"
-                               href="{{ path('back_answer_delete', {'id': answer.id}) }}"
+                               href="{{ path('back_answer_option_delete', {'id': answer.id}) }}"
                                title="{{ 'delete.title'|trans([], 'Answer') }}">
                                 {{ ux_icon('fa6-regular:trash-can', {width: '20px', height: '20px'}) }}
                             </a>
