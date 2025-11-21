@@ -27,7 +27,7 @@ final class AnswerOptionInput
             ],
             'allowExtraFields' => false,
             'allowMissingFields' => false,
-        ])
+        ]),
     ])]
     public array $answers = [];
 }

@@ -22,13 +22,13 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\Table(
     name: 'answer_option',
     indexes: [
-        new ORM\Index(name: 'idx_answeroption_question', columns: ['question_id'])
+        new ORM\Index(name: 'idx_answeroption_question', columns: ['question_id']),
     ],
     uniqueConstraints: [
         new ORM\UniqueConstraint(
             name: 'uniq_question_label',
             columns: ['question_id', 'label']
-        )
+        ),
     ]
 )]
 class AnswerOption

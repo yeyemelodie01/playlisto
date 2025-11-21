@@ -94,6 +94,7 @@ class User extends BaseUser
     public function setSpotifyId(?string $spotifyId): static
     {
         $this->spotifyId = $spotifyId;
+
         return $this;
     }
 

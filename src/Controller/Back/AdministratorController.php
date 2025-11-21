@@ -53,7 +53,7 @@ final class AdministratorController extends AbstractController
             $backPaginateMaxPerPage
         );
 
-        return $this->render(self::TEMPLATE_DIR . DIRECTORY_SEPARATOR . 'index.html.twig', [
+        return $this->render(self::TEMPLATE_DIR.DIRECTORY_SEPARATOR.'index.html.twig', [
             'pagination' => $pagination,
         ]);
     }

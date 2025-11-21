@@ -58,7 +58,7 @@ final class QuestionController extends AbstractController
             $backPaginateMaxPerPage
         );
 
-        return $this->render(self::TEMPLATE_DIR . DIRECTORY_SEPARATOR . 'index.html.twig', [
+        return $this->render(self::TEMPLATE_DIR.DIRECTORY_SEPARATOR.'index.html.twig', [
             'pagination' => $pagination,
         ]);
     }
@@ -72,8 +72,8 @@ final class QuestionController extends AbstractController
     public function createQuestion(Request $request): Response
     {
         if ($request->isMethod('POST')) {
-            $label   = trim((string)$request->request->get('label', ''));
-            $type    = trim((string)$request->request->get('type', ''));
+            $label   = trim((string) $request->request->get('label', ''));
+            $type    = trim((string) $request->request->get('type', ''));
 
             $errors = [];
             if ($label === '') {
@@ -82,7 +82,7 @@ final class QuestionController extends AbstractController
             if ($type === '') {
                 $errors[] = 'Type is required.';
             }
-            if (!\in_array($type, ['single_choice','multiple_choice','scale','text'], true)) {
+            if (!\in_array($type, ['single_choice', 'multiple_choice', 'scale', 'text'], true)) {
                 $errors[] = 'Invalid type.';
             }
 
@@ -98,6 +98,7 @@ final class QuestionController extends AbstractController
                 $this->questionRepository->save($question, true);
 
                 $this->addFlash('success', $this->translator->trans('create.success', [], 'Crud'));
+
                 return $this->redirectToRoute('question_index');
             }
 
@@ -106,7 +107,7 @@ final class QuestionController extends AbstractController
             }
         }
 
-        return $this->render(self::TEMPLATE_DIR . DIRECTORY_SEPARATOR . 'new.html.twig', [
+        return $this->render(self::TEMPLATE_DIR.DIRECTORY_SEPARATOR.'new.html.twig', [
             'data' => [
                 'label'   => $request->request->get('label'),
                 'type'    => $request->request->get('type'),
@@ -115,7 +116,7 @@ final class QuestionController extends AbstractController
     }
 
     /**
-     * @param Request $request
+     * @param Request       $request
      * @param Question|null $question
      *
      * @return Response
@@ -150,7 +151,7 @@ final class QuestionController extends AbstractController
         }
 
 
-        return $this->render(self::TEMPLATE_DIR . DIRECTORY_SEPARATOR . 'edit.html.twig', [
+        return $this->render(self::TEMPLATE_DIR.DIRECTORY_SEPARATOR.'edit.html.twig', [
             'questionForm' => $form->createView(),
             'question' => $question,
         ]);
@@ -167,10 +168,11 @@ final class QuestionController extends AbstractController
     {
         if (null === $question) {
             $this->addFlash('error', $this->translator->trans('no_element', [], 'Crud'));
+
             return $this->redirectToRoute('question_index');
         }
 
-        return $this->render(self::TEMPLATE_DIR . DIRECTORY_SEPARATOR . 'show.html.twig', [
+        return $this->render(self::TEMPLATE_DIR.DIRECTORY_SEPARATOR.'show.html.twig', [
             'question' => $question,
         ]);
     }
@@ -224,9 +226,10 @@ final class QuestionController extends AbstractController
             $q->setLabel($i['title']);
             $q->setType($i['type']);
         }
-        $this->questionRepository->save((object)$items);
+        $this->questionRepository->save((object) $items);
 
         $this->addFlash('success', 'Questions générées');
+
         return $this->redirectToRoute('back_question_index');
     }
 }

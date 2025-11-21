@@ -29,9 +29,9 @@ final readonly class FavoriteCreateProcessor implements ProcessorInterface
     /**
      * Constructor.
      *
-     * @param Security $security Provides access to the currently authenticated user.
+     * @param Security        $security        Provides access to the currently authenticated user.
      * @param FavoriteFactory $favoriteFactory Responsible for delegating favorite creation to a proper strategy.
-     * @param RequestStack $requestStack Used to retrieve the current HTTP request and its payload.
+     * @param RequestStack    $requestStack    Used to retrieve the current HTTP request and its payload.
      */
     public function __construct(private Security $security, private FavoriteFactory $favoriteFactory, private RequestStack $requestStack)
     {
@@ -40,10 +40,10 @@ final readonly class FavoriteCreateProcessor implements ProcessorInterface
     /**
      * Processes the incoming API request to create a favorite entry.
      *
-     * @param mixed $data The request payload (unused due to deserialize:false in API Platform).
-     * @param Operation $operation The API Platform operation metadata.
-     * @param array $uriVariables Variables extracted from the URI, including favoriteType.
-     * @param array $context Additional processing context.
+     * @param mixed     $data         The request payload (unused due to deserialize:false in API Platform).
+     * @param Operation $operation    The API Platform operation metadata.
+     * @param array     $uriVariables Variables extracted from the URI, including favoriteType.
+     * @param array     $context      Additional processing context.
      *
      * @return FavoriteCreateOutput A response containing a success message.
      *

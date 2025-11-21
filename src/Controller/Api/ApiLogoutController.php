@@ -24,7 +24,7 @@ final class ApiLogoutController
         $hostParts = explode('.', $request->getHost());
 
         if (count($hostParts) >= 2) {
-            $parentDomain = '.' . implode('.', \array_slice($hostParts, -2));
+            $parentDomain = '.'.implode('.', \array_slice($hostParts, -2));
             $response->headers->clearCookie('auth_token', '/', $parentDomain, false, true, 'Strict');
         }
 

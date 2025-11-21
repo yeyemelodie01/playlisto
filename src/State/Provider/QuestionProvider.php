@@ -58,7 +58,7 @@ final readonly class QuestionProvider implements ProviderInterface
             }
 
             $labelVal = method_exists($q, 'getLabel') ? $q->getLabel() : null;
-            $label = is_string($labelVal) ? $labelVal : ('Question #' . $q->getId());
+            $label = is_string($labelVal) ? $labelVal : ('Question #'.$q->getId());
 
             $qDto = new SurveyQuestionOutput($q->getId(), $type, $label, []);
 
@@ -67,7 +67,7 @@ final readonly class QuestionProvider implements ProviderInterface
                 if ($raw instanceof UnitEnum) {
                     $optLabel = ($raw instanceof BackedEnum) ? $raw->value : $raw->name;
                 } else {
-                    $optLabel = is_string($raw) ? $raw : ('Option #' . $answer->getId());
+                    $optLabel = is_string($raw) ? $raw : ('Option #'.$answer->getId());
                 }
 
                 $oDto = new SurveyOptionOutput($answer->getId(), $optLabel);

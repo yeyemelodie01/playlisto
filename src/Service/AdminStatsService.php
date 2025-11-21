@@ -32,6 +32,7 @@ final readonly class AdminStatsService
      * @param DateTimeInterface|null $to
      *
      * @return array
+     *
      * @throws InvalidArgumentException
      */
     public function getDashboardStats(?DateTimeInterface $from = null, ?DateTimeInterface $to = null): array

@@ -96,7 +96,7 @@ final readonly class PlaylistProcessor implements ProcessorInterface
 
             if ($data->trackIds && method_exists($playlist, 'addTrack')) {
                 foreach ($data->trackIds as $trackId) {
-                    $track = $this->trackRepository->find((int)$trackId);
+                    $track = $this->trackRepository->find((int) $trackId);
                     if ($track) {
                         $playlist->addTrack($track);
                     }
@@ -110,7 +110,7 @@ final readonly class PlaylistProcessor implements ProcessorInterface
 
         if ($operation instanceof Put || $operation instanceof Patch) {
             assert($data instanceof PlaylistInput);
-            $playlistId = (int)($uriVariables['playlistId'] ?? 0);
+            $playlistId = (int) ($uriVariables['playlistId'] ?? 0);
 
             $playlist = $this->playlistRepository->find($playlistId);
             if (!$playlist) {
@@ -145,7 +145,7 @@ final readonly class PlaylistProcessor implements ProcessorInterface
                 }
 
                 foreach ($data->trackIds as $trackId) {
-                    $track = $this->trackRepository->find((int)$trackId);
+                    $track = $this->trackRepository->find((int) $trackId);
                     if ($track) {
                         $playlist->addTrack($track);
                     }
@@ -158,7 +158,7 @@ final readonly class PlaylistProcessor implements ProcessorInterface
         }
 
         if ($operation instanceof Delete) {
-            $playlistId = (int)($uriVariables['playlistId'] ?? 0);
+            $playlistId = (int) ($uriVariables['playlistId'] ?? 0);
 
             $playlist = $this->playlistRepository->find($playlistId);
 

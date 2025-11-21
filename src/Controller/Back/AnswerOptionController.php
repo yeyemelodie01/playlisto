@@ -53,7 +53,7 @@ final class AnswerOptionController extends AbstractController
             $backPaginateMaxPerPage
         );
 
-        return $this->render(self::TEMPLATE_DIR . DIRECTORY_SEPARATOR . 'index.html.twig', [
+        return $this->render(self::TEMPLATE_DIR.DIRECTORY_SEPARATOR.'index.html.twig', [
             'pagination' => $pagination,
         ]);
     }
@@ -64,11 +64,12 @@ final class AnswerOptionController extends AbstractController
      *
      * @return Response
      */
-    #[Route(path: ['en' => '/{id}/edit', 'fr' => '/{id}/editer'], name: 'edit', methods: ['GET','POST'], requirements: ['id' => "\\d+"])]
+    #[Route(path: ['en' => '/{id}/edit', 'fr' => '/{id}/editer'], name: 'edit', methods: ['GET', 'POST'], requirements: ['id' => "\\d+"])]
     public function edit(Request $request, ?AnswerOption $answer): Response
     {
         if (null === $answer) {
             $this->addFlash('error', $this->translator->trans('no_element', [], 'Crud'));
+
             return $this->redirectToRoute('answer_index');
         }
 
@@ -103,6 +104,7 @@ final class AnswerOptionController extends AbstractController
 
                 $this->answerOptionRepository->save($answer, true);
                 $this->addFlash('success', $this->translator->trans('update.success', [], 'Crud'));
+
                 return $this->redirectToRoute('back_answer_index');
             }
 
@@ -111,7 +113,7 @@ final class AnswerOptionController extends AbstractController
             }
         }
 
-        return $this->render(self::TEMPLATE_DIR . DIRECTORY_SEPARATOR . 'edit.html.twig', [
+        return $this->render(self::TEMPLATE_DIR.DIRECTORY_SEPARATOR.'edit.html.twig', [
             'answer' => $answer,
         ]);
     }
@@ -126,6 +128,7 @@ final class AnswerOptionController extends AbstractController
     {
         if (null === $answer) {
             $this->addFlash('error', $this->translator->trans('no_element', [], 'Crud'));
+
             return $this->redirectToRoute('answer_index');
         }
 

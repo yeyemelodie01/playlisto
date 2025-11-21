@@ -90,7 +90,7 @@ final readonly class PlaylistItemProvider implements ProviderInterface
         }
 
         return new PlaylistOutput(
-            id: (int)$playlist->getId(),
+            id: (int) $playlist->getId(),
             title: $playlist->getTitle(),
             description: method_exists($playlist, 'getDescription') ? $playlist->getDescription() : null,
             mood: method_exists($playlist, 'getMood') ? $playlist->getMood()?->value : null,

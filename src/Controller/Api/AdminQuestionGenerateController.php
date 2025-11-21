@@ -37,6 +37,7 @@ final class AdminQuestionGenerateController
      * @param Request $request The HTTP request object
      *
      * @return JsonResponse A JSON response containing the created questions or an error message
+     *
      * @throws JsonException|RandomException
      */
     #[Route('/api/admin/questions/generate', name: 'api_admin_questions_generate', methods: ['POST'])]
@@ -72,7 +73,7 @@ final class AdminQuestionGenerateController
             }
         }
 
-        $count = (int)($payload['count'] ?? 6);
+        $count = (int) ($payload['count'] ?? 6);
         if ($count < 5) {
             $count = 5;
         }
@@ -98,10 +99,10 @@ final class AdminQuestionGenerateController
                 $rawOpts  = isset($i['options']) && is_array($i['options']) ? array_values($i['options']) : [];
 
                 $typeStr = isset($i['type']) ? strtolower((string) $i['type']) : 'single';
-                $typeStr = in_array($typeStr, ['single','multiple'], true) ? $typeStr : 'single';
+                $typeStr = in_array($typeStr, ['single', 'multiple'], true) ? $typeStr : 'single';
 
                 $title = $rawTitle;
-                if ($typeStr === 'single' && $rawOpts === ['oui','non'] && !str_ends_with($title, '?')) {
+                if ($typeStr === 'single' && $rawOpts === ['oui', 'non'] && !str_ends_with($title, '?')) {
                     $title .= ' ?';
                     $title = preg_replace('/\s+\?$/u', ' ?', $title);
                 }
@@ -119,7 +120,7 @@ final class AdminQuestionGenerateController
                 $q->setType($typeEnum);
 
                 foreach ($rawOpts as $opt) {
-                    $text = trim((string)$opt);
+                    $text = trim((string) $opt);
                     if ($text === '') {
                         continue;
                     }

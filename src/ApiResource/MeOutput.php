@@ -6,7 +6,7 @@ use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\Put;
-use App\State\Processor\MeProcessor;
+use App\State\Processor\MeUpdateProcessor;
 use App\State\Processor\MeDeleteProcessor;
 use App\State\Provider\MeOutputProvider;
 
@@ -31,12 +31,15 @@ use App\State\Provider\MeOutputProvider;
             input: MeInput::class,
             output: self::class,
             provider: MeOutputProvider::class,
-            processor: MeProcessor::class
+            processor: MeUpdateProcessor::class
         ),
         new Delete(
             uriTemplate: '/me',
             description: 'Delete the currently authenticated user',
             security: "is_granted('IS_AUTHENTICATED_FULLY')",
+            input: MeInput::class,
+            output: false,
+            read: false,
             processor: MeDeleteProcessor::class
         ),
     ],

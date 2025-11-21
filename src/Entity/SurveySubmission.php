@@ -33,7 +33,7 @@ use Symfony\Component\Validator\Constraints as Assert;
     name: 'survey_submission',
     indexes: [
         new ORM\Index(name: 'idx_survey_submission_survey', columns: ['survey_id']),
-        new ORM\Index(name: 'idx_survey_submission_user', columns: ['user_id'])
+        new ORM\Index(name: 'idx_survey_submission_user', columns: ['user_id']),
     ],
     uniqueConstraints: [
         new ORM\UniqueConstraint(name: 'uniq_user_survey', columns: ['user_id', 'survey_id']),
