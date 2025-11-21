@@ -9,7 +9,7 @@ use Symfony\Component\Security\Core\User\UserInterface;
  * Interface for strategies that handle favorite creation for specific favorite types.
  * Each implementation determines if it supports a given type and performs the favorite creation.
  */
-interface FavoriteStrategyInterfacez
+interface FavoriteStrategyInterface
 {
     /**
      * Checks whether this strategy supports the given favorite type.
