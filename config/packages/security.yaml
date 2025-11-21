@@ -26,6 +26,7 @@ security:
             pattern: ^/api/authentication_token
             stateless: true
             provider: all_users
+            user_checker: App\Security\UserChecker
             json_login:
                 check_path: /api/authentication_token
                 username_path: email

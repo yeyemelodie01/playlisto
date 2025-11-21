@@ -1,0 +1,82 @@
+{% extends 'back/layout.html.twig' %}
+
+{% block breadcrumb %}
+    {% set pathsNames = {
+        ('home'|trans({}, 'Menu')): 'back_index',
+        ('title'|trans({}, 'Question')): 'back_question_index',
+        ('edit.title'|trans({}, 'Question')): '',
+    } %}
+    <div class="breadcrumbs text-sm">
+        <ul>
+            {% for name, route in pathsNames %}
+                <li>
+                    {% if route is defined and route is not empty %}
+                        <a href="{{ path(route) }}" class="text-gray-700 hover:underline">
+                            {{ name|upper }}
+                        </a>
+                    {% else %}
+                        <span class="text-orange-400">{{ name|upper }}</span>
+                    {% endif %}
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+{% endblock %}
+
+{% block content %}
+<h1 class="text-xl font-bold my-6">{{ 'edit.title'|trans({}, 'Question') }}</h1>
+
+<div class="py-6 pr-6 w-80 max-w-2xl bg-transparent">
+    {{ form_start(questionForm) }}
+
+    <div class="form-control mb-4">
+        <label class="label font-semibold">Id du questionnaire</label>
+        {{ form_widget(questionForm.surveyId, {
+            'attr': {
+                'class': 'input input-bordered w-72 border border-gray-300 text-sm',
+                'disabled': 'disabled',
+            }
+        }) }}
+    </div>
+
+    <div class="form-control w-full mb-4">
+        <label class="label">
+            <span class="label-text font-semibold">Libellé</span>
+        </label>
+        {{ form_widget(questionForm.label, {
+            'attr': {
+                'class': 'input input-bordered w-72',
+                'placeholder': 'label'|trans([], 'Question'),
+                'type': 'text'
+            }
+        }) }}
+        <span id="email_error_message" class="text-error text-sm mt-1"></span>
+    </div>
+
+    <div class="form-control w-full mb-4">
+        <label class="label">
+            <span class="label-text font-semibold">Sélectionnez un type de question</span>
+        </label>
+        {{ form_widget(questionForm.type, {
+            'attr': {
+                'class': 'select w-72',
+                'placeholder': 'type'|trans([], 'Question'),
+                'type': 'radio'
+            }
+        }) }}
+    </div>
+
+
+    <div class="flex justify-between gap-4">
+        <button type="reset" class="btn btn-warning">
+            {{ 'button'|trans([], 'Question') }}
+        </button>
+        <button type="submit" class="btn btn-success">
+            {{ 'button'|trans([], 'Question') }}
+        </button>
+    </div>
+
+    {{ form_end(questionForm) }}
+</div>
+
+{% endblock %}

@@ -3,6 +3,8 @@
 namespace App\Controller\Back;
 
 use App\Entity\Question;
+use App\Enum\QuestionType;
+use App\Form\Type\Back\QuestionTypeForm;
 use App\Repository\QuestionRepository;
 use App\Service\OpenAIService;
 use Doctrine\ORM\EntityManagerInterface;
@@ -123,44 +125,33 @@ final class QuestionController extends AbstractController
     {
         if (null === $question) {
             $this->addFlash('error', $this->translator->trans('no_element', [], 'Crud'));
+
             return $this->redirectToRoute('question_index');
         }
 
-        if ($request->isMethod('POST')) {
-            $label   = trim((string)$request->request->get('label', ''));
-            $type    = trim((string)$request->request->get('type', ''));
+        $form = $this->createForm(QuestionTypeForm::class, $question)->handleRequest($request);
+        if ($form->isSubmitted() && $form->isValid()) {
+            $type = 'error';
 
-            $errors = [];
-            if ($label === '') {
-                $errors[] = 'Label is required.';
-            }
-            if ($type === '') {
-                $errors[] = 'Type is required.';
-            }
-            if (!\in_array($type, ['single_choice','multiple_choice','scale','text'], true)) {
-                $errors[] = 'Invalid type.';
-            }
-
-            if (empty($errors)) {
-                if (method_exists($question, 'setLabel')) {
-                    $question->setLabel($label);
-                }
-                if (method_exists($question, 'setType')) {
-                    $question->setType($type);
-                }
-
+            try {
                 $this->questionRepository->save($question, true);
-
-                $this->addFlash('success', $this->translator->trans('update.success', [], 'Crud'));
-                return $this->redirectToRoute('question_index');
+                $type = 'success';
+            } catch (\Exception $exception) {
+                $this->logger->error($exception->getMessage(), $exception->getTrace());
             }
 
-            foreach ($errors as $e) {
-                $this->addFlash('error', $e);
+            $this->addFlash($type, $this->translator->trans("edit.$type", [], 'Crud'));
+
+            if (null !== $request->request->get('submit_button_save_continue')) {
+                return $this->redirectToRoute('back_question_edit', ['id' => $question->getId()]);
             }
+
+            return $this->redirectToRoute('back_question_index');
         }
 
+
         return $this->render(self::TEMPLATE_DIR . DIRECTORY_SEPARATOR . 'edit.html.twig', [
+            'questionForm' => $form->createView(),
             'question' => $question,
         ]);
     }
@@ -215,14 +206,14 @@ final class QuestionController extends AbstractController
      * Generate questions using OpenAI and save them to the database.
      *
      * @param OpenAIService $openAI
-     * @param EntityManagerInterface $em
      *
      * @return Response
      *
      * @throws ClientExceptionInterface
+     * @throws RandomException
      * @throws RedirectionExceptionInterface
      * @throws ServerExceptionInterface
-     * @throws TransportExceptionInterface|RandomException
+     * @throws TransportExceptionInterface
      */
     #[Route(path: ['en' => '/generate', 'fr' => '/generer'], name: 'generate')]
     public function generate(OpenAIService $openAI): Response

@@ -9,12 +9,12 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
 
-/** * Represents an answer-option to a question in the application.
+/** * Represents an answer to a question in the application.
  *
  * This entity is used to store individual answers linked to a specific question.
- * Each answer-option includes:
- * - Label (`label`): The text content of the answer-option.
- * - Question (`question`): The related question to which this answer-option belongs.
+ * Each answer includes:
+ * - Label (`label`): The text content of the answer.
+ * - Question (`question`): The related question to which this answer belongs.
  *
  * Used in modules where users respond to questions, such as surveys or quizzes.
  */

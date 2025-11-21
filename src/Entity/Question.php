@@ -21,7 +21,7 @@ use Symfony\Component\Validator\Constraints as Assert;
  * - Answers (`answers`): A collection of possible answers linked to the question.
  *
  * The `answers` are managed through a one-to-many relationship,
- * allowing each question to be associated with several answer-option choices.
+ * allowing each question to be associated with several answer choices.
  */
 #[ORM\Entity(repositoryClass: QuestionRepository::class)]
 #[ORM\Table(

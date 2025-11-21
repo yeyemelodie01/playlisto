@@ -31,17 +31,25 @@
     <div>
         <div class="overflow-x-auto rounded-box border border-base-content/5 bg-base-100">
             <table class="table">
-                <!-- head -->
                 <thead>
                     <tr>
-                        <th>{{ 'label'|trans({}, 'Question') }}</th>
-                        <th class="text-center">{{ 'actions'|trans({}, 'Crud') }}</th>
+                        <th class="font-medium p-4 text-base text-center">{{ 'label'|trans({}, 'Question') }}</th>
+                        <th class="font-medium p-4 text-base text-center">{{ 'actions'|trans({}, 'Crud') }}</th>
+                        <th class="font-medium p-4 text-base text-center">{{ 'delete'|trans({}, 'Crud') }}</th>
                     </tr>
                 </thead>
                 <tbody>
                 {% for question in pagination %}
                     <tr>
-                        <td>{{ question.label }}</td>
+                        <td class="p-4 text-center text-base">{{ question.label }}</td>
+                        <td class="p-4 text-center text-base">
+                            <div class="flex justify-center">
+                                <a class="" href="{{ path('back_question_edit', {'id': question.id}) }}"
+                                   title="{{ 'edit.title'|trans([], 'Question') }}">
+                                    {{ ux_icon('fa6-solid:pencil', {width: '20px', height: '20px'}) }}
+                                </a>
+                            </div>
+                        </td>
                         <td class="flex justify-center">
                             <a class="d-flex justify-content-center text-decoration-none fa-lg"
                                href="{{ path('back_question_delete', {'id': question.id}) }}"

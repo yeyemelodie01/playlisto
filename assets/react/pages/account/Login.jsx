@@ -8,6 +8,7 @@ export default function Login() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [message, setMessage] = useState('');
+    const [messageType, setMessageType] = useState('');
     const [emailError, setEmailError] = useState('');
     const [passwordError, setPasswordError] = useState('');
 
@@ -64,6 +65,9 @@ export default function Login() {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
+        setMessage('');
+        setMessageType('');
+
         try {
             const response = await apiService.post('/api/authentication_token', {
                 email,
@@ -72,15 +76,19 @@ export default function Login() {
 
             if (response.data?.token) {
                 apiService.setToken(response.data.token);
+                setMessageType('success');
                 setMessage('Login successful! Redirecting...');
                 setTimeout(() => {
                     navigate('/home');
                 }, 1500);
             } else {
+                setMessageType('error');
                 setMessage('Login failed. Please try again.');
             }
         } catch (error) {
-            setMessage('An error occurred during login. Please try again later.');
+            const apiMessage = error?.response?.data?.message;
+            setMessageType('error');
+            setMessage(apiMessage || 'An error occurred during login. Please try again later.');
             console.error('Login error:', error);
         }
     };
@@ -92,7 +100,7 @@ export default function Login() {
           <img src="/images/playlisto-logo.png" alt="Logo" className="w-64 px-4 py-2" />
           <h1 className="text-xl text-center my-4">Se connecter</h1>
             {message && (
-                <div role="alert" className="alert alert-success mb-4">
+                <div role="alert" className={`alert mb-4 ${messageType === 'error' ? 'alert-error' : 'alert-success'}`}>
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 shrink-0 stroke-current" fill="none" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>

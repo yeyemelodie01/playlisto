@@ -57,39 +57,6 @@ final class PlaylistController extends AbstractController
     }
 
     /**
-     * @param Request $request
-     *
-     * @return Response
-     */
-    #[Route(path: ['en' => '/new', 'fr' => '/nouveau'], name: 'new')]
-    public function create(Request $request): Response
-    {
-        if ($request->isMethod('POST')) {
-            $title = trim((string) $request->request->get('title', ''));
-            $description = $request->request->get('description');
-
-            if ($title === '') {
-                $this->addFlash('error', $this->translator->trans('form.invalid', [], 'Crud'));
-            } else {
-                $playlist = new Playlist();
-                if (method_exists($playlist, 'setTitle')) {
-                    $playlist->setTitle($title);
-                }
-                if (method_exists($playlist, 'setDescription')) {
-                    $playlist->setDescription($description ?: null);
-                }
-
-                $this->playlistRepository->save($playlist, true);
-
-                $this->addFlash('success', $this->translator->trans('create.success', [], 'Crud'));
-                return $this->redirectToRoute('back_playlist_index');
-            }
-        }
-
-        return $this->render(self::TEMPLATE_DIR . DIRECTORY_SEPARATOR . 'new.html.twig');
-    }
-
-    /**
      * @param Playlist|null $playlist
      *
      * @return Response
@@ -103,46 +70,6 @@ final class PlaylistController extends AbstractController
         }
 
         return $this->render(self::TEMPLATE_DIR . DIRECTORY_SEPARATOR . 'show.html.twig', [
-            'playlist' => $playlist,
-        ]);
-    }
-
-    /**
-     * @param Request       $request
-     * @param Playlist|null $playlist
-     *
-     * @return Response
-     */
-    #[Route(path: ['en' => '/{id}/edit', 'fr' => '/{id}/editer'], name: 'edit', requirements: ['id' => "\\d+"])]
-    public function edit(Request $request, ?Playlist $playlist): Response
-    {
-        if (null === $playlist) {
-            $this->addFlash('error', $this->translator->trans('no_element', [], 'Crud'));
-            return $this->redirectToRoute('back_playlist_index');
-        }
-
-        if ($request->isMethod('POST')) {
-            $title = trim((string) $request->request->get('title', ''));
-            $description = $request->request->get('description');
-
-            if ($title === '') {
-                $this->addFlash('error', $this->translator->trans('form.invalid', [], 'Crud'));
-            } else {
-                if (method_exists($playlist, 'setTitle')) {
-                    $playlist->setTitle($title);
-                }
-                if (method_exists($playlist, 'setDescription')) {
-                    $playlist->setDescription($description ?: null);
-                }
-
-                $this->playlistRepository->save($playlist, true);
-
-                $this->addFlash('success', $this->translator->trans('update.success', [], 'Crud'));
-                return $this->redirectToRoute('back_playlist_index');
-            }
-        }
-
-        return $this->render(self::TEMPLATE_DIR . DIRECTORY_SEPARATOR . 'edit.html.twig', [
             'playlist' => $playlist,
         ]);
     }

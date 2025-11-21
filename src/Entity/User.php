@@ -43,7 +43,7 @@ class User extends BaseUser
     #[Assert\Length(max: 64)]
     private ?string $spotifyId = null;
 
-    #[ORM\Column(type: Types::DATE_IMMUTABLE, nullable: true)]
+    #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
     private ?DateTimeImmutable $lastLoginAt = null;
 
     #[ORM\OneToMany(targetEntity: Playlist::class, mappedBy: 'user')]

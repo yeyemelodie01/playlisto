@@ -162,7 +162,7 @@ final class SurveySubmissionController extends AbstractController
         foreach ($items as $row) {
             $qId = $row['questionId'] ?? null;
             if ($qId === null || $qId === '') {
-                throw new InvalidArgumentException('Each answer-option must contain `questionId`.');
+                throw new InvalidArgumentException('Each answer must contain `questionId`.');
             }
 
             $persistAnswer = function (?int $optionId, ?string $optionValue) use ($surveyId, $submission, $qId) {
