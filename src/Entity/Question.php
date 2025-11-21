@@ -27,10 +27,10 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\Table(
     name: 'question',
     indexes: [
-        new ORM\Index(name: 'idx_question_survey', columns: ['survey_id'])
+        new ORM\Index(name: 'idx_question_survey', columns: ['survey_id']),
     ],
     uniqueConstraints: [
-        new ORM\UniqueConstraint(name: 'uniq_survey_label', columns: ['survey_id', 'label'])
+        new ORM\UniqueConstraint(name: 'uniq_survey_label', columns: ['survey_id', 'label']),
     ]
 )]
 class Question

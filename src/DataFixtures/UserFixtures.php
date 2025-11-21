@@ -43,6 +43,7 @@ final class UserFixtures extends Fixture implements OrderedFixtureInterface
      * @param ObjectManager $manager
      *
      * @return void
+     *
      * @throws Exception
      */
     public function load(ObjectManager $manager): void
@@ -69,7 +70,7 @@ final class UserFixtures extends Fixture implements OrderedFixtureInterface
                 $user->setSpotifyId((string) $data['spotifyId']);
                 $user->setRoles(['ROLE_USER']);
                 $user->setActive(true);
-                $user->setLastLoginAt(new DateTimeImmutable('-' . rand(1, 60) . ' days'));
+                $user->setLastLoginAt(new DateTimeImmutable('-'.rand(1, 60).' days'));
                 $user->setPassword($this->passwordHasher->hashPassword($user, 'password'));
 
                 $this->userRepository->save($user, true);

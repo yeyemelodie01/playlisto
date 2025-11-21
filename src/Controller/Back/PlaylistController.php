@@ -51,7 +51,8 @@ final class PlaylistController extends AbstractController
             $request->query->getInt('page', 1),
             $backPaginateMaxPerPage
         );
-        return $this->render(self::TEMPLATE_DIR . DIRECTORY_SEPARATOR . 'index.html.twig', [
+
+        return $this->render(self::TEMPLATE_DIR.DIRECTORY_SEPARATOR.'index.html.twig', [
             'pagination' => $pagination,
         ]);
     }
@@ -66,10 +67,11 @@ final class PlaylistController extends AbstractController
     {
         if (null === $playlist) {
             $this->addFlash('error', $this->translator->trans('no_element', [], 'Crud'));
+
             return $this->redirectToRoute('back_playlist_index');
         }
 
-        return $this->render(self::TEMPLATE_DIR . DIRECTORY_SEPARATOR . 'show.html.twig', [
+        return $this->render(self::TEMPLATE_DIR.DIRECTORY_SEPARATOR.'show.html.twig', [
             'playlist' => $playlist,
         ]);
     }

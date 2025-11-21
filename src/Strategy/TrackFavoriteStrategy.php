@@ -9,7 +9,6 @@ use App\Repository\FavoriteRepository;
 use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 use Symfony\Component\Security\Core\User\UserInterface;
 
-
 /**
  * Strategy responsible for handling track favorite creation.
  * Supports the FavoriteType::TRACK type and persists a new Favorite entity.

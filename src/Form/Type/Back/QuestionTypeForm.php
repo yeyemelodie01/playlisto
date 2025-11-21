@@ -17,19 +17,19 @@ class QuestionTypeForm extends AbstractType
     {
         $builder
             ->add('surveyId', NumberType::class, [
-              'disabled' => true,
+                'disabled' => true,
                 'label' => 'Id du questionnaire',
                 'attr' => [
                     'class' => 'disabled bg-gray-100 text-gray-600',
                     'style' => 'appearance: textfield; cursor: default;',
-                ]
+                ],
             ])
             ->add('label', TextType::class, [
                 'required' => true,
                 'label' => 'Libellé',
                 'attr' => [
-                    'placeholder' => "Texte de la question..."
-                ]
+                    'placeholder' => "Texte de la question...",
+                ],
             ])
             ->add('type', ChoiceType::class, [
                 'label' => 'Type de la question',

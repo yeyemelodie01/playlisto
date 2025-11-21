@@ -24,7 +24,7 @@ use Symfony\Component\Serializer\Annotation\Groups;
             output: AnswerOptionResultOutput::class,
             name: 'SubmitAnswers',
             processor: AnswerOptionProcessor::class
-        )
+        ),
     ],
     normalizationContext: ['groups' => ['answer:result:read']],
 )]
@@ -45,9 +45,9 @@ final class AnswerOptionResultOutput
     /**
      * Constructor to initialize all properties.
      *
-     * @param int           $surveyId the survey ID
-     * @param string        $deducedMood the deduced mood
-     * @param string        $selectedActivity the activity choice
+     * @param int           $surveyId            the survey ID
+     * @param string        $deducedMood         the deduced mood
+     * @param string        $selectedActivity    the activity choice
      * @param string[]|null $recommendationSeeds optional array of recommendation seeds
      */
     public function __construct(int $surveyId, string $deducedMood, string $selectedActivity, ?array $recommendationSeeds = null)

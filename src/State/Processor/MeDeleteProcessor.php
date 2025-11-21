@@ -4,6 +4,7 @@ namespace App\State\Processor;
 
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
+use App\ApiResource\MeInput;
 use App\Entity\User;
 use App\Repository\PlaylistRepository;
 use App\Repository\SurveySubmissionRepository;
@@ -11,6 +12,8 @@ use App\Repository\TrackRepository;
 use App\Repository\UserRepository;
 use RuntimeException;
 use Symfony\Bundle\SecurityBundle\Security;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 final readonly class MeDeleteProcessor implements ProcessorInterface
 {
@@ -21,7 +24,7 @@ final readonly class MeDeleteProcessor implements ProcessorInterface
      * @param PlaylistRepository         $playlistRepository
      * @param SurveySubmissionRepository $surveySubmissionRepository
      */
-    public function __construct(private Security $security, private UserRepository $userRepository, private TrackRepository $trackRepository, private PlaylistRepository $playlistRepository, private SurveySubmissionRepository $surveySubmissionRepository)
+    public function __construct(private Security $security, private UserRepository $userRepository, private TrackRepository $trackRepository, private PlaylistRepository $playlistRepository, private SurveySubmissionRepository $surveySubmissionRepository, private UserPasswordHasherInterface $passwordHasher)
     {
     }
 
@@ -38,6 +41,28 @@ final readonly class MeDeleteProcessor implements ProcessorInterface
         $user = $this->security->getUser();
         if (!$user instanceof User) {
             throw new RuntimeException('User not authenticated');
+        }
+
+        if (!$data instanceof MeInput) {
+            $request = $context['request'] ?? null;
+            $payload = [];
+
+            if ($request instanceof Request) {
+                $payload = json_decode($request->getContent(), true) ?? [];
+            }
+
+            $meInput = new MeInput();
+            $meInput->currentPassword = $payload['currentPassword'] ?? null;
+
+            $data = $meInput;
+        }
+
+        if (null === $data->currentPassword || '' === trim($data->currentPassword)) {
+            throw new RuntimeException('Le mot de passe actuel est requis pour supprimer votre compte.');
+        }
+
+        if (!$this->passwordHasher->isPasswordValid($user, $data->currentPassword)) {
+            throw new RuntimeException('Le mot de passe actuel est incorrect.');
         }
 
         try {

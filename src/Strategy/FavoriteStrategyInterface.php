@@ -23,8 +23,8 @@ interface FavoriteStrategyInterface
     /**
      * Creates and persists a favorite for the given user and target.
      *
-     * @param UserInterface $user The user adding the favorite.
-     * @param mixed $target The entity or identifier being favorited.
+     * @param UserInterface $user   The user adding the favorite.
+     * @param mixed         $target The entity or identifier being favorited.
      *
      * @return Favorite The created Favorite entity.
      *

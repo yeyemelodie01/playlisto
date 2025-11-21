@@ -80,7 +80,7 @@ final readonly class PlaylistProvider implements ProviderInterface
 
             return $result;
         } catch (Throwable $e) {
-            $this->logger->error('Error providing playlist data: ' . $e->getMessage(), ['exception' => $e]);
+            $this->logger->error('Error providing playlist data: '.$e->getMessage(), ['exception' => $e]);
             throw $e;
         }
     }

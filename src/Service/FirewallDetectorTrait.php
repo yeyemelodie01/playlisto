@@ -32,14 +32,14 @@ trait FirewallDetectorTrait
         }
 
         $firewallShortName = (string) $this->firewallDetector->getFirewallShortName();
-        $realDomainPrefix = $firewallShortName . '.';
+        $realDomainPrefix = $firewallShortName.'.';
         if (str_starts_with($domain, $realDomainPrefix)) {
-            $realDomain = $realDomainPrefix . substr($domain, strlen($realDomainPrefix));
+            $realDomain = $realDomainPrefix.substr($domain, strlen($realDomainPrefix));
             if ($realDomain === $domain) {
                 return $realDomain;
             }
         }
 
-        return $realDomainPrefix . $domain;
+        return $realDomainPrefix.$domain;
     }
 }

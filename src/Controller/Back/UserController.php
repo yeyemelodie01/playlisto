@@ -52,7 +52,8 @@ final class UserController extends AbstractController
             $request->query->getInt('page', 1),
             $backPaginateMaxPerPage
         );
-        return $this->render(self::TEMPLATE_DIR . DIRECTORY_SEPARATOR . 'index.html.twig', [
+
+        return $this->render(self::TEMPLATE_DIR.DIRECTORY_SEPARATOR.'index.html.twig', [
             'pagination' => $pagination,
         ]);
     }
@@ -91,7 +92,7 @@ final class UserController extends AbstractController
             return $this->redirectToRoute('back_user_index');
         }
 
-        return $this->render(self::TEMPLATE_DIR . DIRECTORY_SEPARATOR . 'edit.html.twig', [
+        return $this->render(self::TEMPLATE_DIR.DIRECTORY_SEPARATOR.'edit.html.twig', [
             'userTypeForm' => $form->createView(),
             'user' => $user,
         ]);

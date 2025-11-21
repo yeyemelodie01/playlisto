@@ -56,7 +56,7 @@ final class SignupController
                     'id' => $user->getId(),
                     'username' => $user->getUsername(),
                     'email' => $user->getEmail(),
-                ]
+                ],
             ], 201);
         } catch (\Exception $e) {
             $this->logger->error('Failed to create user or send welcome email.', [

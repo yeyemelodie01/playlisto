@@ -16,7 +16,7 @@ use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 use function assert;
 
-final readonly class MeProcessor implements ProcessorInterface
+final readonly class MeUpdateProcessor implements ProcessorInterface
 {
     /**
      * @param Security                    $security
@@ -41,9 +41,15 @@ final readonly class MeProcessor implements ProcessorInterface
         if (!$user instanceof User) {
             throw new RuntimeException('User not authenticated');
         }
-
-        if ($operation instanceof Put) {
             assert($data instanceof MeInput);
+
+            if (null === $data->currentPassword || '' === trim($data->currentPassword)) {
+                throw new RuntimeException('Le mot de passe actuel est requis pour modifier votre profil.');
+            }
+
+            if (!$this->passwordHasher->isPasswordValid($user, $data->currentPassword)) {
+                throw new RuntimeException('Le mot de passe actuel est incorrect.');
+            }
 
             if ($data->email && $data->email !== $user->getEmail()) {
                 $user->setEmail($data->email);
@@ -65,8 +71,6 @@ final readonly class MeProcessor implements ProcessorInterface
                 roles: $user->getRoles(),
                 username: method_exists($user, 'getUsername') ? $user->getUsername() : null
             );
-        }
 
-        throw new RuntimeException(\sprintf('Unsupported operation: %s', $operation::class));
     }
 }

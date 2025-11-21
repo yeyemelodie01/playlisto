@@ -35,6 +35,7 @@ final class BackController extends AbstractController
      * @param Request $request
      *
      * @return Response
+     *
      * @throws InvalidArgumentException
      */
     #[Route(name: 'index')]
@@ -67,7 +68,7 @@ final class BackController extends AbstractController
 
         $data = $this->adminStatsService->getDashboardStats($from, $to);
 
-        return $this->render(self::TEMPLATE_DIR . DIRECTORY_SEPARATOR . 'index.html.twig', [
+        return $this->render(self::TEMPLATE_DIR.DIRECTORY_SEPARATOR.'index.html.twig', [
             'stats' => $data,
             'range' => $range,
             'from'  => $from?->format('Y-m-d'),

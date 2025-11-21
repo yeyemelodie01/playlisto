@@ -16,4 +16,6 @@ final class MeInput
 
     #[Assert\Length(min: 8, minMessage: "Password must be at least 8 characters long")]
     public ?string $password = null;
+
+    public ?string $currentPassword = null;
 }

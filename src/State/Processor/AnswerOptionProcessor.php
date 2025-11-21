@@ -89,23 +89,23 @@ final readonly class AnswerOptionProcessor implements ProcessorInterface
         $seeds = [];
 
         foreach ($data->answers as $item) {
-            $questionId = (int)($item['questionId'] ?? 0);
+            $questionId = (int) ($item['questionId'] ?? 0);
             $optionIds = $item['optionIds'] ?? [];
             if (!\is_array($optionIds)) {
                 continue;
             }
 
-            if (isset($optionIds[0], $moodMap[(int)$optionIds[0]]) && $questionId === 101) {
-                $deducedMood = $moodMap[(int)$optionIds[0]];
+            if (isset($optionIds[0], $moodMap[(int) $optionIds[0]]) && $questionId === 101) {
+                $deducedMood = $moodMap[(int) $optionIds[0]];
             }
 
-            if (isset($optionIds[0], $activityMap[(int)$optionIds[0]]) && $questionId === 102) {
-                $selectedActivity = $activityMap[(int)$optionIds[0]];
+            if (isset($optionIds[0], $activityMap[(int) $optionIds[0]]) && $questionId === 102) {
+                $selectedActivity = $activityMap[(int) $optionIds[0]];
             }
 
             if ($questionId === 103) {
                 foreach ($optionIds as $answeroptionid) {
-                    $answeroptionid = (int)$answeroptionid;
+                    $answeroptionid = (int) $answeroptionid;
                     if (isset($genreSeeds[$answeroptionid])) {
                         $seeds[] = $genreSeeds[$answeroptionid];
                     }
@@ -129,7 +129,7 @@ final readonly class AnswerOptionProcessor implements ProcessorInterface
 
 
         $submission = new SurveySubmission();
-        $submission->setSurveyId((int)$data->surveyId);
+        $submission->setSurveyId((int) $data->surveyId);
         $submission->setUser($user);
         $submission->setDeducedMood(MoodType::from($deducedMood));
         $submission->setSelectedActivity(ActivityType::from($selectedActivity));

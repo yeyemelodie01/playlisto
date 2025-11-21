@@ -44,7 +44,7 @@ class Track
     #[ORM\Column(type: Types::JSON)]
     #[Assert\All([
         new Assert\Type('string'),
-        new Assert\Length(max: 255)
+        new Assert\Length(max: 255),
     ])]
     private array $artists = [];
 

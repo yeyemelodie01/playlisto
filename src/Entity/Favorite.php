@@ -45,6 +45,7 @@ class Favorite
     public function setType(FavoriteType $type): self
     {
         $this->type = $type;
+
         return $this;
     }
 
@@ -56,6 +57,7 @@ class Favorite
     public function setTargetId(string $targetId): self
     {
         $this->targetId = $targetId;
+
         return $this;
     }
 }

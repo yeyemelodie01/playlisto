@@ -58,7 +58,7 @@ final readonly class OpenAIService
 
         $spotifySeeds = array_map(static fn(SpotifyGenre $g) => $g->value, SpotifyGenre::cases());
 
-        $maxHaveYou = (int)ceil($behaviourTarget / 3);
+        $maxHaveYou = (int) ceil($behaviourTarget / 3);
         $nonce = bin2hex(random_bytes(4));
 
         $system = <<<SYS
@@ -124,7 +124,7 @@ final readonly class OpenAIService
             if (count($behaviourOut) >= $behaviourTarget) {
                 break;
             }
-            $title = isset($q['title']) ? trim((string)$q['title']) : '';
+            $title = isset($q['title']) ? trim((string) $q['title']) : '';
             if ($title === '') {
                 continue;
             }
@@ -134,15 +134,15 @@ final readonly class OpenAIService
             }
             $seen[$key] = true;
 
-            $tag = isset($q['moodTag']) ? strtolower((string)$q['moodTag']) : null;
-            if (!in_array($tag, ['happy','sad','energetic','stressed','calm'], true)) {
+            $tag = isset($q['moodTag']) ? strtolower((string) $q['moodTag']) : null;
+            if (!in_array($tag, ['happy', 'sad', 'energetic', 'stressed', 'calm'], true)) {
                 continue;
             }
 
             $behaviourOut[] = [
                 'title'   => $title,
                 'type'    => 'single',
-                'options' => ['oui','non'],
+                'options' => ['oui', 'non'],
                 'moodTag' => $tag,
             ];
         }
@@ -214,7 +214,7 @@ final readonly class OpenAIService
             $rawAnswers = $answers;
         }
 
-        $activityChoices = ['sport','travail','détente','étude','cuisine','aucune'];
+        $activityChoices = ['sport', 'travail', 'détente', 'étude', 'cuisine', 'aucune'];
 
         $behaviourPayload = [];
         foreach ($rawAnswers as $a) {
@@ -230,7 +230,7 @@ final readonly class OpenAIService
                 continue;
             }
 
-            $val = isset($a['optionValue']) ? (string)$a['optionValue'] : null;
+            $val = isset($a['optionValue']) ? (string) $a['optionValue'] : null;
             if ($val !== null && in_array(mb_strtolower($val), $activityChoices, true)) {
                 continue;
             }
@@ -247,7 +247,7 @@ final readonly class OpenAIService
             $behaviourPayload = array_slice($rawAnswers, 0, -2);
         }
 
-        $user = "Behaviour Q/A (JSON):\n" . json_encode($behaviourPayload, JSON_UNESCAPED_UNICODE);
+        $user = "Behaviour Q/A (JSON):\n".json_encode($behaviourPayload, JSON_UNESCAPED_UNICODE);
 
         $payload = [
             'model' => $this->model,
@@ -263,7 +263,7 @@ final readonly class OpenAIService
         $json = json_decode($raw, true);
 
         $mood = $json['mood'] ?? 'calm';
-        $allowed = ["happy","sad","energetic","stressed","calm"];
+        $allowed = ["happy", "sad", "energetic", "stressed", "calm"];
         if (!in_array($mood, $allowed, true)) {
             $mood = 'calm';
         }
@@ -288,7 +288,7 @@ final readonly class OpenAIService
     {
         $resp = $this->httpClient->request('POST', self::OPENAI_URL, [
             'headers' => [
-                'Authorization' => 'Bearer ' . $this->apiKey,
+                'Authorization' => 'Bearer '.$this->apiKey,
                 'Content-Type'  => 'application/json',
             ],
             'timeout' => max(60, $this->timeout),
@@ -299,7 +299,7 @@ final readonly class OpenAIService
         try {
             $status = $resp->getStatusCode();
         } catch (TransportExceptionInterface $e) {
-            throw new RuntimeException('OpenAI request transport error: ' . $e->getMessage(), 0, $e);
+            throw new RuntimeException('OpenAI request transport error: '.$e->getMessage(), 0, $e);
         }
         $raw    = $resp->getContent(false);
         $data   = json_decode($raw, true);
@@ -307,20 +307,20 @@ final readonly class OpenAIService
         if ($status >= 400) {
             $msg = is_array($data) && isset($data['error']['message'])
                 ? $data['error']['message']
-                : ($raw ?: ('HTTP ' . $status));
-            throw new RuntimeException('OpenAI request failed: ' . $msg);
+                : ($raw ?: ('HTTP '.$status));
+            throw new RuntimeException('OpenAI request failed: '.$msg);
         }
 
         if (is_array($data) && isset($data['error'])) {
             $msg = $data['error']['message'] ?? 'unknown error';
-            throw new RuntimeException('OpenAI error: ' . $msg);
+            throw new RuntimeException('OpenAI error: '.$msg);
         }
 
         $content = $data['choices'][0]['message']['content'] ?? null;
 
         if (!is_string($content) || $content === '') {
             $snippet = is_string($raw) ? substr($raw, 0, 400) : '';
-            throw new RuntimeException('OpenAI empty/invalid content. Raw: ' . $snippet);
+            throw new RuntimeException('OpenAI empty/invalid content. Raw: '.$snippet);
         }
 
         return $content;
@@ -348,7 +348,7 @@ final readonly class OpenAIService
         $activityVal = $activity?->value ? strtolower($activity->value) : null;
 
         $genres = array_values(array_filter(array_map(
-            static fn($g) => strtolower(trim((string)$g)),
+            static fn($g) => strtolower(trim((string) $g)),
             $genres
         )));
         if (empty($genres)) {
@@ -413,7 +413,7 @@ final readonly class OpenAIService
         try {
             $raw = $this->request($payload);
             $data = json_decode($raw, true);
-            $title = trim((string)($data['title'] ?? ''));
+            $title = trim((string) ($data['title'] ?? ''));
 
             if ($title !== '') {
                 return $this->truncateTitle($title, $maxLen);
@@ -470,6 +470,7 @@ final readonly class OpenAIService
         if (mb_strlen($title) <= $maxLen) {
             return $title;
         }
-        return rtrim(mb_substr($title, 0, $maxLen - 1)) . '…';
+
+        return rtrim(mb_substr($title, 0, $maxLen - 1)).'…';
     }
 }

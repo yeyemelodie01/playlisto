@@ -43,7 +43,7 @@ final readonly class SpotifyService
     public function search(string $q, string $type = 'track', int $limit = 10, ?string $market = null): array
     {
         $token = $this->token();
-        $url   = $this->apiBase() . '/search';
+        $url   = $this->apiBase().'/search';
 
         $query = [
             'q' => $q,
@@ -55,11 +55,11 @@ final readonly class SpotifyService
         }
 
         $data = $this->http->request('GET', $url, [
-            'headers' => ['Authorization' => 'Bearer ' . $token],
+            'headers' => ['Authorization' => 'Bearer '.$token],
             'query' => $query,
         ])->toArray(false);
 
-        return $data[$type . 's']['items'] ?? [];
+        return $data[$type.'s']['items'] ?? [];
     }
 
 
@@ -106,14 +106,14 @@ final readonly class SpotifyService
         }
 
         $allowed = [
-            'target_acousticness','target_danceability','target_energy','target_instrumentalness',
-            'target_liveness','target_speechiness','target_valence',
-            'min_acousticness','max_acousticness','min_danceability','max_danceability',
-            'min_energy','max_energy','min_instrumentalness','max_instrumentalness',
-            'min_liveness','max_liveness','min_speechiness','max_speechiness',
-            'min_valence','max_valence',
-            'min_tempo','max_tempo','target_tempo',
-            'min_popularity','max_popularity',
+            'target_acousticness', 'target_danceability', 'target_energy', 'target_instrumentalness',
+            'target_liveness', 'target_speechiness', 'target_valence',
+            'min_acousticness', 'max_acousticness', 'min_danceability', 'max_danceability',
+            'min_energy', 'max_energy', 'min_instrumentalness', 'max_instrumentalness',
+            'min_liveness', 'max_liveness', 'min_speechiness', 'max_speechiness',
+            'min_valence', 'max_valence',
+            'min_tempo', 'max_tempo', 'target_tempo',
+            'min_popularity', 'max_popularity',
         ];
 
         foreach ($targets as $k => $v) {
@@ -127,10 +127,9 @@ final readonly class SpotifyService
         }
 
         $token = $this->token();
-        $url = $this->apiBase() . '/recommendations';
+        $url = $this->apiBase().'/recommendations';
 
-        if (
-            empty($query['seed_genres'])
+        if (empty($query['seed_genres'])
             && empty($query['seed_artists'])
             && empty($query['seed_tracks'])
         ) {
@@ -153,6 +152,7 @@ final readonly class SpotifyService
                 return [];
             }
             $tracks = $data['tracks'] ?? [];
+
             return is_array($tracks) ? $tracks : [];
         };
 
@@ -170,7 +170,7 @@ final readonly class SpotifyService
             try {
                 $resp = $this->http->request('GET', $url, [
                     'headers' => [
-                        'Authorization' => 'Bearer ' . $token,
+                        'Authorization' => 'Bearer '.$token,
                         'Accept' => 'application/json',
                     ],
                     'query' => $q,
@@ -208,11 +208,11 @@ final readonly class SpotifyService
             throw new RuntimeException('Spotify credentials missing (SPOTIFY_CLIENT_ID / SPOTIFY_CLIENT_SECRET).');
         }
 
-        $auth = base64_encode($clientId . ':' . $clientSecret);
+        $auth = base64_encode($clientId.':'.$clientSecret);
 
         $resp = $this->http->request('POST', 'https://accounts.spotify.com/api/token', [
             'headers' => [
-                'Authorization' => 'Basic ' . $auth,
+                'Authorization' => 'Basic '.$auth,
                 'Content-Type' => 'application/x-www-form-urlencoded',
                 'Accept' => 'application/json',
             ],
@@ -231,17 +231,17 @@ final readonly class SpotifyService
 
         if (!is_array($data)) {
             $snippet = is_string($raw) ? mb_substr($raw, 0, 300) : '';
-            throw new RuntimeException('Spotify token: invalid JSON response. Body: ' . $snippet);
+            throw new RuntimeException('Spotify token: invalid JSON response. Body: '.$snippet);
         }
 
         if (isset($data['error'])) {
             $desc = $data['error_description'] ?? (\is_string($data['error']) ? $data['error'] : 'unknown error');
-            throw new RuntimeException('Spotify token error: ' . $desc);
+            throw new RuntimeException('Spotify token error: '.$desc);
         }
 
         $token = $data['access_token'] ?? null;
         if (!\is_string($token) || $token === '') {
-            throw new RuntimeException('Spotify token missing in response: ' . json_encode($data, JSON_UNESCAPED_SLASHES));
+            throw new RuntimeException('Spotify token missing in response: '.json_encode($data, JSON_UNESCAPED_SLASHES));
         }
 
         return $token;
@@ -303,6 +303,7 @@ final readonly class SpotifyService
             if (!$reco) {
                 return [];
             }
+
             return $this->extracted($reco, $seeds, [], $limit);
         };
 
@@ -336,7 +337,7 @@ final readonly class SpotifyService
         foreach ($markets as $mkt) {
             foreach ($seed3 as $g) {
                 try {
-                    $items = $this->search('genre:"' . $g . '"', 'track', 50, $mkt);
+                    $items = $this->search('genre:"'.$g.'"', 'track', 50, $mkt);
                 } catch (\Throwable) {
                     $items = [];
                 }
@@ -344,7 +345,7 @@ final readonly class SpotifyService
                     continue;
                 }
                 foreach ($items as $it) {
-                    $id = (string)($it['id'] ?? '');
+                    $id = (string) ($it['id'] ?? '');
                     if ($id === '' || isset($seen[$id])) {
                         continue;
                     }

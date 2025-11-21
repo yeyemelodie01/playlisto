@@ -44,11 +44,12 @@ final class MoodTracksController extends AbstractController
     public function __invoke(Request $request): JsonResponse
     {
         $p = json_decode($request->getContent(), true) ?? [];
-        $mood = (string)($p['mood'] ?? 'happy');           // issu d'OpenAI
-        $activity = (string)($p['activity'] ?? 'relax');  // choisi par l'utilisateur
+        $mood = (string) ($p['mood'] ?? 'happy');           // issu d'OpenAI
+        $activity = (string) ($p['activity'] ?? 'relax');  // choisi par l'utilisateur
         $genres = is_array($p['genres'] ?? null) ? $p['genres'] : [];
 
         $tracks = $this->spotifyService->tracksForMoodActivity($mood, $activity, $genres, 25);
-        return $this->json(['mood' => $mood,'activity' => $activity,'genres' => $genres,'tracks' => $tracks]);
+
+        return $this->json(['mood' => $mood, 'activity' => $activity, 'genres' => $genres, 'tracks' => $tracks]);
     }
 }

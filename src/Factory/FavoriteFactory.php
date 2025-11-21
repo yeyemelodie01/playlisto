@@ -30,9 +30,9 @@ final readonly class FavoriteFactory
      * Adds a favorite for the given user and target using the appropriate strategy
      * determined by the provided favorite type.
      *
-     * @param FavoriteType $type The type of favorite to create.
-     * @param UserInterface $user The user adding the favorite.
-     * @param mixed $target The resource to be marked as favorite (e.g., playlist ID, track ID).
+     * @param FavoriteType  $type   The type of favorite to create.
+     * @param UserInterface $user   The user adding the favorite.
+     * @param mixed         $target The resource to be marked as favorite (e.g., playlist ID, track ID).
      *
      * @return Favorite The created favorite entity.
      *

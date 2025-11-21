@@ -109,6 +109,7 @@ enum SpotifyGenre : string
                 $valid[] = $g;
             }
         }
+
         return \array_slice(array_unique($valid), 0, 5);
     }
 }
