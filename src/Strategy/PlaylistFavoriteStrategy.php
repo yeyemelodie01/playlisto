@@ -9,18 +9,28 @@ use App\Repository\FavoriteRepository;
 use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 use Symfony\Component\Security\Core\User\UserInterface;
 
+/**
+ * Strategy responsible for handling playlist favorite creation.
+ * Supports the FavoriteType::PLAYLIST type and persists a new Favorite entity.
+ */
 #[AutoconfigureTag('app.favorite_strategy')]
-class PlaylistFavoriteStrategy implements FavoriteStrategyInterface
+final readonly class PlaylistFavoriteStrategy implements FavoriteStrategyInterface
 {
-    public function __construct(private readonly FavoriteRepository $favoriteRepository)
+    public function __construct(private FavoriteRepository $favoriteRepository)
     {
     }
 
+    /**
+     * {@inheritdoc}
+     */
     public function supports(string $type): bool
     {
         return $type === FavoriteType::PLAYLIST->value;
     }
 
+    /**
+     * {@inheritdoc}
+     */
     public function addFavorite(UserInterface $user, mixed $target): Favorite
     {
         if (!$target instanceof Playlist) {

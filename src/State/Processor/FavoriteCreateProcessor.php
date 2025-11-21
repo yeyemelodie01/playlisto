@@ -17,12 +17,40 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Throwable;
 use ValueError;
 
+/**
+ * Processor responsible for handling the creation of favorites from API requests.
+ * Validates request data, resolves the correct favorite type, and delegates creation
+ * to the FavoriteFactory.
+ *
+ * This class acts as an application layer to prevent exposing business logic in the API layer.
+ */
 final readonly class FavoriteCreateProcessor implements ProcessorInterface
 {
+    /**
+     * Constructor.
+     *
+     * @param Security $security Provides access to the currently authenticated user.
+     * @param FavoriteFactory $favoriteFactory Responsible for delegating favorite creation to a proper strategy.
+     * @param RequestStack $requestStack Used to retrieve the current HTTP request and its payload.
+     */
     public function __construct(private Security $security, private FavoriteFactory $favoriteFactory, private RequestStack $requestStack)
     {
     }
 
+    /**
+     * Processes the incoming API request to create a favorite entry.
+     *
+     * @param mixed $data The request payload (unused due to deserialize:false in API Platform).
+     * @param Operation $operation The API Platform operation metadata.
+     * @param array $uriVariables Variables extracted from the URI, including favoriteType.
+     * @param array $context Additional processing context.
+     *
+     * @return FavoriteCreateOutput A response containing a success message.
+     *
+     * @throws NotFoundHttpException If the user is not authenticated or the favorite type is missing/invalid.
+     * @throws BadRequestHttpException If the provided payload is invalid.
+     * @throws RuntimeException If an unexpected error occurs while creating the favorite.
+     */
     #[Override]
     public function process($data, Operation $operation, array $uriVariables = [], array $context = []): FavoriteCreateOutput
     {
@@ -48,7 +76,7 @@ final readonly class FavoriteCreateProcessor implements ProcessorInterface
             throw new \InvalidArgumentException('Invalid payload: missing placedChampions.');
         }
 
-        $target = $request->get(); // à adapter
+        $target = $request; // @TODO à adapter
         try {
             $this->favoriteFactory->addFavorite($type, $user, $target);
         } catch (InvalidArgumentException $e) {

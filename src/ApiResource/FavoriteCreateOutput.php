@@ -6,6 +6,10 @@ use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Post;
 use App\State\Processor\FavoriteCreateProcessor;
 
+/**
+ * API resource output for favorite creation.
+ * Returned after successfully processing a favorite creation request.
+ */
 #[ApiResource(
     operations: [
         new Post(
@@ -19,9 +23,9 @@ use App\State\Processor\FavoriteCreateProcessor;
 final class FavoriteCreateOutput
 {
     /**
-     * Constructor.
+     * Favorite creation response output.
      *
-     * @param string|null $message
+     * @param string|null $message A message describing the result of the favorite creation.
      */
     public function __construct(public ?string $message = null)
     {

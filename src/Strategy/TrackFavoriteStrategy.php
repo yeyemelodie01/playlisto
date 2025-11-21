@@ -9,18 +9,29 @@ use App\Repository\FavoriteRepository;
 use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 use Symfony\Component\Security\Core\User\UserInterface;
 
+
+/**
+ * Strategy responsible for handling track favorite creation.
+ * Supports the FavoriteType::TRACK type and persists a new Favorite entity.
+ */
 #[AutoconfigureTag('app.favorite_strategy')]
-class TrackFavoriteStrategy implements FavoriteStrategyInterface
+final readonly class TrackFavoriteStrategy implements FavoriteStrategyInterface
 {
-    public function __construct(private readonly FavoriteRepository $favoriteRepository)
+    public function __construct(private FavoriteRepository $favoriteRepository)
     {
     }
 
+    /**
+     * {@inheritdoc}
+     */
     public function supports(string $type): bool
     {
         return $type === FavoriteType::TRACK->value;
     }
 
+    /**
+     * {@inheritdoc}
+     */
     public function addFavorite(UserInterface $user, mixed $target): Favorite
     {
         if (!$target instanceof Track) {
