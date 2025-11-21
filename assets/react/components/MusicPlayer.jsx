@@ -101,8 +101,8 @@ const MusicPlayer = ({ track, onPrev, onNext }) => {
         <div className="fixed bottom-0 left-0 right-0 border-t-2 border-foreground p-4 z-30 music_player bg-base-100">
             <audio key={track?.previewUrl || track?.id || 'no-preview'} ref={audioRef} preload="metadata" />
             <div className="max-w-7xl mx-auto">
-                <div className="flex md:flex-row md:items-center sm:flex-col sm:items-start justify-between gap-4 w-full">
-                    <div className="flex items-center gap-3 w-full sm:w-auto flex-1 min-w-0">
+                <div className="flex md:flex-row items-center flex-col justify-between gap-4 w-full">
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
                         <div className="avatar">
                             <div className="w-14 h-14 rounded bg-base-200 overflow-hidden">
                                 {track.image ? (
@@ -121,44 +121,22 @@ const MusicPlayer = ({ track, onPrev, onNext }) => {
                     </div>
 
                     <div className="flex items-center gap-4">
-                        <button
-                            className="btn btn-ghost btn-sm btn-circle text-foreground hover:bg-foreground/10"
-                            onClick={onPrev}
-                            disabled={!onPrev}
-                            title={!onPrev ? "Indisponible" : "Piste précédente"}
-                        >
+                        <button className="btn btn-ghost btn-sm btn-circle text-foreground hover:bg-foreground/10" onClick={onPrev} disabled={!onPrev} title={!onPrev ? "Indisponible" : "Piste précédente"}>
                             <SkipBack className="w-4 h-4" />
                         </button>
 
-                        <button
-                            onClick={togglePlay}
-                            className={`btn btn-circle ${isPlayable ? "bg-foreground border-foreground hover:bg-foreground/80 text-background" : "btn-disabled"}`}
-                            disabled={!isPlayable}
-                            title={isPlayable ? (isPlaying ? "Pause" : "Lecture") : "Pas d'extrait disponible"}
-                        >
+                        <button onClick={togglePlay} className={`btn btn-circle ${isPlayable ? "bg-foreground border-foreground hover:bg-foreground/80 text-background" : "btn-disabled"}`} disabled={!isPlayable} title={isPlayable ? (isPlaying ? "Pause" : "Lecture") : "Pas d'extrait disponible"}>
                             {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
                         </button>
 
-                        <button
-                            className="btn btn-ghost btn-sm btn-circle text-foreground hover:bg-foreground/10"
-                            onClick={onNext}
-                            disabled={!onNext}
-                            title={!onNext ? "Indisponible" : "Piste suivante"}
-                        >
+                        <button className="btn btn-ghost btn-sm btn-circle text-foreground hover:bg-foreground/10" onClick={onNext} disabled={!onNext} title={!onNext ? "Indisponible" : "Piste suivante"}>
                             <SkipForward className="w-4 h-4" />
                         </button>
                     </div>
 
-                    <div className="hidden sm:flex items-center gap-3 flex-1 max-w-md">
+                    <div className="flex items-center gap-3 flex-1 max-w-md">
                         <span className="text-xs text-foreground">{formatTime(currentTime)}</span>
-                        <input
-                            type="range"
-                            min="0"
-                            max="100"
-                            value={Number.isFinite(progress) ? progress : 0}
-                            className="range range-primary range-xs"
-                            onChange={onSeek}
-                        />
+                        <input type="range" min="0" max="100" value={Number.isFinite(progress) ? progress : 0} className="range range-primary range-xs" onChange={onSeek}/>
                         <span className="text-xs text-foreground">{formatTime(duration)}</span>
                     </div>
                 </div>
