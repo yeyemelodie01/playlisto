@@ -1,6 +1,6 @@
 grumphp:
   git_hook_variables:
-    EXEC_GRUMPHP_COMMAND: [ 'docker-compose', 'exec', '-T', 'php-fpm' ]
+    EXEC_GRUMPHP_COMMAND: [ 'docker', 'compose', 'exec', '-T', 'php-fpm' ]
   hooks_dir: ~
   hooks_preset: local
   stop_on_failure: true
