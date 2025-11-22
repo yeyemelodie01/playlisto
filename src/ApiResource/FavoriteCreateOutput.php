@@ -25,7 +25,7 @@ final class FavoriteCreateOutput
     /**
      * Favorite creation response output.
      *
-     * @param string|null $message A message describing the result of the favorite creation.
+     * @param string|null $message a message describing the result of the favorite creation
      */
     public function __construct(public ?string $message = null)
     {

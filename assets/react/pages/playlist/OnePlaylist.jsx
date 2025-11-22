@@ -1,5 +1,5 @@
-import {useEffect, useMemo, useRef, useState} from "react";
-import {useNavigate, useParams} from "react-router-dom";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate, useParams , useLocation } from "react-router-dom";
 import Header from "@components/Header";
 import MenuAside from "@components/MenuAside";
 import apiService from "@services/apiService";
@@ -15,6 +15,7 @@ function msToMinSec(ms) {
 export default function OnePlaylist() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [loading, setLoading] = useState(true);
   const [playlist, setPlaylist] = useState(null);
@@ -24,6 +25,8 @@ export default function OnePlaylist() {
   const audioRef = useRef(new Audio());
   const [deleting, setDeleting] = useState(false);
   const [alert, setAlert] = useState({ type: "", message: "" });
+  const [isFavorite, setIsFavorite] = useState(location.state?.isFavorite ?? false);
+  const [favoriteLoading, setFavoriteLoading] = useState(false);
 
     useEffect(() => {
         let isMounted = true;
@@ -38,29 +41,13 @@ export default function OnePlaylist() {
                 const { data } = await apiService.get(url);
                 if (!isMounted) return;
 
-                console.log("[OnePlaylist] raw payload keys:", Object.keys(data));
-                const item = Array.isArray(data?.["hydra:member"]) && data["hydra:member"][0]
-                    ? data["hydra:member"][0]
-                    : data;
+                const item = Array.isArray(data?.["hydra:member"]) && data["hydra:member"][0] ? data["hydra:member"][0] : data;
 
-                console.log("[OnePlaylist] using item:", item);
-
-                const genres = Array.isArray(item.genres)
-                    ? item.genres
-                    : (Array.isArray(item.seedGenres) ? item.seedGenres : []);
+                const genres = Array.isArray(item.genres) ? item.genres : (Array.isArray(item.seedGenres) ? item.seedGenres : []);
 
                 const tracks = Array.isArray(item.tracks) ? item.tracks.map((t) => {
-                    const coverUrl =
-                        t.coverUrl ??
-                        t.image_url ??
-                        (t.album && t.album.images && t.album.images[0] ? t.album.images[0].url : null) ??
-                        "/images/track-placeholder.png";
-
-                    const artistsArr = Array.isArray(t.artists) && t.artists.length
-                        ? t.artists
-                        : (Array.isArray(t.artistNames) && t.artistNames.length
-                            ? t.artistNames
-                            : (t.artist ? [t.artist] : []));
+                    const coverUrl = t.coverUrl ?? t.image_url ?? (t.album && t.album.images && t.album.images[0] ? t.album.images[0].url : null) ?? "/images/track-placeholder.png";
+                    const artistsArr = Array.isArray(t.artists) && t.artists.length ? t.artists : (Array.isArray(t.artistNames) && t.artistNames.length ? t.artistNames : (t.artist ? [t.artist] : []));
 
                     let durationMs = null;
                     if (Number.isFinite(t.duration_ms)) {
@@ -94,6 +81,16 @@ export default function OnePlaylist() {
                 };
 
                 setPlaylist(normalized);
+
+                if (typeof item.isFavorite === "boolean") {
+                    setIsFavorite(item.isFavorite);
+                }
+                else if (typeof location.state?.isFavorite === "boolean") {
+                    setIsFavorite(location.state.isFavorite);
+                }
+                else {
+                    setIsFavorite(false);
+                }
             } catch (e) {
                 console.error("[OnePlaylist] fetch error", e);
                 if (!isMounted) return;
@@ -129,7 +126,7 @@ export default function OnePlaylist() {
             artists: Array.isArray(t.artists) && t.artists.length ? t.artists.join(", ") : "Artiste inconnu",
             image: t.coverUrl || "/images/track-placeholder.png",
             previewUrl: t.previewUrl || null,
-            duration: Number.isFinite(t.durationMs) ? Math.round(t.durationMs / 1000) : null, // en secondes si tu veux
+            duration: Number.isFinite(t.durationMs) ? Math.round(t.durationMs / 1000) : null,
         });
     };
 
@@ -195,6 +192,29 @@ export default function OnePlaylist() {
         }
     };
 
+    const handleFavoriteClick = async () => {
+        if (!playlist?.id || favoriteLoading) return;
+
+        setFavoriteLoading(true);
+
+        try {
+            const API_URL = process.env.REACT_APP_API_URL || "";
+            const prefix = API_URL.endsWith("/api") ? "" : "/api";
+
+            if (!isFavorite) {
+                await apiService.post(`${prefix}/playlist/add-to-favorite`, {targetId: playlist.id,});
+                setIsFavorite(true);
+            } else {
+                await apiService.delete(`${prefix}/${"playlist"}/${playlist.id}/delete-to-favorite`);
+                setIsFavorite(false);
+            }
+        } catch (e) {
+            console.error("Favorite toggle error", e);
+        } finally {
+            setFavoriteLoading(false);
+        }
+    };
+
     if (loading) {
         return (
             <>
@@ -254,29 +274,45 @@ export default function OnePlaylist() {
                         <div className="max-w-6xl mx-auto">
                             <div className="flex items-center md:justify-between md:flex-row mb-6 flex-col">
                                 <div className="flex items-center gap-6 flex-col md:flex-row">
-                                    <img
-                                        src={cover}
-                                        alt={playlist.title || "Playlist cover"}
-                                        className="w-20 h-20 md:w-28 md:h-28 object-cover rounded shadow"
-                                    />
+                                    <img src={cover} alt={playlist.title || "Playlist cover"} className="w-20 h-20 md:w-28 md:h-28 object-cover rounded shadow"/>
                                     <div>
                                         <h1 className="text-2xl md:text-3xl font-bold text-center md:text-left">
                                             {playlist.title || "Playlist générée"}
                                         </h1>
                                         <div className="mt-2 flex flex-wrap justify-center gap-2 mb-8">
-                                            {playlist.mood ? <div className="badge badge-primary">mood: {playlist.mood}</div> : null}
-                                            {playlist.activity ? <div className="badge badge-secondary">activity: {playlist.activity}</div> : null}
-                                            {playlist.trackCount ? <div className="badge">tracks: {playlist.trackCount}</div> : null}
+                                            {playlist.mood ?
+                                                <div className="badge badge-primary">
+                                                    mood: {playlist.mood}
+                                                </div>
+                                            : null}
+                                            {playlist.activity ?
+                                                <div className="badge badge-secondary">
+                                                    activity: {playlist.activity}
+                                                </div>
+                                            : null}
+                                            {playlist.trackCount ?
+                                                <div className="badge">
+                                                    tracks: {playlist.trackCount}
+                                                </div>
+                                            : null}
                                         </div>
                                     </div>
                                 </div>
 
-                                <button className="btn bg-black text-white hover:bg-black/80 border-0 mb-4 md:mb-0 w-48">
-                                    Ajouter aux favoris
-                                </button>
-                                <button type="button" className={`btn btn-error w-48 ${deleting ? "loading" : ""}`} onClick={onDelete} disabled={deleting}>
-                                    {deleting ? "Suppression…" : "Supprimer la playlist"}
-                                </button>
+                                <div className="w-48">
+                                    {!isFavorite ? (
+                                        <button className="btn bg-black text-white hover:bg-black/80 border-0 mb-4 w-full" onClick={handleFavoriteClick} disabled={favoriteLoading}>
+                                            {favoriteLoading ? "Ajout en cours..." : "Ajouter aux favoris"}
+                                        </button>
+                                    ) : (
+                                        <button className="btn bg-red-600 text-black hover:bg-red-700 border-0 mb-4 w-full" onClick={handleFavoriteClick} disabled={favoriteLoading}>
+                                            {favoriteLoading ? "Retrait en cours..." : "Retirer des favoris"}
+                                        </button>
+                                    )}
+                                    <button type="button" className={`btn btn-error w-full ${deleting ? "loading" : ""}`} onClick={onDelete} disabled={deleting}>
+                                        {deleting ? "Suppression…" : "Supprimer la playlist"}
+                                    </button>
+                                </div>
                             </div>
 
                             <div className="space-y-3 w-full">
