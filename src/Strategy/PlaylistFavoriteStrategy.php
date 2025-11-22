@@ -20,21 +20,25 @@ final readonly class PlaylistFavoriteStrategy implements FavoriteStrategyInterfa
     {
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function supports(string $type): bool
     {
         return $type === FavoriteType::PLAYLIST->value;
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function addFavorite(UserInterface $user, mixed $target): Favorite
     {
         if (!$target instanceof Playlist) {
             throw new \InvalidArgumentException('Expected a Playlist as target for playlist favorite.');
+        }
+
+        $existing = $this->favoriteRepository->findOneBy([
+            'user' => $user,
+            'type' => FavoriteType::PLAYLIST,
+            'targetId' => $target->getId(),
+        ]);
+
+        if ($existing) {
+            return $existing;
         }
 
         $favorite = new Favorite();
@@ -45,5 +49,26 @@ final readonly class PlaylistFavoriteStrategy implements FavoriteStrategyInterfa
         $this->favoriteRepository->save($favorite, true);
 
         return $favorite;
+    }
+
+    public function removeFavorite(UserInterface $user, mixed $target): bool
+    {
+        if (!$target instanceof Playlist) {
+            throw new \InvalidArgumentException('Expected a Playlist as target for playlist favorite.');
+        }
+
+        $favorite = $this->favoriteRepository->findOneBy([
+            'user' => $user,
+            'type' => FavoriteType::PLAYLIST,
+            'targetId' => $target->getId(),
+        ]);
+
+        if (!$favorite) {
+            return false;
+        }
+
+        $this->favoriteRepository->remove($favorite, true);
+
+        return true;
     }
 }

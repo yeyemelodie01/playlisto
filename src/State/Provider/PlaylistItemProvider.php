@@ -6,38 +6,31 @@ use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProviderInterface;
 use App\ApiResource\PlaylistOutput;
 use App\ApiResource\TrackOutput;
-use App\Repository\PlaylistRepository;
 use App\Entity\User;
-use Override;
+use App\Repository\PlaylistRepository;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 final readonly class PlaylistItemProvider implements ProviderInterface
 {
     /**
-     * @param PlaylistRepository $playlistRepository
-     * @param Security           $security
-     *
      * @psalm-suppress
      */
     public function __construct(
         private PlaylistRepository $playlistRepository,
-        private Security $security
+        private Security $security,
     ) {
     }
 
     /**
      * Provides a PlaylistOutput DTO for a specific playlist owned by the currently authenticated user.
      *
-     * @param Operation            $operation
      * @param array<string, mixed> $uriVariables
      * @param array<string, mixed> $context
      *
-     * @return PlaylistOutput|null
-     *
      * @throws AccessDeniedHttpException
      */
-    #[Override]
+    #[\Override]
     public function provide(Operation $operation, array $uriVariables = [], array $context = []): ?PlaylistOutput
     {
         $user = $this->security->getUser();

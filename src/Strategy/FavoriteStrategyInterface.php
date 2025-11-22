@@ -14,21 +14,31 @@ interface FavoriteStrategyInterface
     /**
      * Checks whether this strategy supports the given favorite type.
      *
-     * @param string $type The favorite type value from the FavoriteType enum.
+     * @param string $type the favorite type value from the FavoriteType enum
      *
-     * @return bool True if this strategy handles the provided type, false otherwise.
+     * @return bool true if this strategy handles the provided type, false otherwise
      */
     public function supports(string $type): bool;
 
     /**
      * Creates and persists a favorite for the given user and target.
      *
-     * @param UserInterface $user   The user adding the favorite.
-     * @param mixed         $target The entity or identifier being favorited.
+     * @param UserInterface $user   the user adding the favorite
+     * @param mixed         $target the entity or identifier being favorited
      *
-     * @return Favorite The created Favorite entity.
+     * @return Favorite the created Favorite entity
      *
-     * @throws \InvalidArgumentException If the target is invalid or unsupported.
+     * @throws \InvalidArgumentException if the target is invalid or unsupported
      */
     public function addFavorite(UserInterface $user, mixed $target): Favorite;
+
+    /**
+     * Delete.
+     *
+     * @param UserInterface $user
+     * @param mixed         $target
+     *
+     * @return bool
+     */
+    public function removeFavorite(UserInterface $user, mixed $target): bool;
 }

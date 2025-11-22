@@ -5,16 +5,13 @@ namespace App\State\Provider;
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProviderInterface;
 use App\ApiResource\PlaylistOutput;
+use App\ApiResource\TrackOutput;
 use App\Entity\Playlist as PlaylistEntity;
 use App\Entity\Track;
+use App\Entity\Track as TrackEntity;
 use Doctrine\Common\Collections\Collection;
-use LogicException;
-use Override;
 use Psr\Log\LoggerInterface;
 use Symfony\Bundle\SecurityBundle\Security;
-use App\ApiResource\TrackOutput;
-use App\Entity\Track as TrackEntity;
-use Throwable;
 
 /**
  * Provides a collection of PlaylistOutput DTOs for the currently authenticated user.
@@ -24,9 +21,6 @@ use Throwable;
 final readonly class PlaylistProvider implements ProviderInterface
 {
     /**
-     * @param LoggerInterface $logger
-     * @param Security        $security
-     *
      * @psalm-suppress
      */
     public function __construct(private LoggerInterface $logger, private Security $security)
@@ -36,16 +30,15 @@ final readonly class PlaylistProvider implements ProviderInterface
     /**
      * Provides a collection of PlaylistOutput DTOs for the currently authenticated user.
      *
-     * @param Operation            $operation
      * @param array<string, mixed> $uriVariables
      * @param array<string, mixed> $context
      *
      * @return PlaylistOutput[]|null
      *
-     * @throws Throwable
+     * @throws \Throwable
      */
-    #[Override]
-    public function provide(Operation $operation, array $uriVariables = [], array $context = []): array|null
+    #[\Override]
+    public function provide(Operation $operation, array $uriVariables = [], array $context = []): ?array
     {
         unset($operation, $uriVariables, $context);
 
@@ -56,7 +49,7 @@ final readonly class PlaylistProvider implements ProviderInterface
             }
 
             if (!method_exists($user, 'getPlaylists')) {
-                throw new LogicException('The User implementation must have a getPlaylists() method returning a Collection<Playlist>.');
+                throw new \LogicException('The User implementation must have a getPlaylists() method returning a Collection<Playlist>.');
             }
 
             $collection = $user->getPlaylists();
@@ -66,7 +59,7 @@ final readonly class PlaylistProvider implements ProviderInterface
             } elseif (is_iterable($collection)) {
                 $iterable = $collection;
             } else {
-                throw new LogicException('getPlaylists() must return a Doctrine Collection or iterable.');
+                throw new \LogicException('getPlaylists() must return a Doctrine Collection or iterable.');
             }
 
             $result = [];
@@ -79,7 +72,7 @@ final readonly class PlaylistProvider implements ProviderInterface
             }
 
             return $result;
-        } catch (Throwable $e) {
+        } catch (\Throwable $e) {
             $this->logger->error('Error providing playlist data: '.$e->getMessage(), ['exception' => $e]);
             throw $e;
         }
@@ -87,16 +80,11 @@ final readonly class PlaylistProvider implements ProviderInterface
 
     /**
      * Maps a Playlist entity to a PlaylistOutput DTO.
-     *
-     * @param PlaylistEntity $playlist
-     *
-     * @return PlaylistOutput
      */
     private function mapEntityToDto(PlaylistEntity $playlist): PlaylistOutput
     {
         $mood = method_exists($playlist, 'getMood') ? $playlist->getMood()?->value : null;
         $activity = method_exists($playlist, 'getActivity') ? $playlist->getActivity()?->value : null;
-
 
         $tracksCollection = method_exists($playlist, 'getTracks') ? $playlist->getTracks() : null;
         $tracksArray = [];
@@ -109,7 +97,7 @@ final readonly class PlaylistProvider implements ProviderInterface
         }
 
         return new PlaylistOutput(
-            id:$playlist->getId(),
+            id: $playlist->getId(),
             title: $playlist->getTitle(),
             description: method_exists($playlist, 'getDescription') ? ($playlist->getDescription() ?? null) : null,
             mood: $mood,
@@ -120,11 +108,6 @@ final readonly class PlaylistProvider implements ProviderInterface
         );
     }
 
-    /**
-     * @param TrackEntity $track
-     *
-     * @return TrackOutput
-     */
     private function mapTrackToDto(Track $track): TrackOutput
     {
         return new TrackOutput(

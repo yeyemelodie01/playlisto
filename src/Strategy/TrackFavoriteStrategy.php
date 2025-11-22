@@ -20,17 +20,11 @@ final readonly class TrackFavoriteStrategy implements FavoriteStrategyInterface
     {
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function supports(string $type): bool
     {
         return $type === FavoriteType::TRACK->value;
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function addFavorite(UserInterface $user, mixed $target): Favorite
     {
         if (!$target instanceof Track) {
@@ -45,5 +39,26 @@ final readonly class TrackFavoriteStrategy implements FavoriteStrategyInterface
         $this->favoriteRepository->save($favorite, true);
 
         return $favorite;
+    }
+
+    public function removeFavorite(UserInterface $user, mixed $target): bool
+    {
+        if (!$target instanceof Track) {
+            throw new \InvalidArgumentException('Expected a Track as target for track favorite.');
+        }
+
+        $favorite = $this->favoriteRepository->findOneBy([
+            'user' => $user,
+            'type' => FavoriteType::TRACK,
+            'targetId' => $target->getId(),
+        ]);
+
+        if (!$favorite) {
+            return false;
+        }
+
+        $this->favoriteRepository->remove($favorite, true);
+
+        return true;
     }
 }
